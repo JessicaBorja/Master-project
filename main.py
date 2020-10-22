@@ -47,15 +47,15 @@ def main():
     hyperparameters["env"] = HalfCheetahBulletEnv(render = False) #gym.make(env_name)
     hyperparameters["eval_env"] = HalfCheetahBulletEnv(render = False)#gym.make(env_name)
     hyperparameters["model_name"] = "sac_halfCheetah"
-    #model = SAC(**hyperparameters)
-    #model.learn(**learn_configuration)
+    model = SAC(**hyperparameters)
+    model.learn(**learn_configuration)
 
     #Evaluation
-    env = HalfCheetahBulletEnv()
+    #eval_env = HalfCheetahBulletEnv()
     #env = HalfCheetahBulletEnv(renders = True)
     #env = gym.make(env_name)
-    model_name = "sac_halfCheetah_21-10_07-31_r-2516"
-    evaluate_trained(env, model_name, eval_config)
+    #model_name = "sac_halfCheetah_21-10_07-31_r-2516"
+    #evaluate_trained(env, model_name, eval_config)
 
 def evaluate_trained(env, model_name, eval_config):
     model = SAC(env)
@@ -67,6 +67,3 @@ def evaluate_trained(env, model_name, eval_config):
 
 if __name__ == "__main__":
     main()
-
-#action space: -1.0, 1.0, 7
-#obs space: -inf, inf, 55

@@ -6,6 +6,6 @@ SAC_2.pdf
 SAC.pdf
 logs/sb_best_model/best_model.zip
 AutoML_2020_paper_47.pdf
-.vscode/settings.json
+.vscode/
 logs/
 pybullet_exp.py

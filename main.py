@@ -1,34 +1,35 @@
-import pybullet as p
 import time
-import pybullet_data
 import gym
-from pybullet_envs.gym_manipulator_envs import ReacherBulletEnv, PusherBulletEnv
-from pybullet_envs.gym_locomotion_envs import HalfCheetahBulletEnv
-from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
+# import pybullet as p
+# import pybullet_data
+# from pybullet_envs.gym_manipulator_envs import ReacherBulletEnv, PusherBulletEnv
+# from pybullet_envs.gym_locomotion_envs import HalfCheetahBulletEnv
+# from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
+from gym.envs.mujoco import mujoco_env
+import mujoco_py
+
 from sac import SAC
 from datetime import datetime
 import time
 
 hyperparameters = {
-    "gamma": 0.99,
-    "learning_rate": 3e-4,
-    "ent_coef": 1,
-    "tau": 0.01,
-    "target_update_interval":1,
+    "gamma": 0.98,
+    "actor_lr": 3e-4, 
+    "critic_lr": 3e-4, 
+    "alpha_lr": 1e-5,
+    "ent_coef": "auto",
+    "tau": 0.02,
     "batch_size": 256,
     "buffer_size": 1e6,
     "train_freq": 1, #timesteps collectng data
     "gradient_steps": 1, #timesteps updating gradients
-    #Hard update:
-    # "tau": 1,
-    # "target_update_interval": 1000,
-    # "grad_steps": 4,
+    "learning_starts": 1000 #timesteps before starting updates
 }
 
 learn_configuration = {
-    "total_timesteps": int(2e6), #millon 1e6
-    "log_interval": 100000, #log timestep reward every log_interval steps
-    "max_episode_length": 1000, #max episode length
+    "total_timesteps": int(1e6), #millon 1e6
+    "log_interval": 1000, #log timestep reward every log_interval steps
+    #"max_episode_length": 1000, #max episode length
 }
 
 eval_config = {
@@ -43,10 +44,10 @@ def main():
     #env = gym.make("Pendulum-v0")
     #env = gym.make("ReacherBulletEnv-v0")
     #env_name = "HalfCheetahBulletEnv-v0"
-    env_name = "PusherBulletEnv-v0"
-    hyperparameters["env"] = HalfCheetahBulletEnv(render = False) #gym.make(env_name)
-    hyperparameters["eval_env"] = HalfCheetahBulletEnv(render = False)#gym.make(env_name)
-    hyperparameters["model_name"] = "sac_halfCheetah"
+    env_name = "Pusher-v2"
+    hyperparameters["env"] = gym.make(env_name)
+    hyperparameters["eval_env"] = gym.make(env_name)
+    hyperparameters["model_name"] = "sac_mujocoPusher"
     model = SAC(**hyperparameters)
     model.learn(**learn_configuration)
 

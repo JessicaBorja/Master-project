@@ -1,6 +1,6 @@
 from datetime import datetime
-import os
-import json
+import os, sys
+import json, pickle
 import numpy as np
 import torch
 import torchvision
@@ -15,8 +15,9 @@ from utils.utils import EpisodeStats, tt, soft_update
 from utils.networks import ActorNetwork, CriticNetwork, ValueNetwork
 
 class SAC():
-    def __init__(self, env, eval_env= None, gamma = 0.99, learning_rate = 3e-4, ent_coef = 1 , \
-                 tau = 0.005, train_freq = 1, gradient_steps = 1,\
+    def __init__(self, env, eval_env= None, gamma = 0.99, ent_coef = "auto" , \
+                 actor_lr = 1e-5, critic_lr = 1e-5, alpha_lr = 1e-5,
+                 tau = 0.005, train_freq = 1, gradient_steps = 1, learning_starts = 1000,\
                  target_update_interval = 1, batch_size = 256, buffer_size = 1e6, model_name = "sac"):
         self.env = env
         self.eval_env = eval_env
@@ -33,25 +34,30 @@ class SAC():
         self.target_update_interval = target_update_interval
 
         #networks
-        self.ent_coef = ent_coef #entropy coeficient
-        self.target_entropy = -np.prod(env.action_space.shape).item()  # heuristic value
-        self.log_ent_coef = torch.zeros(1, requires_grad=True, device="cuda")
-        self.ent_coef_optimizer = optim.Adam([self.log_ent_coef], lr = learning_rate)
+        if isinstance(ent_coef, str): #auto
+            self.ent_coef = 1 #entropy coeficient
+            self.target_entropy = -np.prod(env.action_space.shape).item()  # heuristic value
+            self.log_ent_coef = torch.zeros(1, requires_grad=True, device="cuda") #init value
+            self.ent_coef_optimizer = optim.Adam([self.log_ent_coef], lr = alpha_lr)
+        else:
+            self.ent_coef = ent_coef #entropy coeficient
+
+        self.learning_starts = learning_starts
 
         state_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
         self._actor = ActorNetwork(state_dim, action_dim).cuda()
-        self._actor_optimizer = optim.Adam(self._actor.parameters(), lr = learning_rate)
+        self._actor_optimizer = optim.Adam(self._actor.parameters(), lr = actor_lr)
 
         self._critic_1 = CriticNetwork(state_dim, action_dim ).cuda()
         self._critic_1_target = CriticNetwork(state_dim, action_dim ).cuda()
         self._critic_1_target.load_state_dict(self._critic_1.state_dict())
-        self._critic_1_optimizer = optim.Adam(self._critic_1.parameters(), lr = learning_rate)
+        self._critic_1_optimizer = optim.Adam(self._critic_1.parameters(), lr = critic_lr)
         
         self._critic_2 = CriticNetwork(state_dim, action_dim).cuda()
         self._critic_2_target = CriticNetwork(state_dim, action_dim ).cuda()
         self._critic_2_target.load_state_dict(self._critic_2.state_dict())
-        self._critic_2_optimizer = optim.Adam(self._critic_2.parameters(), lr = learning_rate)
+        self._critic_2_optimizer = optim.Adam(self._critic_2.parameters(), lr = critic_lr)
         
         self._loss_function = nn.MSELoss()
         #Summary Writer
@@ -59,18 +65,21 @@ class SAC():
             os.makedirs("./results")
         self.model_name = "{}_{}".format(model_name, datetime.now().strftime('%d-%m_%I-%M'))
         self.writer_name = "./results/{}".format(self.model_name)
-        self.eval_writer_name = "./results/%s_eval"%self.model_name
+        #self.eval_writer_name = "./results/%s_eval"%self.model_name
         self.trained_path = "./trained_models/{}".format(self.model_name)
     
-    def learn(self, total_timesteps = 10000, log_interval=100 , max_episode_length = 1e6):
+    def learn(self, total_timesteps = 10000, log_interval=100 , max_episode_length = None):
         stats = EpisodeStats(episode_lengths = [], episode_rewards = [])
-        eval_writer = SummaryWriter(self.eval_writer_name)
+        #eval_writer = SummaryWriter(self.eval_writer_name)
         writer = SummaryWriter(self.writer_name)
         episode = 0
         s = self.env.reset()
         episode_reward, episode_length, avg_reward = 0,0,0 #avg_reward over log_interval timesteps
         best_reward = -np.inf
-
+        if(max_episode_length is None):
+            max_episode_length = sys.maxsize #"infinite"
+        
+        losses = {"actor_loss": [] , "critic_loss": [], "ent_coef_loss": []}
         for t in range(1, total_timesteps+1):
             a = self._actor.predict(tt(s), self.env, deterministic = False)#sample action and scale it to action space
             a = a.cpu().detach().numpy()
@@ -81,8 +90,9 @@ class SAC():
             episode_reward +=r
             episode_length +=1           
             
+            
             #Replay buffer has enough data
-            if(self._replay_buffer.__len__()>= self.batch_size and not done):
+            if(self._replay_buffer.__len__()>= self.batch_size and not done and t>self.learning_starts):
                 sample = self._replay_buffer.sample(self.batch_size)
                 batch_states, batch_actions, batch_rewards, batch_next_states, batch_terminal_flags = sample
 
@@ -115,6 +125,7 @@ class SAC():
                         #nn.utils.clip_grad_norm_(self._critic_2.parameters(),1)
                         self._critic_2_optimizer.step()
 
+                        losses["critic_loss"] += [loss_c1.item(), loss_c2.item()]
                         #---------------- Policy network update -------------#
                         predicted_actions, log_probs = self._actor.sample(batch_states, reparameterize = True)
                         critic_value = torch.min(
@@ -125,6 +136,7 @@ class SAC():
                         policy_loss = (self.ent_coef * log_probs - critic_value).mean()
                         policy_loss.backward()
                         self._actor_optimizer.step()
+                        losses["actor_loss"].append(policy_loss.item())
 
                         #---------------- Entropy network update -------------#
                         self.ent_coef_optimizer.zero_grad()
@@ -132,12 +144,13 @@ class SAC():
                         ent_coef_loss.backward()
                         self.ent_coef_optimizer.step()
                         self.ent_coef = self.log_ent_coef.exp()
+                        losses["ent_coef_loss"].append(ent_coef_loss.item())
 
                         #------------------ Target Networks update -------------------#
                         soft_update(self._critic_1_target, self._critic_1, self.tau)
                         soft_update(self._critic_2_target, self._critic_2, self.tau)
 
-            if(done or episode_length >= max_episode_length): #End episode
+            if(done or (max_episode_length and (episode_length >= max_episode_length))): #End episode
                 stats.episode_lengths.append(episode_length)
                 stats.episode_rewards.append(episode_reward)
                 print("Episode %d: %d Steps, Reward: %.3f, total timesteps: %d/%d "%(episode, episode_length, episode_reward, t, total_timesteps))
@@ -145,11 +158,12 @@ class SAC():
                 writer.add_scalar('train/episode_reward', episode_reward, episode)
                 writer.add_scalar('train/episode_length', episode_length, episode)
 
-                if(episode_reward>best_reward and episode>20):#more than 50 episodes..
-                    if(episode_reward<0):
-                        self.save(self.trained_path+"_r-neg%d.pth"%(np.abs(round(episode_reward))))
-                    else:
-                        self.save(self.trained_path+"_r-%d.pth"%(round(episode_reward)))
+                if(episode_reward>best_reward): #and episode>20):
+                    # if(episode_reward<0):
+                    #     self.save(self.trained_path+"_r-neg%d.pth"%(np.abs(round(episode_reward))))
+                    # else:
+                    #     self.save(self.trained_path+"_r-%d.pth"%(round(episode_reward)))
+                    self.save(self.trained_path+"_best.pth")
                     best_reward = episode_reward
                 
                 #Reset everything
@@ -158,13 +172,14 @@ class SAC():
                 s = self.env.reset()
 
             if(t%log_interval==0):
-                if(episode<=0):
-                    avg_reward = np.sum(avg_reward)
-                else:
-                    avg_reward = avg_reward/episode #episode is a counter of how many episodes there are
-                writer.add_scalar('train/average_episode_reward', avg_reward, t)
+                for key,value in losses.items():
+                    if value: #not empty
+                        mean_loss = np.mean(value)
+                        writer.add_scalar("train/%s"%key, mean_loss, t)
+                
+                losses = {"actor_loss": [] , "critic_loss": [], "ent_coef_loss": []}
                 if(self.eval_env is not None):
-                    self.log_tensorboard(self.eval_env, eval_writer,step = t,\
+                    self.log_tensorboard_eval(self.eval_env, writer, step = t,\
                                         max_episode_length=max_episode_length, model_name=self.model_name) #timesteps in x axis
                 avg_reward = 0
 
@@ -174,11 +189,11 @@ class SAC():
         #self.save_stats(stats, self.writer_name)
         return stats
 
-    def log_tensorboard(self, env, writer, step, max_episode_length, model_name="sac", write_file = False):
-        mean_reward, mean_length = self.evaluate(env,max_episode_length=max_episode_length,\
+    def log_tensorboard_eval(self, env, writer, step, max_episode_length, model_name="sac", write_file = False):
+        mean_reward, mean_length = self.evaluate(env, max_episode_length=max_episode_length,\
                                                  model_name = model_name, write_file = write_file)
         writer.add_scalar('eval/mean_reward', mean_reward, step)
-        writer.add_scalar('eval/mean_length', mean_length, step)
+        writer.add_scalar('eval/mean_ep_length', mean_length, step)
 
     def evaluate(self, env, max_episode_length = 150, n_episodes = 10, model_name = "sac",\
                  print_all_episodes = False, write_file = True, render = False):

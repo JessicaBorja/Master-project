@@ -1,9 +1,9 @@
 import time
 import gym
-import pybullet as p
-import pybullet_data
-from pybullet_envs.gym_manipulator_envs import ReacherBulletEnv, PusherBulletEnv
-from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
+# import pybullet as p
+# import pybullet_data
+# from pybullet_envs.gym_manipulator_envs import ReacherBulletEnv, PusherBulletEnv
+# from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
 from stable_baselines3.sac import SAC
 from stable_baselines3.sac import MlpPolicy
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
@@ -21,7 +21,7 @@ hyperparameters = {
     "buffer_size": 50000,
     "train_freq": 1,
     "gradient_steps": 1,
-    "policy_kwargs": dict(layers=[256, 256])
+    "policy_kwargs": dict(net_arch=[256, 256])
 }
 
 learn_configuration = {
@@ -38,7 +38,7 @@ def main():
     #env = gym.make("PusherBulletEnv-v0")
     
     #model
-    env_name = "ReacherBulletEnv-v0"
+    env_name = "Pusher-v2"
     #env_name = "ReacherBulletEnv-v0"
     env = gym.make(env_name)
     checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./logs/')
@@ -48,7 +48,7 @@ def main():
                                 n_eval_episodes = 10, log_path='./logs/sb_reacher_results', eval_freq=1000)#eval_freq == steps
 
     model = SAC('MlpPolicy', env, tensorboard_log="./results/", verbose=1, **hyperparameters)
-    model.learn(callback=eval_callback, tb_log_name="sb_sac_reacher",
+    model.learn(callback=eval_callback, tb_log_name="sb_sac_%s"%env_name[:-3],
                 eval_log_path ="sb_reacher_eval", **learn_configuration)
 
 if __name__ == "__main__":

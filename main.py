@@ -1,4 +1,3 @@
-import time
 import gym
 # import pybullet as p
 # import pybullet_data
@@ -14,11 +13,11 @@ import time
 
 hyperparameters = {
     "gamma": 0.98,
-    "actor_lr": 3e-4, 
-    "critic_lr": 3e-4, 
-    "alpha_lr": 1e-5,
+    "actor_lr": 2e-5, 
+    "critic_lr": 1e-5, 
+    "alpha_lr": 6e-6,
     "ent_coef": "auto",
-    "tau": 0.02,
+    "tau": 0.01,
     "batch_size": 256,
     "buffer_size": 1e6,
     "train_freq": 1, #timesteps collectng data
@@ -34,13 +33,13 @@ learn_configuration = {
 
 eval_config = {
     "max_episode_length": 1000, 
-    "n_episodes": 100,
+    "n_episodes": 50,
     "render": False,
     "print_all_episodes": False,
-    "write_file": True,
+    "write_file": False,
 }
 
-def main():
+def train():
     #env = gym.make("Pendulum-v0")
     #env = gym.make("ReacherBulletEnv-v0")
     #env_name = "HalfCheetahBulletEnv-v0"
@@ -51,14 +50,11 @@ def main():
     model = SAC(**hyperparameters)
     model.learn(**learn_configuration)
 
-    #Evaluation
-    #eval_env = HalfCheetahBulletEnv()
-    #env = HalfCheetahBulletEnv(renders = True)
-    #env = gym.make(env_name)
-    #model_name = "sac_halfCheetah_21-10_07-31_r-2516"
-    #evaluate_trained(env, model_name, eval_config)
+def evaluate(eval_config):
+    env_name = "Pusher-v2"
+    env = gym.make(env_name)
+    model_name = "sac_mujocoPusher_08-11_02-56_best"
 
-def evaluate_trained(env, model_name, eval_config):
     model = SAC(env)
     success = model.load("./trained_models/%s.pth"%model_name)
     if(success):
@@ -67,4 +63,5 @@ def evaluate_trained(env, model_name, eval_config):
         model.evaluate(env, **eval_config)
 
 if __name__ == "__main__":
-    main()
+    train()
+    #evaluate(eval_config)

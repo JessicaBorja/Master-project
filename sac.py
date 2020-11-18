@@ -17,8 +17,8 @@ from utils.utils import EpisodeStats, tt, soft_update
 from utils.networks import ActorNetwork, CriticNetwork, ValueNetwork
 
 class SAC():
-    def __init__(self, env, eval_env= None, gamma = 0.99, ent_coef = "auto" , \
-                 actor_lr = 1e-5, critic_lr = 1e-5, alpha_lr = 1e-5,
+    def __init__(self, env, eval_env= None, gamma = 0.99, alpha = "auto" , \
+                 actor_lr = 1e-5, critic_lr = 1e-5, alpha_lr = 1e-5, hidden_dim = 256,
                  tau = 0.005, train_freq = 1, gradient_steps = 1, learning_starts = 1000,\
                  target_update_interval = 1, batch_size = 256, buffer_size = 1e6, model_name = "sac"):
         self.env = env
@@ -36,23 +36,24 @@ class SAC():
         self.target_update_interval = target_update_interval
 
         #networks
-        if isinstance(ent_coef, str): #auto
+        self._auto_entropy = False
+        if isinstance(alpha, str): #auto
+            self._auto_entropy = True
             self.ent_coef = 1 #entropy coeficient
             self.target_entropy = -np.prod(env.action_space.shape).item()  # heuristic value
             self.log_ent_coef = torch.zeros(1, requires_grad=True, device="cuda") #init value
             self.ent_coef_optimizer = optim.Adam([self.log_ent_coef], lr = alpha_lr)
         else:
-            self.ent_coef = ent_coef #entropy coeficient
+            self.ent_coef = alpha #entropy coeficient
 
         self.learning_starts = learning_starts
 
         state_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
         action_max = env.action_space.high[0]
-        self._pi = ActorNetwork(state_dim, action_dim, action_max=action_max, hidden_dim = 400).cuda()
+        self._pi = ActorNetwork(state_dim, action_dim, action_max=action_max, hidden_dim = hidden_dim).cuda()
         self._pi_optim = optim.Adam(self._pi.parameters(), lr = actor_lr)
 
-        hidden_dim = 300
         self._q1 = CriticNetwork(state_dim, action_dim,hidden_dim = hidden_dim).cuda()
         self._q1_target = CriticNetwork(state_dim, action_dim,hidden_dim = hidden_dim ).cuda()
         self._q1_target.load_state_dict(self._q1.state_dict())
@@ -74,6 +75,16 @@ class SAC():
         #self.eval_writer_name = "./results/%s_eval"%self.model_name
         self.trained_path = "./trained_models/{}".format(self.model_name)
     
+    def update_entropy(self, log_probs):
+        if( self._auto_entropy ):
+            self.ent_coef_optimizer.zero_grad()
+            ent_coef_loss = -(self.log_ent_coef * (log_probs + self.target_entropy).detach()).mean()
+            ent_coef_loss.backward()
+            self.ent_coef_optimizer.step()
+            self.ent_coef = self.log_ent_coef.exp()
+            return ent_coef_loss.item()
+        else:
+            return 0
     def learn(self, total_timesteps = 10000, log_interval=100 , max_episode_length = None):
         stats = EpisodeStats(episode_lengths = [], episode_rewards = [])
         #eval_writer = SummaryWriter(self.eval_writer_name)
@@ -149,13 +160,10 @@ class SAC():
                         losses["actor_loss"].append(policy_loss.item())
 
                         #---------------- Entropy network update -------------#
-                        self.ent_coef_optimizer.zero_grad()
-                        ent_coef_loss = -(self.log_ent_coef * (log_probs + self.target_entropy).detach()).mean()
-                        ent_coef_loss.backward()
-                        self.ent_coef_optimizer.step()
-                        self.ent_coef = self.log_ent_coef.exp()
-                        losses["ent_coef_loss"].append(ent_coef_loss.item())
-
+                        ent_coef_loss = self.update_entropy(log_probs)
+                        losses["ent_coef_loss"].append(ent_coef_loss)
+                        #losses["ent_coed"].append(self.ent_coef)
+                        
                         #------------------ Target Networks update -------------------#
                         soft_update(self._q1_target, self._q1, self.tau)
                         soft_update(self._q2_target, self._q2, self.tau)
@@ -251,8 +259,8 @@ class SAC():
         print("Mean reward: %.3f +/- %.3f , Mean length: %.3f +/- %.3f, over %d episodes"%(mean_reward, reward_std, mean_length, length_std, n_episodes))
         return mean_reward, mean_length
 
-    def save(self, path):  
-        torch.save({
+    def save(self, path):
+        save_dict = {
             'actor_dict': self._pi.state_dict(),
             'actor_optimizer_dict': self._pi_optim.state_dict(),
 
@@ -263,15 +271,13 @@ class SAC():
             'critic_2_dict': self._q2.state_dict(),
             'critic_2_target_dict': self._q2_target.state_dict(),
             'critic_2_optimizer_dict': self._q2_optimizer.state_dict(),
-            
             'critics_optim': self._q_optim.state_dict(),
-
-            'ent_coef': self.ent_coef,
-            'ent_coef_optimizer_dict': self.ent_coef_optimizer.state_dict(),
-            # 'value_dict': self._critic.state_dict(),
-            # 'value_target_dict': self._qtarget.state_dict(),
-            # 'value_optimizer_dict': self._qoptimizer.state_dict()
-            }, path)
+            
+            'ent_coef': self.ent_coef}
+        if self._auto_entropy:
+            save_dict['ent_coef_optimizer'] = self.ent_coef_optimizer.state_dict()
+        
+        torch.save(save_dict, path)
   
     def load(self, path):
         if os.path.isfile(path):

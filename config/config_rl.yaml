@@ -1,0 +1,100 @@
+load_dir: ???
+data_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
+save_dir: ./hydra_outputs/
+show_gui: false
+processes: 1
+
+agent:
+  save_dir: "./trained_models"
+  hyperparameters:
+      gamma: 0.99
+      actor_lr: 1e-6
+      critic_lr: 0.00035 
+      alpha_lr: 1e-6
+      alpha: "auto" #"auto",
+      tau: 0.008
+      batch_size: 256
+      buffer_size: 1e6
+      train_freq: 1 #timesteps collectng data
+      gradient_steps: 1 #timesteps updating gradients
+      learning_starts: 1000 #timesteps before starting updates
+      hidden_dim: 470
+
+  learn_configuration:
+      total_timesteps: 1e6 #millon 1e6
+      log_interval: 1000 #log timestep reward every log_interval steps
+      max_episode_length: 150 #max episode length
+
+static_camera:
+  _target_: VREnv.src.camera.static_camera.StaticCamera
+  fov: 75
+  aspect: 1
+  nearval: 0.01
+  farval: 2
+  width: 300
+  height: 300
+  look_at: [0.1, 0.8, 0.7]
+  look_from: [0.3, -0.2, 1.3]
+
+gripper_camera:
+  _target_: VREnv.src.camera.gripper_camera.GripperCamera
+  fov: 75
+  aspect: 1
+  nearval: 0.01
+  farval: 2
+  width: 300
+  height: 300
+  robot_id: 7
+  gripper_cam_link: 12
+
+env:
+  #_target_: VREnv.src.envs.play_table_env.PlayTableSimEnv
+  cameras: ['${static_camera}', '${gripper_camera}']
+  seed: 0
+  bullet_time_step: 240.0
+  global_scaling: 0.8
+  use_vr: false
+  show_gui: ${show_gui}
+  robot_cfg: ${robot}
+  scene_file: basic_playtable.json
+  data_path: ${data_path}
+
+eval_env:
+  #_target_: VREnv.src.envs.play_table_env.PlayTableSimEnv
+  cameras: ['${static_camera}', '${gripper_camera}']
+  seed: 0
+  bullet_time_step: 240.0
+  global_scaling: 0.8
+  use_vr: false
+  show_gui: false
+  robot_cfg: ${robot}
+  scene_file: basic_playtable.json
+  data_path: ${data_path}
+
+robot:
+  _target_: VREnv.src.robot.debug_robot.Robot
+  #config:
+  filename: franka_panda/panda.urdf
+  base_position: [0.3, -0.15, 0.6]
+  base_orientation: [0, 0, 1.5707963]
+  initial_joint_positions: [-1.4653239989567401, 1.4817260599394233, 1.525733453119315, -2.435192704551518, -1.809600862016179, 1.8558817172819435, -1.23183583862092]
+  max_joint_force: 200.0
+  gripper_orientation_offset: [ 0, 3, 0.7853981633974483 ]
+  limit_angle: [ 90, 0, 0, -1 ]
+  constraint_force: 1000
+  arm_joint_ids: [0, 1, 2, 3, 4, 5, 6]
+  gripper_joint_ids: [9, 10]
+  gripper_joint_limits: [0, 0.04]
+  tcp_link_id: 13
+  end_effector_link_id: 7
+  use_nullspace: true
+  max_velocity: 2
+  use_ik_fast: false
+
+hydra:
+  run:
+    dir: ${save_dir}./${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+defaults:
+  - hydra/job_logging: colorlog
+  - hydra/hydra_logging: colorlog

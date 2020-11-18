@@ -1,16 +1,6 @@
-import gym
-# import pybullet as p
-# import pybullet_data
-# from pybullet_envs.gym_manipulator_envs import ReacherBulletEnv, PusherBulletEnv
-# from pybullet_envs.gym_locomotion_envs import HalfCheetahBulletEnv
-# from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
-from gym.envs.mujoco import mujoco_env
-import mujoco_py
+
 import numpy as np
 from sac import SAC
-from datetime import datetime
-import time
-from utils.networks import ActorNetwork, CriticNetwork
 import os, pickle
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
@@ -18,8 +8,26 @@ from hpbandster.core.worker import Worker
 import hpbandster.core.nameserver as hpns
 import hpbandster.core.result as hpres
 from hpbandster.optimizers import BOHB
-import logging
-from sac import SAC
+import logging, yaml
+import gym
+# import pybullet as p
+# import pybullet_data
+# from pybullet_envs.gym_manipulator_envs import ReacherBulletEnv, PusherBulletEnv
+# from pybullet_envs.gym_locomotion_envs import HalfCheetahBulletEnv
+# from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
+# from gym.envs.mujoco import mujoco_env
+# import mujoco_py
+import hydra
+import os,sys,inspect
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir) 
+sys.path.insert(0, parent_dir+"/VREnv/") 
+gym.envs.register(
+     id='VREnv-v0',
+     entry_point='VREnv.src.envs.play_table_env:PlayTableSimEnv',
+     max_episode_steps=200,
+)
 
 class SACWorker(Worker):
     def __init__(self, hyperparameters, eval_config, learn_config, run_id, nameserver):
@@ -35,7 +43,7 @@ class SACWorker(Worker):
         The input parameter "config" (dictionary) contains the sampled configurations passed by the bohb optimizer
         """
         model = SAC(**config, **self.hyperparameters)
-        stats = model.learn(total_timesteps = int(budget), **learn_config)
+        stats = model.learn(total_timesteps = int(budget), **self.learn_config)
         train_reward = np.max(stats.episode_rewards)
         eval_mean_reward, _ = model.evaluate(model.eval_env, **self.eval_config)
 
@@ -60,52 +68,29 @@ class SACWorker(Worker):
         #alpha = CSH.UniformFloatHyperparameter('alpha', lower=0.01, upper=0.7)
         tau = CSH.UniformFloatHyperparameter('tau', lower=0.001, upper=0.02)
         batch_size = CSH.UniformIntegerHyperparameter('batch_size', lower=128, upper=256)
-        hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=256, upper=512)
+        #hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=256, upper=512)
 
-        cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr, tau, batch_size, hidden_dim])
+        cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr, tau, batch_size])
         return cs
 
 def optimize(trial_name, hyperparameters, eval_config, learn_config,\
                 max_budget = 250000, min_budget = 50000, n_iterations = 4):  
-    # Step 1: Start a nameserver
-    # Every run needs a nameserver. It could be a 'static' server with a
-    # permanent address, but here it will be started for the local machine with the default port.
-    # The nameserver manages the concurrent running workers across all possible threads or clusternodes.
-    # Note the run_id argument. This uniquely identifies a run of any HpBandSter optimizer.
+
     NS = hpns.NameServer(run_id='sac_hpo', host='127.0.0.1', port=None)
     NS.start()
-
-    # Step 2: Start a worker
-    # Now we can instantiate a worker, providing the mandatory information
-    # Besides the sleep_interval, we need to define the nameserver information and
-    # the same run_id as above. After that, we can start the worker in the background,
-    # where it will wait for incoming configurations to evaluate.
     w = SACWorker(hyperparameters, eval_config, learn_config, nameserver='127.0.0.1', run_id='sac_hpo')
     w.run(background=True)
-
-    # Step 3: Run an optimizer
-    # Now we can create an optimizer object and start the run.
-    # Here, we run BOHB, but that is not essential.
-    # The run method will return the `Result` that contains all runs performed.
     bohb = BOHB(  configspace = w.get_configspace(),
             run_id = 'sac_hpo', nameserver='127.0.0.1',
             min_budget=min_budget, max_budget=max_budget
         )
     res = bohb.run(n_iterations=n_iterations)
-    
     # store results
     with open(os.path.join("./optimization_results/", "%s.pkl"%trial_name), 'wb') as fh:
         pickle.dump(res, fh)
-    # Step 4: Shutdown
-    # After the optimizer run, we must shutdown the master and the nameserver.
+
     bohb.shutdown(shutdown_workers=True)
     NS.shutdown()
-
-    # Step 5: Analysis
-    # Each optimizer returns a hpbandster.core.result.Result object.
-    # It holds informations about the optimization run like the incumbent (=best) configuration.
-    # For further details about the Result object, see its documentation.
-    # Here we simply print out the best config and some statistics about the performed runs.
     id2config = res.get_id2config_mapping()
     incumbent = res.get_incumbent_id()
 
@@ -117,7 +102,20 @@ def read_results(name):
     incumbent = res.get_incumbent_id()
     print(id2config[incumbent])
 
-if __name__ == "__main__":
+def load_env_config(config_path = "./config/config.yaml"):
+    config  = yaml.load(open(config_path, 'r'))
+    return config["env"]
+
+def load_agent_config(config_path = "./config/config.yaml"):
+    config  = yaml.load(open(config_path, 'r'))
+    agent_config =  config["agent"]["hyperparameters"]
+    agent_config["save_dir"] =  config["agent"]["save_dir"]
+    learn_config = config["agent"]["learn_configuration"]
+    return agent_config, learn_config
+
+@hydra.main(config_path="./config", config_name="config_env")
+def optim_vrenv(cfg):
+    model_name = "sac_vrenv200steps"
     hyperparameters = {
         "gamma": 0.98,
         "buffer_size": 1e6,
@@ -125,7 +123,32 @@ if __name__ == "__main__":
         "gradient_steps": 1, #timesteps updating gradients
         "learning_starts": 1000, #timesteps before starting updates
     }
+    eval_config = {
+        "max_episode_length": 200, 
+        "n_episodes": 50,
+        "render": False,
+        "print_all_episodes": False,
+        "write_file": False,
+    }
+    learn_configuration = {
+        "log_interval": 1000, #log timestep reward every log_interval steps
+        "max_episode_length": 200, #max episode length
+    }
+    hyperparameters["env"] = gym.make("VREnv-v0", **cfg.env).env
+    hyperparameters["eval_env"] = gym.make("VREnv-v0", **cfg.eval_env).env
+    hyperparameters["model_name"] = model_name
+    
+    optimize(model_name, hyperparameters, eval_config, learn_configuration)
+    read_results("%s.pkl"%model_name)
 
+def optim_gymenv(env_name, model_name):
+    hyperparameters = {
+        "gamma": 0.98,
+        "buffer_size": 1e6,
+        "train_freq": 1, #timesteps collectng data
+        "gradient_steps": 1, #timesteps updating gradients
+        "learning_starts": 1000, #timesteps before starting updates
+    }
     eval_config = {
         "max_episode_length": 1000, 
         "n_episodes": 50,
@@ -133,16 +156,19 @@ if __name__ == "__main__":
         "print_all_episodes": False,
         "write_file": False,
     }
-
     learn_configuration = {
         "log_interval": 1000, #log timestep reward every log_interval steps
         "max_episode_length": 200, #max episode length
     }
-
-    env_name = "Pusher-v2"
     hyperparameters["env"] = gym.make(env_name).env
     hyperparameters["eval_env"] = gym.make(env_name).env
-    hyperparameters["model_name"] = "sac_mujocoPusher_200steps"
+    hyperparameters["model_name"] = model_name
     
-    optimize("sac_mujocoPusher_200steps", hyperparameters, eval_config, learn_configuration)
-    read_results("sac_mujocoPusher_200steps.pkl")
+    optimize(model_name, hyperparameters, eval_config, learn_configuration)
+    read_results("%s.pkl"%model_name)
+
+if __name__ == "__main__":
+    # env_name = "Pusher-v2"
+    # model_name = "sac_vrenv200steps"
+    #optim_gymenv(env_name, model_name)
+    optim_vrenv()

@@ -7,7 +7,7 @@ from gym.wrappers.monitoring.video_recorder import VideoRecorder
 # from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
 from gym.envs.mujoco import mujoco_env
 import mujoco_py
-
+from utils.utils import read_optim_results
 from sac import SAC
 from datetime import datetime
 import time, os, pickle
@@ -33,45 +33,14 @@ learn_configuration = {
     "max_episode_length": 200, #max episode length
 }
 
-def train():
-    #env = gym.make("Pendulum-v0")
-    #env = gym.make("ReacherBulletEnv-v0")
-    #env_name = "HalfCheetahBulletEnv-v0"
-    env_name = "Pusher-v2"
+def train(env_name):
     hyperparameters["env"] = gym.make(env_name).env
     hyperparameters["eval_env"] = gym.make(env_name).env
     hyperparameters["model_name"] = "sac_mujocoPusher"
     model = SAC(**hyperparameters)
     model.learn(**learn_configuration)
-
-def evaluate(eval_config, model_name):
-    env_name = "Pusher-v2"
-    env = gym.make(env_name).env
-
-    model = SAC(env, hidden_dim=470)
-    success = model.load("./trained_models/%s.pth"%model_name)
-    if(success):
-        model_name = model_name.split("_r-")[0]#take model name, remove reward
-        eval_config["model_name"] = model_name
-        model.evaluate(env, **eval_config)
-
-def read_optim_results(name):
-    with open(os.path.join("./optimization_results/", name), 'rb') as fh:
-        res = pickle.load(fh)
-
-    id2config = res.get_id2config_mapping()
-    incumbent = res.get_incumbent_id()
-    print(id2config[incumbent])
-
+    
 if __name__ == "__main__":
-    #train()
+    env_name = "Pusher-v2"
+    train(env_name)
     #read_optim_results("sac_mujocoPusher2.pkl")
-    eval_config = {
-        "n_episodes": 20,
-        "render": True,
-        "print_all_episodes": False,
-        "write_file": False,
-        "max_episode_length": 100,
-    }
-    model_name = "sac_mujocoPusher_10-11_07-46_best_eval"
-    evaluate(eval_config, model_name)

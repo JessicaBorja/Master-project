@@ -15,12 +15,16 @@ import time
 from utils.replay_buffer import ReplayBuffer
 from utils.utils import EpisodeStats, tt, soft_update
 from utils.networks import ActorNetwork, CriticNetwork, ValueNetwork
+import logging
+# A logger for this file
+log = logging.getLogger(__name__)
 
 class SAC():
-    def __init__(self, env, eval_env= None, gamma = 0.99, alpha = "auto" , \
+    def __init__(self, env, eval_env= None, save_dir = "./trained_models", gamma = 0.99, alpha = "auto" , \
                  actor_lr = 1e-5, critic_lr = 1e-5, alpha_lr = 1e-5, hidden_dim = 256,
                  tau = 0.005, train_freq = 1, gradient_steps = 1, learning_starts = 1000,\
                  target_update_interval = 1, batch_size = 256, buffer_size = 1e6, model_name = "sac"):
+        self.save_dir = save_dir
         self.env = env
         self.eval_env = eval_env
         #Replay buffer
@@ -70,10 +74,13 @@ class SAC():
         #Summary Writer
         if not os.path.exists("./results"):
             os.makedirs("./results")
+        #models folder
+        if not os.path.exists(save_dir): 
+            os.makedirs(save_dir)
         self.model_name = "{}_{}".format(model_name, datetime.now().strftime('%d-%m_%I-%M'))
         self.writer_name = "./results/{}".format(self.model_name)
         #self.eval_writer_name = "./results/%s_eval"%self.model_name
-        self.trained_path = "./trained_models/{}".format(self.model_name)
+        self.trained_path = "{}/{}".format(self.save_dir, self.model_name)
     
     def update_entropy(self, log_probs):
         if( self._auto_entropy ):
@@ -86,6 +93,8 @@ class SAC():
         else:
             return 0
     def learn(self, total_timesteps = 10000, log_interval=100 , max_episode_length = None):
+        if not isinstance(total_timesteps, int): #auto
+            total_timesteps =  int(total_timesteps)
         stats = EpisodeStats(episode_lengths = [], episode_rewards = [])
         #eval_writer = SummaryWriter(self.eval_writer_name)
         writer = SummaryWriter(self.writer_name)
@@ -100,7 +109,9 @@ class SAC():
         for t in range(1, total_timesteps+1):
             a, _ = self._pi.act(tt(s), deterministic = False)#sample action and scale it to action space
             a = a.cpu().detach().numpy()
-            ns, r, done, _ = self.env.step(a)
+            ns, r, done, info = self.env.step(a)
+            # if(info):
+            #     print(info)
             self._replay_buffer.add_transition(s, a, r, ns, done)
             s = ns
             avg_reward+=r
@@ -171,7 +182,7 @@ class SAC():
             if(done or (max_episode_length and (episode_length >= max_episode_length))): #End episode
                 stats.episode_lengths.append(episode_length)
                 stats.episode_rewards.append(episode_reward)
-                print("Episode %d: %d Steps, Reward: %.3f, total timesteps: %d/%d "%(episode, episode_length, episode_reward, t, total_timesteps))
+                log.info("Episode %d: %d Steps, Reward: %.3f, total timesteps: %d/%d "%(episode, episode_length, episode_reward, t, total_timesteps))
                 #Summary Writer
                 writer.add_scalar('train/episode_reward', episode_reward, episode)
                 writer.add_scalar('train/episode_length', episode_length, episode)
@@ -181,7 +192,7 @@ class SAC():
                     #     self.save(self.trained_path+"_r-neg%d.pth"%(np.abs(round(episode_reward))))
                     # else:
                     #     self.save(self.trained_path+"_r-%d.pth"%(round(episode_reward)))
-                    print("New best train ep. reward!%.3f"%episode_reward)
+                    log.info("[%d] New best train ep. reward!%.3f"%(episode, episode_reward))
                     self.save(self.trained_path+"_best.pth")
                     best_reward = episode_reward
                 
@@ -200,7 +211,7 @@ class SAC():
                 if(self.eval_env is not None):
                     mean_reward, mean_length = self.evaluate(self.eval_env, max_episode_length, model_name = self.model_name)
                     if(mean_reward > best_eval_reward):
-                        print("New best eval reward!%.3f"%mean_reward)
+                        log.info("[%d] New best eval reward!%.3f"%(episode, mean_reward))
                         self.save(self.trained_path+"_best_eval.pth")
                         best_eval_reward = mean_reward
                     writer.add_scalar('eval/mean_reward', mean_reward, t)
@@ -210,7 +221,7 @@ class SAC():
                 avg_reward = 0
 
         if(self.eval_env is not None):
-            print("End of training evaluation:")
+            log.info("End of training evaluation:")
             self.evaluate(self.eval_env, model_name = self.model_name, print_all_episodes = True)
         #self.save_stats(stats, self.writer_name)
         return stats
@@ -231,7 +242,7 @@ class SAC():
             while( episode_length < max_episode_length and not done):
                 a, _ = self._pi.act(tt(s), deterministic = True)#sample action and scale it to action space
                 a = a.cpu().detach().numpy()
-                ns, r, done, _ = env.step(a)
+                ns, r, done, info = env.step(a)
                 if(render):
                     env.render()
                 s = ns
@@ -276,7 +287,6 @@ class SAC():
             'ent_coef': self.ent_coef}
         if self._auto_entropy:
             save_dict['ent_coef_optimizer'] = self.ent_coef_optimizer.state_dict()
-        
         torch.save(save_dict, path)
   
     def load(self, path):

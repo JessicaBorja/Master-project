@@ -182,9 +182,9 @@ class SAC():
             if(done or (max_episode_length and (episode_length >= max_episode_length))): #End episode
                 stats.episode_lengths.append(episode_length)
                 stats.episode_rewards.append(episode_reward)
-                log.info("Episode %d: %d Steps, Reward: %.3f, total timesteps: %d/%d "%(episode, episode_length, episode_reward, t, total_timesteps))
+                log.info("Episode %d: %d Steps, Return: %.3f, total timesteps: %d/%d "%(episode, episode_length, episode_reward, t, total_timesteps))
                 #Summary Writer
-                writer.add_scalar('train/episode_reward', episode_reward, episode)
+                writer.add_scalar('train/episode_return', episode_reward, episode)
                 writer.add_scalar('train/episode_length', episode_length, episode)
 
                 if(episode_reward>best_reward): #and episode>20):
@@ -192,7 +192,7 @@ class SAC():
                     #     self.save(self.trained_path+"_r-neg%d.pth"%(np.abs(round(episode_reward))))
                     # else:
                     #     self.save(self.trained_path+"_r-%d.pth"%(round(episode_reward)))
-                    log.info("[%d] New best train ep. reward!%.3f"%(episode, episode_reward))
+                    log.info("[%d] New best train ep. return!%.3f"%(episode, episode_reward))
                     self.save(self.trained_path+"_best.pth")
                     best_reward = episode_reward
                 
@@ -211,10 +211,10 @@ class SAC():
                 if(self.eval_env is not None):
                     mean_reward, mean_length = self.evaluate(self.eval_env, max_episode_length, model_name = self.model_name)
                     if(mean_reward > best_eval_reward):
-                        log.info("[%d] New best eval reward!%.3f"%(episode, mean_reward))
+                        log.info("[%d] New best eval avg. return!%.3f"%(episode, mean_reward))
                         self.save(self.trained_path+"_best_eval.pth")
                         best_eval_reward = mean_reward
-                    writer.add_scalar('eval/mean_reward', mean_reward, t)
+                    writer.add_scalar('eval/mean_return(10ep)', mean_reward, t)
                     writer.add_scalar('eval/mean_ep_length', mean_length, t)
                     # self.log_tensorboard_eval(self.eval_env, writer, step = t,\
                     #                     max_episode_length=max_episode_length, model_name=self.model_name) #timesteps in x axis
@@ -229,7 +229,7 @@ class SAC():
     def log_tensorboard_eval(self, env, writer, step, max_episode_length, model_name="sac", write_file = False):
         mean_reward, mean_length = self.evaluate(env, max_episode_length=max_episode_length,\
                                                  model_name = model_name, write_file = write_file)
-        writer.add_scalar('eval/mean_reward', mean_reward, step)
+        writer.add_scalar('eval/mean_return(10ep)', mean_reward, step)
         writer.add_scalar('eval/mean_ep_length', mean_length, step)
 
     def evaluate(self, env, max_episode_length = 150, n_episodes = 10, model_name = "sac",\
@@ -251,7 +251,7 @@ class SAC():
             stats.episode_rewards.append(episode_reward)
             stats.episode_lengths.append(episode_length)
             if(print_all_episodes):
-                print("Episode %d, Reward: %.3f"%(episode, episode_reward))
+                print("Episode %d, Return: %.3f"%(episode, episode_reward))
         #mean and print
         mean_reward = np.mean(stats.episode_rewards)
         reward_std = np.std(stats.episode_rewards)
@@ -262,12 +262,12 @@ class SAC():
         if(write_file):
             file_name = "./results/%s_eval.json"%model_name
             with open(file_name, 'w') as fp:
-                itemlist = {"episode_rewards: ": stats.episode_rewards,
+                itemlist = {"episode_returns: ": stats.episode_rewards,
                             "episode_lengths: ": stats.episode_lengths}
                 json.dump(itemlist, fp)
             print("Evaluation results file at: %s"%os.path.abspath(file_name))
 
-        print("Mean reward: %.3f +/- %.3f , Mean length: %.3f +/- %.3f, over %d episodes"%(mean_reward, reward_std, mean_length, length_std, n_episodes))
+        print("Mean return: %.3f +/- %.3f , Mean length: %.3f +/- %.3f, over %d episodes"%(mean_reward, reward_std, mean_length, length_std, n_episodes))
         return mean_reward, mean_length
 
     def save(self, path):

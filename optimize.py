@@ -74,7 +74,7 @@ class SACWorker(Worker):
         return cs
 
 def optimize(trial_name, hyperparameters, eval_config, learn_config,\
-                max_budget = 250000, min_budget = 50000, n_iterations = 4):  
+                max_budget = 250000, min_budget = 50000, n_iterations = 3):  
 
     NS = hpns.NameServer(run_id='sac_hpo', host='127.0.0.1', port=None)
     NS.start()
@@ -93,6 +93,7 @@ def optimize(trial_name, hyperparameters, eval_config, learn_config,\
     NS.shutdown()
     id2config = res.get_id2config_mapping()
     incumbent = res.get_incumbent_id()
+    print("incumbent: ", incumbent)
 
 def read_results(name):
     with open(os.path.join("./optimization_results/", name), 'rb') as fh:
@@ -138,7 +139,8 @@ def optim_vrenv(cfg):
     hyperparameters["eval_env"] = gym.make("VREnv-v0", **cfg.eval_env).env
     hyperparameters["model_name"] = model_name
     
-    optimize(model_name, hyperparameters, eval_config, learn_configuration)
+    optimize(model_name, hyperparameters, eval_config, learn_configuration,\
+             max_budget = 100000, min_budget = 20000,)
     read_results("%s.pkl"%model_name)
 
 def optim_gymenv(env_name, model_name):

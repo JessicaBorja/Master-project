@@ -1,0 +1,20 @@
+# @package _group_
+save_dir: "./trained_models"
+hyperparameters:
+    gamma: 0.99
+    actor_lr: 1e-6
+    critic_lr: 0.00035 
+    alpha_lr: 1e-6
+    alpha: "auto" #"auto",
+    tau: 0.008
+    batch_size: 256
+    buffer_size: 1e6
+    train_freq: 1 #timesteps collectng data
+    gradient_steps: 1 #timesteps updating gradients
+    learning_starts: 1000 #timesteps before starting updates
+    hidden_dim: 470
+
+learn_configuration:
+    total_timesteps: 1e6 #millon 1e6
+    log_interval: 1000 #log timestep reward every log_interval steps
+    max_episode_length: 150 #max episode length

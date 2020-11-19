@@ -30,6 +30,7 @@ def main(cfg):
     eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
     #training_env = hydra.utils.instantiate(cfg.env)
     #eval_env = hydra.utils.instantiate(cfg.eval_env)
+    
     model_name = "sac_VREnv"
     model = SAC(env = training_env, eval_env = eval_env, model_name = model_name,\
                 save_dir = cfg.agent.save_dir, **cfg.agent.hyperparameters)

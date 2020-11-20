@@ -266,7 +266,8 @@ class SAC():
                             "episode_lengths: ": stats.episode_lengths}
                 json.dump(itemlist, fp)
             print("Evaluation results file at: %s"%os.path.abspath(file_name))
-
+        
+        log.info("Mean return: %.3f +/- %.3f , Mean length: %.3f +/- %.3f, over %d episodes"%(mean_reward, reward_std, mean_length, length_std, n_episodes))
         print("Mean return: %.3f +/- %.3f , Mean length: %.3f +/- %.3f, over %d episodes"%(mean_reward, reward_std, mean_length, length_std, n_episodes))
         return mean_reward, mean_length
 

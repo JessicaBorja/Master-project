@@ -118,7 +118,7 @@ def load_agent_config(config_path = "./config/config.yaml"):
 
 @hydra.main(config_path="./config", config_name="config_rl")
 def optim_vrenv(cfg):
-    model_name = "sac_vrenv200steps"
+    model_name = "sac_vrenv_optim"
     hyperparameters = cfg.optim.hyperparameters
     learn_config = cfg.optim.learn_config
     eval_config =  cfg.optim.eval_config
@@ -128,7 +128,7 @@ def optim_vrenv(cfg):
     hp["model_name"] = model_name
     hp = {**hyperparameters, **hp}
     optimize(model_name, hp, eval_config, learn_config,\
-             max_budget = 200000, min_budget = 50000,)
+             max_budget = 500000, min_budget = 50000)
     read_results("%s.pkl"%model_name)
 
 def optim_gymenv(env_name, model_name):

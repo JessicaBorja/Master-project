@@ -37,11 +37,6 @@ class SACWorker(Worker):
         self.learn_config = learn_config
     
     def compute(self, config, budget, working_directory, *args, **kwargs):
-        """
-        Simple example for a compute function using a feed forward network.
-        It is trained on the MNIST dataset.
-        The input parameter "config" (dictionary) contains the sampled configurations passed by the bohb optimizer
-        """
         model = SAC(**config, **self.hyperparameters)
         stats = model.learn(total_timesteps = int(budget), **self.learn_config)
         train_reward = np.max(stats.episode_rewards)
@@ -70,7 +65,7 @@ class SACWorker(Worker):
         batch_size = CSH.UniformIntegerHyperparameter('batch_size', lower=128, upper=256)
         hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=256, upper=512)
 
-        cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr, tau, batch_size])
+        cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr, tau, batch_size, hidden_dim])
         return cs
 
 def optimize(trial_name, hyperparameters, eval_config, learn_config,\

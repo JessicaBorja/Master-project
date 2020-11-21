@@ -35,7 +35,7 @@ def evaluate(eval_config, model_name):
 def load_config(model_name, folder_name):
     path = "./hydra_outputs/%s/.hydra/config.yaml"%(folder_name)
     path = os.path.abspath(path)
-    cfg = yaml.load(open(path,'r'))
+    cfg = yaml.load(open(path,'r'), Loader=yaml.FullLoader)
     eval_env_cfg = cfg["eval_env"]
     agent_cfg = cfg["agent"]["hyperparameters"]
     eval_env_cfg["cameras"].pop()
@@ -58,11 +58,11 @@ def evaluateVRenv(eval_config, model_name, hydra_folderpath):
 if __name__ == "__main__":
     #read_optim_results("sac_mujocoPusher2.pkl")
     eval_config = {
-        "n_episodes": 20,
+        "n_episodes": 5,
         "render": True,
         "print_all_episodes": True,
         "write_file": False,
-        "max_episode_length": 100,
+        "max_episode_length": 1000,
     }
     model_name = "sac_VREnv_20-11_02-04_best_eval"
     folder_name = "2020-11-20/02-04-09"

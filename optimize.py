@@ -62,13 +62,13 @@ class SACWorker(Worker):
         :return: ConfigurationsSpace-Object
         """
         cs = CS.ConfigurationSpace()
-        actor_lr = CSH.UniformFloatHyperparameter('actor_lr', lower=1e-6, upper=1e-3, log=True)
-        critic_lr = CSH.UniformFloatHyperparameter('critic_lr', lower=1e-6, upper=1e-3, log=True)
-        alpha_lr = CSH.UniformFloatHyperparameter('alpha_lr', lower=1e-6, upper=1e-3, log=True)
+        actor_lr = CSH.UniformFloatHyperparameter('actor_lr', lower=1e-6, upper=1e-2, log=True)
+        critic_lr = CSH.UniformFloatHyperparameter('critic_lr', lower=1e-6, upper=1e-2, log=True)
+        alpha_lr = CSH.UniformFloatHyperparameter('alpha_lr', lower=1e-6, upper=1e-2, log=True)
         #alpha = CSH.UniformFloatHyperparameter('alpha', lower=0.01, upper=0.7)
         tau = CSH.UniformFloatHyperparameter('tau', lower=0.001, upper=0.02)
         batch_size = CSH.UniformIntegerHyperparameter('batch_size', lower=128, upper=256)
-        #hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=256, upper=512)
+        hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=256, upper=512)
 
         cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr, tau, batch_size])
         return cs
@@ -86,6 +86,8 @@ def optimize(trial_name, hyperparameters, eval_config, learn_config,\
         )
     res = bohb.run(n_iterations=n_iterations)
     # store results
+    if not os.path.exists("./optimization_results/"): 
+            os.makedirs("./optimization_results/")
     with open(os.path.join("./optimization_results/", "%s.pkl"%trial_name), 'wb') as fh:
         pickle.dump(res, fh)
 
@@ -114,33 +116,19 @@ def load_agent_config(config_path = "./config/config.yaml"):
     learn_config = config["agent"]["learn_configuration"]
     return agent_config, learn_config
 
-@hydra.main(config_path="./config", config_name="config_env")
+@hydra.main(config_path="./config", config_name="config_rl")
 def optim_vrenv(cfg):
     model_name = "sac_vrenv200steps"
-    hyperparameters = {
-        "gamma": 0.98,
-        "buffer_size": 1e6,
-        "train_freq": 1, #timesteps collectng data
-        "gradient_steps": 1, #timesteps updating gradients
-        "learning_starts": 1000, #timesteps before starting updates
-    }
-    eval_config = {
-        "max_episode_length": 200, 
-        "n_episodes": 50,
-        "render": False,
-        "print_all_episodes": False,
-        "write_file": False,
-    }
-    learn_configuration = {
-        "log_interval": 1000, #log timestep reward every log_interval steps
-        "max_episode_length": 200, #max episode length
-    }
-    hyperparameters["env"] = gym.make("VREnv-v0", **cfg.env).env
-    hyperparameters["eval_env"] = gym.make("VREnv-v0", **cfg.eval_env).env
-    hyperparameters["model_name"] = model_name
-    
-    optimize(model_name, hyperparameters, eval_config, learn_configuration,\
-             max_budget = 100000, min_budget = 20000,)
+    hyperparameters = cfg.optim.hyperparameters
+    learn_config = cfg.optim.learn_config
+    eval_config =  cfg.optim.eval_config
+    hp = {}
+    hp["env"] = gym.make("VREnv-v0", **cfg.env).env
+    hp["eval_env"] = gym.make("VREnv-v0", **cfg.eval_env).env
+    hp["model_name"] = model_name
+    hp = {**hyperparameters, **hp}
+    optimize(model_name, hp, eval_config, learn_config,\
+             max_budget = 200000, min_budget = 50000,)
     read_results("%s.pkl"%model_name)
 
 def optim_gymenv(env_name, model_name):
@@ -166,7 +154,8 @@ def optim_gymenv(env_name, model_name):
     hyperparameters["eval_env"] = gym.make(env_name).env
     hyperparameters["model_name"] = model_name
     
-    optimize(model_name, hyperparameters, eval_config, learn_configuration)
+    optimize(model_name, hyperparameters, eval_config,\
+             learn_configuration, n_iterations = 2)
     read_results("%s.pkl"%model_name)
 
 if __name__ == "__main__":

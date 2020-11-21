@@ -34,24 +34,7 @@ def main(cfg):
     model_name = "sac_VREnv"
     model = SAC(env = training_env, eval_env = eval_env, model_name = model_name,\
                 save_dir = cfg.agent.save_dir, **cfg.agent.hyperparameters)
-    model.learn(**cfg.agent.learn_configuration)
-
-    #p.resetDebugVisualizerCamera(cameraDistance=1.4, cameraYaw=-45, cameraPitch=-45, cameraTargetPosition=[-1, 0,0.5])
-    #fixed_angle = p.getQuaternionFromEuler([-math.pi/2, -math.pi/2, 0])
-    #action = ([0.5 , 0.83, 0.59], fixed_angle, 1)
-
-    # model_name = "sac_VREnv_18-11_09-10_best_eval"
-    # folder_name = "2020-11-18/09-10-28"
-    # path = "./hydra_outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
-    # abspath = os.path.abspath(path).split
-    # evaluate(eval_env, eval_config, model_name, abspath)
-
-def evaluate(env, eval_config, model_name, path):
-    model = SAC(env)
-    success = model.load(path)
-    if(success):
-        eval_config["model_name"] = model_name
-        model.evaluate(env, **eval_config)
-
+    model.learn(**cfg.agent.learn_config)
+    
 if __name__ == "__main__":
     main()

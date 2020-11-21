@@ -222,7 +222,7 @@ class SAC():
 
         if(self.eval_env is not None):
             log.info("End of training evaluation:")
-            self.evaluate(self.eval_env, model_name = self.model_name, print_all_episodes = True)
+            self.evaluate(self.eval_env, max_episode_length, model_name = self.model_name, print_all_episodes = True)
         #self.save_stats(stats, self.writer_name)
         return stats
 

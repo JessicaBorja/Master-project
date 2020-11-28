@@ -126,7 +126,8 @@ def optim_vrenv(cfg):
     hp["model_name"] = model_name
     hp = {**hyperparameters, **hp}
     optimize(model_name, hp, eval_config, learn_config,\
-             max_budget = 100000, min_budget = 50000)
+            max_budget=cfg.optim.max_budget, min_budget=cfg.optim.min_budget,\
+            n_iterations = cfg.optim.n_iterations)
     read_results("%s.pkl"%model_name)
 
 def optim_gymenv(env_name, model_name):

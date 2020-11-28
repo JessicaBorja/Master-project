@@ -6,33 +6,51 @@ processes: 1
 defaults:
   - agent: sac
   - env: env
+  - scene@env.scene: basic_playtable
+  - camera_conf@env: static_and_gripper
   - env@eval_env: env
+  - scene@eval_env.scene: basic_playtable
+  - camera_conf@eval_env: static_and_gripper
   - eval@eval_config: eval_config
   - optim@optim: config_optim
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
 
-static_camera:
-  _target_: VREnv.src.camera.static_camera.StaticCamera
-  fov: 75
-  aspect: 1
-  nearval: 0.01
-  farval: 2
-  width: 300
-  height: 300
-  look_at: [0.1, 0.8, 0.7]
-  look_from: [0.3, -0.2, 1.3]
+all_cameras:
+  static:
+    _target_: src.camera.static_camera.StaticCamera
+    name: static
+    fov: 75
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 300
+    height: 300
+    look_at: [ 0.1, 0.8, 0.7 ]
+    look_from: [ 0.3, -0.2, 1.3 ]
 
-gripper_camera:
-  _target_: VREnv.src.camera.gripper_camera.GripperCamera
-  fov: 75
-  aspect: 1
-  nearval: 0.01
-  farval: 2
-  width: 300
-  height: 300
-  robot_id: 7
-  gripper_cam_link: 12
+  gripper:
+    _target_: src.camera.gripper_camera.GripperCamera
+    name: gripper
+    fov: 75
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 300
+    height: 300
+    gripper_cam_link: 12 # TODO do not hardcode this, use robot property? e.g. ${robot.camera_link_id}
+
+  opposing:
+    _target_: src.camera.static_camera.StaticCamera
+    name: opposing
+    fov: 75
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 300
+    height: 300
+    look_at: [ 0.4, 0.5, 0.6 ]
+    look_from: [ 0.4, 1.5, 0.9 ]
 
 hydra:
   run:

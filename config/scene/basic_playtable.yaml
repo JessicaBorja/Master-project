@@ -1,0 +1,42 @@
+# @package _group_
+object_files:
+  - own_objects/modified_table_new_handles/playtable_modified.urdf
+  - own_objects/drawer/drawer.urdf
+  - ais_objects/thuna/thuna.urdf
+  - 024_bowl/google_16k/textured.urdf
+  - 011_banana/demo/banana_vhacd.urdf
+  - ais_objects/salt/salt.urdf
+
+object_position:
+  - [0.7, 1.0, 0]  # table
+  - [0.475, 1.0, -0.004]  # drawer
+  - [-0.1, 0.6, 0.54]  # thuna
+  - [-0.1, 0.92, 0.75]  # bowl
+  - [0, 0.65, 0.8]  # banana
+  - [0.35, 0.9, 0.75]  # salt
+
+object_orientation:
+  - [0, 0, 3.141592653589793]
+  - [0, 0, 3.141592653589793]
+  - [0, 0, 0]
+  - [0, 0, 0]
+  - [0, 0, 0]
+  - [0, 0, 0]
+
+table_ids:
+  - 0
+  - 1
+
+scene_joints:  # the names are just for readability, only object_id and joint_index are used to identify it
+  left_top_door:
+    object_id: 0
+    joint_index: 0
+    state: 0  # revolute
+  slide_door:
+    object_id: 0
+    joint_index: 3
+    state: 0  # prismatic
+  drawer:
+    object_id: 1
+    joint_index: 0
+    state: 0  # prismatic

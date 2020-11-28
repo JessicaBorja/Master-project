@@ -10,6 +10,7 @@ import hpbandster.core.result as hpres
 from hpbandster.optimizers import BOHB
 import logging, yaml
 import gym
+log = logging.getLogger(__name__)
 # import pybullet as p
 # import pybullet_data
 # from pybullet_envs.gym_manipulator_envs import ReacherBulletEnv, PusherBulletEnv
@@ -37,6 +38,8 @@ class SACWorker(Worker):
         self.learn_config = learn_config
     
     def compute(self, config, budget, working_directory, *args, **kwargs):
+        log.info("Running job/config_id: " + str(kwargs["config_id"]) )
+        log.info(config)
         model = SAC(**config, **self.hyperparameters)
         stats = model.learn(total_timesteps = int(budget), **self.learn_config)
         train_reward = np.max(stats.episode_rewards)
@@ -113,7 +116,7 @@ def load_agent_config(config_path = "./config/config.yaml"):
 
 @hydra.main(config_path="./config", config_name="config_rl")
 def optim_vrenv(cfg):
-    model_name = "sac_vrenv_optim"
+    model_name = "vrenv_optim_neg_state_reward"
     hyperparameters = cfg.optim.hyperparameters
     learn_config = cfg.optim.learn_config
     eval_config =  cfg.optim.eval_config
@@ -123,7 +126,7 @@ def optim_vrenv(cfg):
     hp["model_name"] = model_name
     hp = {**hyperparameters, **hp}
     optimize(model_name, hp, eval_config, learn_config,\
-             max_budget = 500000, min_budget = 50000)
+             max_budget = 100000, min_budget = 50000)
     read_results("%s.pkl"%model_name)
 
 def optim_gymenv(env_name, model_name):

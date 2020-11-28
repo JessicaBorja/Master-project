@@ -1,5 +1,6 @@
 import gym
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
+import hydra
 import pybullet as p
 import pybullet_data
 # from pybullet_envs.gym_manipulator_envs import ReacherBulletEnv, PusherBulletEnv
@@ -21,6 +22,7 @@ gym.envs.register(
      entry_point='VREnv.src.envs.play_table_env:PlayTableSimEnv',
      max_episode_steps=200,
 )
+
 def evaluate(eval_config, model_name):
     env_name = "Pusher-v2"
     env = gym.make(env_name).env
@@ -48,22 +50,31 @@ def evaluateVRenv(eval_config, model_name, hydra_folderpath):
         evalenv_cfg["show_gui"]= True
     eval_env =  gym.make("VREnv-v0", **evalenv_cfg).env
     path = "./hydra_outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
-
+    agent_cfg["hidden_dim"] = 470
+    print(agent_cfg)
     model = SAC(eval_env, **agent_cfg)
     success = model.load(path)
     if(success):
         eval_config["model_name"] = model_name
         model.evaluate(eval_env, **eval_config)
 
+@hydra.main(config_path="./config", config_name="config_rl")
+def hydra_evaluateVRenv(cfg):
+    #model_name = "sac_vrenv_optim_22-11_02-52_best_eval"
+    model_name = "vrenv_optim_neg_state_reward_25-11_03-43_best_eval"
+    folder_name = "2020-11-25/15-42-56"
+    agent_cfg = cfg.agent.hyperparameters
+    eval_config =  cfg.eval_config
+    eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
+    path = "../../../hydra_outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
+    print(os.path.abspath(path))
+    print(agent_cfg)
+    model = SAC(eval_env, **agent_cfg)
+    success = model.load(path)
+    if(success):
+        model.evaluate(eval_env, model_name = model_name, **eval_config)
+
 if __name__ == "__main__":
     #read_optim_results("sac_mujocoPusher2.pkl")
-    eval_config = {
-        "n_episodes": 5,
-        "render": True,
-        "print_all_episodes": True,
-        "write_file": False,
-        "max_episode_length": 1000,
-    }
-    model_name = "sac_VREnv_20-11_02-04_best_eval"
-    folder_name = "2020-11-20/02-04-09"
-    evaluateVRenv(eval_config, model_name, folder_name)
+    #evaluateVRenv(eval_config, model_name, folder_name)
+    hydra_evaluateVRenv()

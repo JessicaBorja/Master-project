@@ -7,6 +7,7 @@ defaults:
   - agent: sac
   - env: env
   - env@eval_env: env
+  - eval@eval_config: eval_config
   - optim@optim: config_optim
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog

@@ -1,0 +1,23 @@
+# @package _group_
+save_dir: "./trained_models"
+hyperparameters:
+    gamma: 0.99
+    actor_lr: 0.003
+    critic_lr: 3e-5
+    alpha_lr: 0.0011
+    alpha: "auto" #"auto",
+    tau: 0.019
+    batch_size: 185
+    buffer_size: 1e6
+    train_freq: 1 #timesteps collectng data
+    gradient_steps: 1 #timesteps updating gradients
+    learning_starts: 1000 #timesteps before starting updates
+    hidden_dim: 322 #446
+
+learn_config:
+    total_timesteps: 100000 #millon 1e6
+    log_interval: 1000 #log timestep reward every log_interval steps
+    max_episode_length: 200 #max episode length
+
+#Optim Results
+# {'config': {'actor_lr': 0.0030158932485869314, 'alpha_lr': 0.0011778471955553808, 'batch_size': 242, 'critic_lr': 3.291201827704601e-05, 'hidden_dim': 446, 'tau': 0.01975136877929595}, 'config_info': {'model_based_pick': False}}

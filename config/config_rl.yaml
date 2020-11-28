@@ -1,6 +1,6 @@
 load_dir: ???
 data_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
-save_dir: ./hydra_outputs/
+save_dir: ./outputs/
 processes: 1
 
 defaults:

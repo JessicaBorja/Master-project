@@ -86,7 +86,7 @@ def optimize(trial_name, hyperparameters, eval_config, learn_config,\
     bohb = BOHB( configspace = w.get_configspace(),
             run_id = 'sac_hpo', nameserver='127.0.0.1',
             min_budget=min_budget, max_budget=max_budget )
-    res = bohb.run(n_iterations=n_iterations, min_workers = n_workers)
+    res = bohb.run(n_iterations=n_iterations) #, min_workers = n_workers)
     # store results
     if not os.path.exists("./optimization_results/"): 
             os.makedirs("./optimization_results/")

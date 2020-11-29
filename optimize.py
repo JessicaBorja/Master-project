@@ -79,7 +79,7 @@ def optimize(trial_name, hyperparameters, eval_config, learn_config,\
     workers=[]
     for i in range(n_workers):
         w = SACWorker(hyperparameters, eval_config, learn_config,\
-                        sleep_interval = 0.5, nameserver='127.0.0.1', run_id='sac_hpo', id=i)
+                      nameserver='127.0.0.1', run_id='sac_hpo', id=i)
         w.run(background=True)
         workers.append(w)
 

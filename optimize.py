@@ -72,17 +72,21 @@ class SACWorker(Worker):
         return cs
 
 def optimize(trial_name, hyperparameters, eval_config, learn_config,\
-                max_budget = 250000, min_budget = 50000, n_iterations = 3):  
+                max_budget = 250000, min_budget = 50000, n_iterations = 3, n_workers=1):  
 
     NS = hpns.NameServer(run_id='sac_hpo', host='127.0.0.1', port=None)
     NS.start()
-    w = SACWorker(hyperparameters, eval_config, learn_config, nameserver='127.0.0.1', run_id='sac_hpo')
-    w.run(background=True)
-    bohb = BOHB(  configspace = w.get_configspace(),
+    workers=[]
+    for i in range(n_workers):
+        w = SACWorker(hyperparameters, eval_config, learn_config,\
+                        sleep_interval = 0.5, nameserver='127.0.0.1', run_id='sac_hpo', id=i)
+        w.run(background=True)
+        workers.append(w)
+
+    bohb = BOHB( configspace = w.get_configspace(),
             run_id = 'sac_hpo', nameserver='127.0.0.1',
-            min_budget=min_budget, max_budget=max_budget
-        )
-    res = bohb.run(n_iterations=n_iterations)
+            min_budget=min_budget, max_budget=max_budget )
+    res = bohb.run(n_iterations=n_iterations, min_workers = n_workers)
     # store results
     if not os.path.exists("./optimization_results/"): 
             os.makedirs("./optimization_results/")
@@ -127,7 +131,7 @@ def optim_vrenv(cfg):
     hp = {**hyperparameters, **hp}
     optimize(model_name, hp, eval_config, learn_config,\
             max_budget=cfg.optim.max_budget, min_budget=cfg.optim.min_budget,\
-            n_iterations = cfg.optim.n_iterations)
+            n_iterations = cfg.optim.n_iterations, n_workers=cfg.optim.n_workers)
     read_results("%s.pkl"%model_name)
 
 def optim_gymenv(env_name, model_name):

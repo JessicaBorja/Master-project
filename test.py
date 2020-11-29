@@ -66,7 +66,7 @@ def hydra_evaluateVRenv(cfg):
     agent_cfg = cfg.agent.hyperparameters
     eval_config =  cfg.eval_config
     eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
-    path = "../../../hydra_outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
+    path = "../../../outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
     print(os.path.abspath(path))
     print(agent_cfg)
     model = SAC(eval_env, **agent_cfg)

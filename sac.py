@@ -92,7 +92,7 @@ class SAC():
             return ent_coef_loss.item()
         else:
             return 0
-    def learn(self, total_timesteps = 10000, log_interval=100 , max_episode_length = None):
+    def learn(self, total_timesteps = 10000, log_interval=100 , max_episode_length = None, n_eval_ep=5):
         if not isinstance(total_timesteps, int): #auto
             total_timesteps =  int(total_timesteps)
         stats = EpisodeStats(episode_lengths = [], episode_rewards = [])
@@ -214,7 +214,7 @@ class SAC():
                         log.info("[%d] New best eval avg. return!%.3f"%(episode, mean_reward))
                         self.save(self.trained_path+"_best_eval.pth")
                         best_eval_reward = mean_reward
-                    writer.add_scalar('eval/mean_return(10ep)', mean_reward, t)
+                    writer.add_scalar('eval/mean_return(%dep)'%(n_eval_ep), mean_reward, t)
                     writer.add_scalar('eval/mean_ep_length', mean_length, t)
                     # self.log_tensorboard_eval(self.eval_env, writer, step = t,\
                     #                     max_episode_length=max_episode_length, model_name=self.model_name) #timesteps in x axis
@@ -226,13 +226,14 @@ class SAC():
         #self.save_stats(stats, self.writer_name)
         return stats
 
-    def log_tensorboard_eval(self, env, writer, step, max_episode_length, model_name="sac", write_file = False):
+    def log_tensorboard_eval(self, env, writer, step, max_episode_length, n_eval_ep = 5, model_name="sac", write_file = False):
         mean_reward, mean_length = self.evaluate(env, max_episode_length=max_episode_length,\
-                                                 model_name = model_name, write_file = write_file)
-        writer.add_scalar('eval/mean_return(10ep)', mean_reward, step)
+                                                 model_name = model_name, write_file = write_file,\
+                                                 n_episodes=n_eval_ep)
+        writer.add_scalar('eval/mean_return(%dep)'%n_eval_ep, mean_reward, step)
         writer.add_scalar('eval/mean_ep_length', mean_length, step)
 
-    def evaluate(self, env, max_episode_length = 150, n_episodes = 10, model_name = "sac",\
+    def evaluate(self, env, max_episode_length = 150, n_episodes = 5, model_name = "sac",\
                  print_all_episodes = False, write_file = False, render = False):
         stats = EpisodeStats(episode_lengths = [], episode_rewards = [])
         for episode in range(n_episodes):

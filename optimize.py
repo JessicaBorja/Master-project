@@ -77,11 +77,11 @@ def optimize(trial_name, hyperparameters, eval_config, learn_config,\
     NS = hpns.NameServer(run_id='sac_hpo', host='127.0.0.1', port=None)
     NS.start()
     workers=[]
-    for i in range(n_workers):
-        w = SACWorker(hyperparameters, eval_config, learn_config,\
-                      nameserver='127.0.0.1', run_id='sac_hpo', id=i)
-        w.run(background=True)
-        workers.append(w)
+    #for i in range(n_workers):
+    w = SACWorker(hyperparameters, eval_config, learn_config,\
+                    nameserver='127.0.0.1', run_id='sac_hpo')#, id=i)
+    w.run(background=True)
+    #workers.append(w)
 
     bohb = BOHB( configspace = w.get_configspace(),
             run_id = 'sac_hpo', nameserver='127.0.0.1',

@@ -2,6 +2,8 @@ load_dir: ???
 data_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
 save_dir: ./outputs/
 processes: 1
+task: slide
+model_name: sac_vrenv
 
 defaults:
   - agent: sac

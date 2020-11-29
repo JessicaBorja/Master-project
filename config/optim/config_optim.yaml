@@ -1,5 +1,5 @@
 # @package _group_
-max_budget: 150000
+max_budget: 100000
 min_budget: 50000
 n_iterations: 3
 n_workers: 1

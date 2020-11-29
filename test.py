@@ -61,8 +61,13 @@ def evaluateVRenv(eval_config, model_name, hydra_folderpath):
 @hydra.main(config_path="./config", config_name="config_rl")
 def hydra_evaluateVRenv(cfg):
     #model_name = "sac_vrenv_optim_22-11_02-52_best_eval"
-    model_name = "vrenv_optim_neg_state_reward_25-11_03-43_best_eval"
-    folder_name = "2020-11-25/15-42-56"
+    #model_name = "vrenv_optim_neg_state_reward_25-11_03-43_best_eval"
+    #folder_name = "2020-11-25/15-42-56"
+    #model_name = "vrenv_optim_neg_state_reward_29-11_03-34_best_eval"
+    #folder_name = "2020-11-29/12-22-14"
+    model_name = "vrenv_optim_neg_state_reward_29-11_03-49_best_eval"
+    folder_name = "2020-11-29/13-11-31"
+
     agent_cfg = cfg.agent.hyperparameters
     eval_config =  cfg.eval_config
     eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env

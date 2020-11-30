@@ -105,7 +105,7 @@ class SAC():
         if(max_episode_length is None):
             max_episode_length = sys.maxsize #"infinite"
         
-        losses = {"actor_loss": [] , "critic_loss": [], "ent_coef_loss": []}
+        plot_data = {"actor_loss": [] , "critic_loss": [], "ent_coef_loss": []}
         for t in range(1, total_timesteps+1):
             a, _ = self._pi.act(tt(s), deterministic = False)#sample action and scale it to action space
             a = a.cpu().detach().numpy()
@@ -157,7 +157,7 @@ class SAC():
                         loss_critics.backward()
                         self._q_optim.step()
 
-                        losses["critic_loss"] += [loss_c1.item(), loss_c2.item()]
+                        plot_data["critic_loss"] += [loss_c1.item(), loss_c2.item()]
                         #---------------- Policy network update -------------#
                         predicted_actions, log_probs = self._pi.act(batch_states, deterministic = False, reparametrize = True)
                         critic_value = torch.min(
@@ -168,12 +168,13 @@ class SAC():
                         policy_loss = (self.ent_coef * log_probs - critic_value).mean()
                         policy_loss.backward()
                         self._pi_optim.step()
-                        losses["actor_loss"].append(policy_loss.item())
+                        plot_data["actor_loss"].append(policy_loss.item())
 
                         #---------------- Entropy network update -------------#
                         ent_coef_loss = self.update_entropy(log_probs)
-                        losses["ent_coef_loss"].append(ent_coef_loss)
-                        #losses["ent_coed"].append(self.ent_coef)
+                        plot_data["ent_coef"].append(self.ent_coef)
+                        plot_data["ent_coef_loss"].append(ent_coef_loss)
+                        #plot_data["ent_coed"].append(self.ent_coef)
                         
                         #------------------ Target Networks update -------------------#
                         soft_update(self._q1_target, self._q1, self.tau)
@@ -202,14 +203,19 @@ class SAC():
                 s = self.env.reset()
 
             if(t%log_interval==0):
-                for key,value in losses.items():
+                for key,value in plot_data.items():
                     if value: #not empty
-                        mean_loss = np.mean(value)
-                        writer.add_scalar("train/%s"%key, mean_loss, t)
+                        if(key == "critic_loss"):
+                            data = np.mean(value[-1])
+                        else:
+                            data = value[-1]#np.mean(value)
+                        #data = value[-1]
+                        writer.add_scalar("train/%s"%key, data, t)
                 
-                losses = {"actor_loss": [] , "critic_loss": [], "ent_coef_loss": []}
+                plot_data = {"actor_loss": [] , "critic_loss": [], "ent_coef_loss": [], "ent_coef":[]}
                 if(self.eval_env is not None):
-                    mean_reward, mean_length = self.evaluate(self.eval_env, max_episode_length, model_name = self.model_name)
+                    mean_reward, mean_length = self.evaluate(self.eval_env, max_episode_length,\
+                                                             model_name = self.model_name, n_episodes=n_eval_ep)
                     if(mean_reward > best_eval_reward):
                         log.info("[%d] New best eval avg. return!%.3f"%(episode, mean_reward))
                         self.save(self.trained_path+"_best_eval.pth")

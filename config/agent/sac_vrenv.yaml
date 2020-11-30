@@ -2,12 +2,12 @@
 save_dir: "./trained_models"
 hyperparameters:
     gamma: 0.99
-    actor_lr: 0.003
-    critic_lr: 3e-5
-    alpha_lr: 0.0011
+    actor_lr: 2.23e-5
+    critic_lr: 0.000514
+    alpha_lr: 0.0014
     alpha: "auto" #"auto",
-    tau: 0.019
-    batch_size: 185
+    tau: 0.0017
+    batch_size: 214
     buffer_size: 1e6
     train_freq: 1 #timesteps collectng data
     gradient_steps: 1 #timesteps updating gradients
@@ -17,8 +17,10 @@ hyperparameters:
 learn_config:
     total_timesteps: 100000 #millon 1e6
     log_interval: 1000 #log timestep reward every log_interval steps
-    max_episode_length: 200 #max episode length
-    n_eval_ep: 5
+    max_episode_length: 250 #max episode length
+    n_eval_ep: 10
     
 #Optim Results
+# {'actor_lr': 2.2377075401415227e-05, 'alpha_lr': 0.0014844125506637187, 'batch_size': 214, 'critic_lr': 0.0005145439403648635, 'hidden_dim': 322, 'tau': 0.001701298825120011}
+
 # {'config': {'actor_lr': 0.0030158932485869314, 'alpha_lr': 0.0011778471955553808, 'batch_size': 242, 'critic_lr': 3.291201827704601e-05, 'hidden_dim': 446, 'tau': 0.01975136877929595}, 'config_info': {'model_based_pick': False}}

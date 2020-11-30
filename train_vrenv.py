@@ -26,15 +26,18 @@ eval_config = {
 
 @hydra.main(config_path="./config", config_name="config_rl")
 def main(cfg):
-    training_env =  gym.make("VREnv-v0", **cfg.env).env
-    eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
     #training_env = hydra.utils.instantiate(cfg.env)
     #eval_env = hydra.utils.instantiate(cfg.eval_env)
+    print("agent configuration")
+    print(cfg.agent)
     
-    model_name = cfg.model_name
-    model = SAC(env = training_env, eval_env = eval_env, model_name = model_name,\
-                save_dir = cfg.agent.save_dir, **cfg.agent.hyperparameters)
-    model.learn(**cfg.agent.learn_config)
-    
+    for i in range(5):
+        training_env =  gym.make("VREnv-v0", **cfg.env).env
+        eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
+        model_name = cfg.model_name
+        model = SAC(env = training_env, eval_env = eval_env, model_name = model_name,\
+                    save_dir = cfg.agent.save_dir, **cfg.agent.hyperparameters)
+        model.learn(**cfg.agent.learn_config)
+        
 if __name__ == "__main__":
     main()

@@ -38,6 +38,8 @@ def main(cfg):
         model = SAC(env = training_env, eval_env = eval_env, model_name = model_name,\
                     save_dir = cfg.agent.save_dir, **cfg.agent.hyperparameters)
         model.learn(**cfg.agent.learn_config)
+        training_env.close()
+        eval_env.close()
         
 if __name__ == "__main__":
     main()

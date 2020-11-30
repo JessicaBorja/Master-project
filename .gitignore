@@ -11,3 +11,4 @@ logs/
 pybullet_exp.py
 hydra_outputs/
 outputs/
+test_runs/

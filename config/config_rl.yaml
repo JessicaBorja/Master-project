@@ -4,6 +4,7 @@ save_dir: ./outputs/
 processes: 1
 task: slide
 model_name: sac_vrenv
+repeat_training: 1
 
 defaults:
   - agent: sac

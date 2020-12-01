@@ -3,7 +3,7 @@ n_episodes: 5
 render: True
 print_all_episodes: True
 write_file: False
-max_episode_length: 200
+max_episode_length: 250
 
 # model_name: "sac_vrenv_optim_22-11_02-52_best_eval"
 # folder_name: "2020-11-22/10-10-38"

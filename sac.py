@@ -105,7 +105,7 @@ class SAC():
         if(max_episode_length is None):
             max_episode_length = sys.maxsize #"infinite"
         
-        plot_data = {"actor_loss": [] , "critic_loss": [], "ent_coef_loss": []}
+        plot_data = {"actor_loss": [] , "critic_loss": [], "ent_coef_loss": [], "ent_coef":[]}
         for t in range(1, total_timesteps+1):
             a, _ = self._pi.act(tt(s), deterministic = False)#sample action and scale it to action space
             a = a.cpu().detach().numpy()
@@ -174,7 +174,6 @@ class SAC():
                         ent_coef_loss = self.update_entropy(log_probs)
                         plot_data["ent_coef"].append(self.ent_coef)
                         plot_data["ent_coef_loss"].append(ent_coef_loss)
-                        #plot_data["ent_coed"].append(self.ent_coef)
                         
                         #------------------ Target Networks update -------------------#
                         soft_update(self._q1_target, self._q1, self.tau)

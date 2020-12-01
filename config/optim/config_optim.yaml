@@ -13,10 +13,11 @@ hyperparameters:
   
 learn_config:
   log_interval: 1000 #log timestep reward every log_interval steps
-  max_episode_length: 250 #max episode length
+  max_episode_length: 200 #max episode length
+  n_eval_ep: 5
 
 eval_config:
-  max_episode_length: 250 
+  max_episode_length: 200 
   n_episodes: 50
   render: False
   print_all_episodes: False

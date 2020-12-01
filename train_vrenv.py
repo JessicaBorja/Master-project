@@ -31,15 +31,15 @@ def main(cfg):
     print("agent configuration")
     print(cfg.agent)
     
-    for i in range(5):
-        training_env =  gym.make("VREnv-v0", **cfg.env).env
-        eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
-        model_name = cfg.model_name
-        model = SAC(env = training_env, eval_env = eval_env, model_name = model_name,\
-                    save_dir = cfg.agent.save_dir, **cfg.agent.hyperparameters)
-        model.learn(**cfg.agent.learn_config)
-        training_env.close()
-        eval_env.close()
+    #for i in range(5):
+    training_env =  gym.make("VREnv-v0", **cfg.env).env
+    eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
+    model_name = cfg.model_name
+    model = SAC(env = training_env, eval_env = eval_env, model_name = model_name,\
+                save_dir = cfg.agent.save_dir, **cfg.agent.hyperparameters)
+    model.learn(**cfg.agent.learn_config)
+    training_env.close()
+    eval_env.close()
         
 if __name__ == "__main__":
     main()

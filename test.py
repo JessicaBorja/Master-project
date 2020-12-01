@@ -67,8 +67,8 @@ def hydra_evaluateVRenv(cfg):
     #folder_name = "2020-11-29/12-22-14"
     # model_name = "vrenv_optim_neg_state_reward_29-11_03-49_best_eval"
     # folder_name = "2020-11-29/13-11-31"
-    model_name = "sac_hinge_30-11_05-30_best_eval"
-    folder_name = "cluster/2020-11-30/02-01-04"
+    model_name = "sac_slide_x5_01-12_05-18_best_eval"
+    folder_name = "cluster/2020-11-30/16-15-06"
 
     agent_cfg = cfg.agent.hyperparameters
     eval_config =  cfg.eval_config

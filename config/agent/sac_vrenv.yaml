@@ -15,12 +15,13 @@ hyperparameters:
     hidden_dim: 322 #446
 
 learn_config:
-    total_timesteps: 100000 #millon 1e6
+    total_timesteps: 100000
     log_interval: 1000 #log timestep reward every log_interval steps
     max_episode_length: 200 #max episode length
     n_eval_ep: 10
-    
-#Optim Results
-# {'actor_lr': 2.2377075401415227e-05, 'alpha_lr': 0.0014844125506637187, 'batch_size': 214, 'critic_lr': 0.0005145439403648635, 'hidden_dim': 322, 'tau': 0.001701298825120011}
 
-# {'config': {'actor_lr': 0.0030158932485869314, 'alpha_lr': 0.0011778471955553808, 'batch_size': 242, 'critic_lr': 3.291201827704601e-05, 'hidden_dim': 446, 'tau': 0.01975136877929595}, 'config_info': {'model_based_pick': False}}
+# Drawer
+# {'actor_lr': 1.2038682913426213e-05, 'alpha_lr': 0.00021089249874950728, 'batch_size': 231, 'critic_lr': 0.0001317201629035472, 'hidden_dim': 353, 'tau': 0.015381904810327814}  
+
+# Slide
+# {'actor_lr': 2.2377075401415227e-05, 'alpha_lr': 0.0014844125506637187, 'batch_size': 214, 'critic_lr': 0.0005145439403648635, 'hidden_dim': 322, 'tau': 0.001701298825120011}

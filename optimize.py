@@ -98,6 +98,7 @@ def optimize(trial_name, hyperparameters, eval_config, learn_config,\
     id2config = res.get_id2config_mapping()
     incumbent = res.get_incumbent_id()
     print("incumbent: ", incumbent)
+    log.info("Finished optimization, incumbent: %s"%incumbent)
 
 def read_results(name):
     with open(os.path.join("./optimization_results/", name), 'rb') as fh:

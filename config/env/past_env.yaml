@@ -12,7 +12,7 @@ task: '${task}'
 
 #Default configurations
 robot_cfg:
-  _target_: VREnv.src.robot.debug_robot.Robot
+  _target_: VREnv_past.src.robot.debug_robot.Robot
   #config:
   filename: franka_panda/panda.urdf
   base_position: [0.3, -0.10, 0.35]

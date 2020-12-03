@@ -44,21 +44,8 @@ def load_config(model_name, folder_name):
     eval_env_cfg["cameras"] = [cfg["static_camera"], cfg["gripper_camera"]]
     return eval_env_cfg, agent_cfg
 
-def evaluateVRenv(eval_config, model_name, hydra_folderpath):
-    evalenv_cfg, agent_cfg = load_config(model_name, hydra_folderpath)
-    if(eval_config["render"]):
-        evalenv_cfg["show_gui"]= True
-    eval_env =  gym.make("VREnv-v0", **evalenv_cfg).env
-    path = "./hydra_outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
-    agent_cfg["hidden_dim"] = 470
-    print(agent_cfg)
-    model = SAC(eval_env, **agent_cfg)
-    success = model.load(path)
-    if(success):
-        eval_config["model_name"] = model_name
-        model.evaluate(eval_env, **eval_config)
 
-@hydra.main(config_path="./config", config_name="config_rl")
+@hydra.main(config_path="./config", config_name="config_pastenv")
 def hydra_evaluateVRenv(cfg):
     #model_name = "sac_vrenv_optim_22-11_02-52_best_eval"
     # model_name = "vrenv_optim_neg_state_reward_25-11_03-43_best_eval" #Last slide that worked :c
@@ -67,9 +54,9 @@ def hydra_evaluateVRenv(cfg):
     #folder_name = "2020-11-29/12-22-14"
     # model_name = "vrenv_optim_neg_state_reward_29-11_03-49_best_eval"
     # folder_name = "2020-11-29/13-11-31"
-    model_name = "sac_slide_x5_01-12_05-18_best_eval"
-    folder_name = "cluster/2020-11-30/16-15-06"
-
+    model_name = "optim_drawer_30-11_04-11_best_eval"
+    folder_name = "2020-11-30/16-11-35"
+    
     agent_cfg = cfg.agent.hyperparameters
     eval_config =  cfg.eval_config
     eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env

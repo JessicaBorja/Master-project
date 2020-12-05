@@ -1,0 +1,13 @@
+save_dir: ./outputs/
+processes: 1
+model_name: sac_pendulum
+repeat_training: 1
+
+defaults:
+  - agent: sac_orig
+  - eval@eval_config: eval_config
+  - optim@optim: config_optim
+
+hydra:
+  run:
+    dir: ${save_dir}./${now:%Y-%m-%d}/${now:%H-%M-%S}

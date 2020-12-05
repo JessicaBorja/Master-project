@@ -60,53 +60,21 @@ def evaluateVRenv(eval_config, model_name, hydra_folderpath):
 
 @hydra.main(config_path="./config", config_name="config_rl")
 def hydra_evaluateVRenv(cfg):
-    #model_name = "sac_vrenv_optim_22-11_02-52_best_eval"
-    # model_name = "vrenv_optim_neg_state_reward_25-11_03-43_best_eval" #Last slide that worked :c
-    # folder_name = "2020-11-25/15-42-56"
-    #model_name = "vrenv_optim_neg_state_reward_29-11_03-34_best_eval"
-    #folder_name = "2020-11-29/12-22-14"
-    # model_name = "vrenv_optim_neg_state_reward_29-11_03-49_best_eval"
-    # folder_name = "2020-11-29/13-11-31"
-    # model_name = "sac_slide_x5_01-12_05-18_best_eval"
-    # folder_name = "/2020-11-30/16-15-06"
     #Hinge
     if(cfg.task == "hinge"):
-        model_name = "hinge_30-11_12-01_best_eval"
-        folder_name = "hinge/2020-11-30/00-01-07"
-        
         model_name = "optim_hinge_rn1_rs1_04-12_03-17_best_eval"
         folder_name = "hinge/2020-12-04/12-44-23"
-        # model_name = "hinge_near_30-11_10-31_best_eval"
-        # folder_name = "hinge/2020-11-30/22-30-55"
-        # model_name = "sac_hinge_x5_30-11_02-13_best_eval"
-        # folder_name = "hinge/cluster/2020-11-30/02-13-24"
-        # # model_name = "sac_hinge_30-11_05-30_best_eval"
-        # # folder_name = "hinge/cluster/2020-11-30/02-01-04"
     elif(cfg.task == "drawer"):
-        #Drawer
-        # hidden_dim = 511
-        model_name = "optim_drawer_30-11_09-21_best_eval"
-        folder_name = "drawer/cluster/2020-11-30/16-11-35"
-        # hidden_dim = 353
-        # model_name = "optim_drawer_30-11_04-11_best_eval"
-        # folder_name = "drawer/cluster/2020-11-30/16-11-35"
+        model_name = "optim_drawer_rn1_rs1_05-12_03-43_best_eval"
+        folder_name = "drawer/2020-12-04/22-36-55"
     else: #task == slide
-        #Slide
-        # model_name = "vrenv_optim_neg_state_reward_25-11_03-43_best_eval"
-        # folder_name = "slide/2020-11-25/15-42-56"
-        # model_name = "vrenv_optim_neg_state_reward_25-11_03-43_best_eval"
-        # folder_name = "slide/2020-11-25/15-42-56"
-        # model_name = "slide_pastenv_x3l_01-12_08-04_best_eval"
-        # folder_name = "slide/pastenv/2020-12-01/20-04-37"
         model_name = "sac_slide_x5_01-12_05-18_best_eval"
         folder_name = "slide/cluster/2020-11-30/16-15-06"
-        # model_name = "slide_01-12_02-07_best_eval"
-        # folder_name = "slide/pastenv/2020-12-01/02-07-22"
 
     agent_cfg = cfg.agent.hyperparameters
     eval_config =  cfg.eval_config
     eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
-    path = "../../../%s/trained_models/%s.pth"%(folder_name, model_name)
+    path = "../../../outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
     print(os.path.abspath(path))
     print(agent_cfg)
     model = SAC(eval_env, **agent_cfg)

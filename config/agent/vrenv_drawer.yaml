@@ -2,17 +2,17 @@
 save_dir: "./trained_models"
 hyperparameters:
     gamma: 0.99
-    actor_lr: 1.2e-5
-    critic_lr: 0.00013
-    alpha_lr: 0.0021
+    actor_lr: 0.000148
+    critic_lr: 0.00123
+    alpha_lr: 0.001526
     alpha: "auto" #"auto",
-    tau: 0.015
-    batch_size: 231
+    tau: 0.01569
+    batch_size: 235
     buffer_size: 1e6
     train_freq: 1 #timesteps collectng data
     gradient_steps: 1 #timesteps updating gradients
     learning_starts: 1000 #timesteps before starting updates
-    hidden_dim: 353 #446
+    hidden_dim: 313
 
 learn_config:
     total_timesteps: 100000
@@ -21,7 +21,4 @@ learn_config:
     n_eval_ep: 10
 
 # Drawer
-# {'actor_lr': 1.2038682913426213e-05, 'alpha_lr': 0.00021089249874950728, 'batch_size': 231, 'critic_lr': 0.0001317201629035472, 'hidden_dim': 353, 'tau': 0.015381904810327814}  
-
-# Slide
-# {'actor_lr': 2.2377075401415227e-05, 'alpha_lr': 0.0014844125506637187, 'batch_size': 214, 'critic_lr': 0.0005145439403648635, 'hidden_dim': 322, 'tau': 0.001701298825120011}
+# {'config': {'actor_lr': 0.0001488978575665266, 'alpha_lr': 0.0015266099402555507, 'batch_size': 235, 'critic_lr': 0.0012353596739322521, 'hidden_dim': 313, 'tau': 0.015691814561289274}, 'config_info': {'model_based_pick': False}}

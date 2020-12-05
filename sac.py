@@ -14,7 +14,8 @@ import itertools
 import time
 from utils.replay_buffer import ReplayBuffer
 from utils.utils import EpisodeStats, tt, soft_update
-from utils.networks import ActorNetwork, CriticNetwork, ValueNetwork
+from networks.actor_network import ActorNetwork 
+from networks.value_networks import CriticNetwork
 import logging
 # A logger for this file
 log = logging.getLogger(__name__)

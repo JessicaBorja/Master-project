@@ -1,6 +1,6 @@
 load_dir: ???
 data_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
-save_dir: ./outputs/
+save_dir: ./outputs/${task}
 processes: 1
 task: slide
 model_name: sac_vrenv

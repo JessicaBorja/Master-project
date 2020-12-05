@@ -73,6 +73,9 @@ def hydra_evaluateVRenv(cfg):
     if(cfg.task == "hinge"):
         model_name = "hinge_30-11_12-01_best_eval"
         folder_name = "hinge/2020-11-30/00-01-07"
+        
+        model_name = "optim_hinge_rn1_rs1_04-12_03-17_best_eval"
+        folder_name = "hinge/2020-12-04/12-44-23"
         # model_name = "hinge_near_30-11_10-31_best_eval"
         # folder_name = "hinge/2020-11-30/22-30-55"
         # model_name = "sac_hinge_x5_30-11_02-13_best_eval"
@@ -103,7 +106,7 @@ def hydra_evaluateVRenv(cfg):
     agent_cfg = cfg.agent.hyperparameters
     eval_config =  cfg.eval_config
     eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
-    path = "../../../outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
+    path = "../../../%s/trained_models/%s.pth"%(folder_name, model_name)
     print(os.path.abspath(path))
     print(agent_cfg)
     model = SAC(eval_env, **agent_cfg)

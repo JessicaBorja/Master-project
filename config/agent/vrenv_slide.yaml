@@ -1,0 +1,27 @@
+# @package _group_
+save_dir: "./trained_models"
+hyperparameters:
+    gamma: 0.99
+    actor_lr: 2.23e-5
+    critic_lr: 0.000514
+    alpha_lr: 0.0014
+    alpha: "auto" #"auto",
+    tau: 0.0017
+    batch_size: 214
+    buffer_size: 1e6
+    train_freq: 1 #timesteps collectng data
+    gradient_steps: 1 #timesteps updating gradients
+    learning_starts: 1000 #timesteps before starting updates
+    hidden_dim: 322 #446
+
+learn_config:
+    total_timesteps: 100000
+    log_interval: 1000 #log timestep reward every log_interval steps
+    max_episode_length: 200 #max episode length
+    n_eval_ep: 10
+
+# Drawer
+# {'actor_lr': 1.2038682913426213e-05, 'alpha_lr': 0.00021089249874950728, 'batch_size': 231, 'critic_lr': 0.0001317201629035472, 'hidden_dim': 353, 'tau': 0.015381904810327814}  
+
+# Slide
+# {'actor_lr': 2.2377075401415227e-05, 'alpha_lr': 0.0014844125506637187, 'batch_size': 214, 'critic_lr': 0.0005145439403648635, 'hidden_dim': 322, 'tau': 0.001701298825120011}

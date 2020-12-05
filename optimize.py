@@ -96,7 +96,7 @@ def optimize(trial_name, hyperparameters, eval_config, learn_config,\
     bohb.shutdown(shutdown_workers=True)
     NS.shutdown()
     id2config = res.get_id2config_mapping()
-    incumbent = res.get_incumbent_id()
+    incumbent = str(res.get_incumbent_id())
     print("incumbent: ", incumbent)
     log.info("Finished optimization, incumbent: %s"%incumbent)
 

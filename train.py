@@ -13,10 +13,10 @@ import hydra
 @hydra.main(config_path="./config", config_name="config_gym")
 def train(cfg):
     env_name = "Pendulum-v0"
-    hyperparameters = cfg.agent.hyperparameter
-    hyperparameters["env"] = gym.make(env_name).env
-    hyperparameters["eval_env"] = gym.make(env_name).env
-    model = SAC(**hyperparameters)
+    hyperparameters = cfg.agent.hyperparameters
+    env= gym.make(env_name).env
+    eval_env = gym.make(env_name).env
+    model = SAC(env = env, eval_env = eval_env, **hyperparameters)
     model.learn(**cfg.agent.learn_config)
     
 if __name__ == "__main__":

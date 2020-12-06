@@ -58,7 +58,7 @@ def evaluateVRenv(eval_config, model_name, hydra_folderpath):
         eval_config["model_name"] = model_name
         model.evaluate(eval_env, **eval_config)
 
-@hydra.main(config_path="./config", config_name="config_rl")
+@hydra.main(config_path="./config", config_name="config_vrenv")
 def hydra_evaluateVRenv(cfg):
     #Hinge
     if(cfg.task == "hinge"):
@@ -68,8 +68,8 @@ def hydra_evaluateVRenv(cfg):
         model_name = "optim_drawer_rn1_rs1_05-12_03-43_best_eval"
         folder_name = "drawer/2020-12-04/22-36-55"
     else: #task == slide
-        model_name = "sac_slide_x5_01-12_05-18_best_eval"
-        folder_name = "slide/cluster/2020-11-30/16-15-06"
+        model_name = "optim_slide_rn1_rs1_05-12_04-28_best_eval"
+        folder_name = "slide/2020-12-05/11-09-25"
 
     agent_cfg = cfg.agent.hyperparameters
     eval_config =  cfg.eval_config

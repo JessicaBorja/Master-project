@@ -24,7 +24,7 @@ eval_config = {
         "max_episode_length": 100,
 }
 
-@hydra.main(config_path="./config", config_name="config_rl")
+@hydra.main(config_path="./config", config_name="config_vrenv")
 def main(cfg):
     #training_env = hydra.utils.instantiate(cfg.env)
     #eval_env = hydra.utils.instantiate(cfg.eval_env)

@@ -1,7 +1,7 @@
 # @package _group_
 save_dir: "./trained_models"
 hyperparameters:
-    gamma: 0.99
+    gamma: 0.98
     actor_lr: 0.000346
     critic_lr: 0.00165
     alpha_lr: 8.75e-5

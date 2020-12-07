@@ -119,7 +119,7 @@ def load_agent_config(config_path = "./config/config.yaml"):
     learn_config = config["agent"]["learn_configuration"]
     return agent_config, learn_config
 
-@hydra.main(config_path="./config", config_name="config_rl")
+@hydra.main(config_path="./config", config_name="config_vrenv")
 def optim_vrenv(cfg):
     model_name = cfg.model_name
     hyperparameters = cfg.optim.hyperparameters

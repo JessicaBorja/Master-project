@@ -25,10 +25,13 @@ def fan_in_uniform_init(tensor, fan_in=None):
     w = 1. / np.sqrt(fan_in)
     nn.init.uniform_(tensor, -w, w)
 
-def read_optim_results(name):
-    with open(os.path.join("../optimization_results/", name), 'rb') as fh:
+def read_results(file_name, folder_name = "."):
+    with open(os.path.join("%s/optimization_results/"%folder_name, file_name), 'rb') as fh:
         res = pickle.load(fh)
 
     id2config = res.get_id2config_mapping()
     incumbent = res.get_incumbent_id()
     print(id2config[incumbent])
+
+if __name__ == "__main__":
+    read_results(file_name = "optim_hinge_rn1_rs1.pkl", folder_name ="../outputs/hinge/2020-12-04/12-44-23/")

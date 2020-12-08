@@ -73,24 +73,35 @@ def plot_ep_len(task = "slide", top_row = -1, show=True, save=True, save_name = 
     assert len(eval_files) == len(train_files)
     plot_eval_and_train(eval_files, train_files, task, top_row, show, save, save_name, metric = "episode length")
     
-def plot_mean_std(task = "slide", top_row = -1, show=True, save=True, save_name = "return"):
+def plot_return(task = "slide", top_row = -1, show=True, save=True, save_name = "return"):
     if not os.path.exists("./results/"):
         os.makedirs("./results/")
     csv_folder = "./results/results_csv/"
     eval_files =  glob.glob("%s*%s*eval*return*.csv"%(csv_folder, task))
     train_files =  glob.glob("%s*%s*train*return*.csv"%(csv_folder, task))
     assert len(eval_files) == len(train_files)
-    plot_eval_and_train(eval_files, train_files, task, top_row, show, save, save_name, metric = "reward")
+    plot_eval_and_train(eval_files, train_files, task, top_row, show, save, save_name, metric = "return")
 
-def main():
-    plot_mean_std("slide", top_row = 60, show=False, save=True, save_name="slide_ep_return_meanstd")
+def plot_mean_std():
+    plot_return("slide", top_row = 60, show=False, save=True, save_name="slide_ep_return_meanstd")
     plot_ep_len("slide", top_row = 60, show=False, save=True, save_name="slide_ep_length_meanstd")
     
-    plot_mean_std("drawer", top_row = 70, show=False, save=True, save_name="drawer_ep_return_meanstd")
-    plot_mean_std("drawer", top_row = 70, show=False, save=True, save_name="drawer_ep_length_meanstd")
+    plot_return("drawer", top_row = 70, show=False, save=True, save_name="drawer_ep_return_meanstd")
+    plot_ep_len("drawer", top_row = 70, show=False, save=True, save_name="drawer_ep_length_meanstd")
 
-    plot_mean_std("hinge", top_row = 100, show=False, save=True, save_name="hinge_ep_return_meanstd")
-    plot_mean_std("hinge", top_row = 100, show=False, save=True, save_name="hinge_ep_length_meanstd")
+    plot_return("hinge", top_row = 100, show=False, save=True, save_name="hinge_ep_return_meanstd")
+    plot_ep_len("hinge", top_row = 100, show=False, save=True, save_name="hinge_ep_length_meanstd")
+
+def main():
+    plot_return("slide", top_row = 60, show=False, save=True, save_name="slide_ep_return")
+    plot_ep_len("slide", top_row = 60, show=False, save=True, save_name="slide_ep_length")
+    
+    plot_return("drawer", top_row = 70, show=False, save=True, save_name="drawer_ep_return")
+    plot_ep_len("drawer", top_row = 70, show=False, save=True, save_name="drawer_ep_length")
+
+    plot_return("hinge", top_row = 100, show=False, save=True, save_name="hinge_ep_return")
+    plot_ep_len("hinge", top_row = 100, show=False, save=True, save_name="hinge_ep_length")
 
 if __name__ == "__main__":
-    main()
+    #main()
+    plot_mean_std()

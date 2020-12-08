@@ -221,7 +221,7 @@ class SAC():
                         self.save(self.trained_path+"_best_eval.pth")
                         best_eval_reward = mean_reward
                     writer.add_scalar('eval/mean_return(%dep)'%(n_eval_ep), mean_reward, t)
-                    writer.add_scalar('eval/mean_ep_length', mean_length, t)
+                    writer.add_scalar('eval/mean_ep_length(%dep)'%(n_eval_ep), mean_length, t)
                     # self.log_tensorboard_eval(self.eval_env, writer, step = t,\
                     #                     max_episode_length=max_episode_length, model_name=self.model_name) #timesteps in x axis
                 avg_reward = 0

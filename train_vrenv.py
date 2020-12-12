@@ -30,8 +30,10 @@ def main(cfg):
     #training_env = hydra.utils.instantiate(cfg.env)
     #eval_env = hydra.utils.instantiate(cfg.eval_env)
     print("agent configuration")
-    print(cfg.agent)
-    
+    print(cfg.agent.pretty())
+    print(cfg.img_wrapper.pretty())
+    print("repeat_training:%d, img_obs:%s"%(cfg.repeat_training, str(cfg.img_obs)))
+
     for i in range(cfg.repeat_training):
         training_env =  gym.make("VREnv-v0", **cfg.env).env
         eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env

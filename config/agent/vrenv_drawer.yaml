@@ -11,7 +11,7 @@ hyperparameters:
     buffer_size: 1e6
     # train_freq: 1 #timesteps collectng data
     # gradient_steps: 1 #timesteps updating gradients
-    learning_starts: 0 #timesteps before starting updates
+    learning_starts: 1000 #timesteps before starting updates
     hidden_dim: 313
 
 learn_config:

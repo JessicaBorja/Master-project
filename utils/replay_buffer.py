@@ -4,11 +4,12 @@ from utils.utils import tt
    
 class ReplayBuffer:
   #Replay buffer for experience replay. Stores transitions.
-  def __init__(self, max_size):
+  def __init__(self, max_size, dict_state = False):
     self._data = namedtuple("ReplayBuffer", ["states", "actions", "rewards", "next_states", "terminal_flags"])
     self._data = self._data(states=[], actions=[], rewards=[], next_states=[],terminal_flags=[])
     self._size = 0
     self._max_size = max_size
+    self.dict_state = dict_state
   
   def __len__(self):
     return self._size
@@ -37,4 +38,10 @@ class ReplayBuffer:
     batch_rewards = np.array([self._data.rewards[i] for i in batch_indices])
     batch_terminal_flags = np.array([self._data.terminal_flags[i] for i in batch_indices], dtype="uint8")
     
+    if(self.dict_state):
+      v = {k: np.array([dic[k] for dic in batch_states]) for k in batch_states[0]}
+      batch_states = v
+      v = {k: np.array([dic[k] for dic in batch_next_states]) for k in batch_next_states[0]}
+      batch_next_states = v
+
     return tt(batch_states), tt(batch_actions), tt(batch_rewards), tt(batch_next_states), tt(batch_terminal_flags)

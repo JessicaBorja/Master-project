@@ -3,7 +3,7 @@ import os, sys
 import json, pickle
 import numpy as np
 import torch
-import torchvision
+import torchvision as tv
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -14,8 +14,8 @@ import itertools
 import time
 from utils.replay_buffer import ReplayBuffer
 from utils.utils import EpisodeStats, tt, soft_update
-from networks.actor_network import ActorNetwork 
-from networks.value_networks import CriticNetwork
+from networks.actor_network import ActorNetwork, CNNPolicy
+from networks.value_networks import CriticNetwork, CNNCritic
 import logging
 # A logger for this file
 log = logging.getLogger(__name__)
@@ -23,19 +23,17 @@ log = logging.getLogger(__name__)
 class SAC():
     def __init__(self, env, eval_env= None, save_dir = "./trained_models", gamma = 0.99, alpha = "auto" , \
                  actor_lr = 1e-5, critic_lr = 1e-5, alpha_lr = 1e-5, hidden_dim = 256,
-                 tau = 0.005, train_freq = 1, gradient_steps = 1, learning_starts = 1000,\
+                 tau = 0.005, learning_starts = 1000, img_obs = False,\
                  target_update_interval = 1, batch_size = 256, buffer_size = 1e6, model_name = "sac"):
         self.save_dir = save_dir
         self.env = env
         self.eval_env = eval_env
         #Replay buffer
         self._max_size = buffer_size
-        self._replay_buffer = ReplayBuffer(buffer_size)
+        self._replay_buffer = ReplayBuffer(buffer_size,img_obs)
         self.batch_size = batch_size
 
         #Agent
-        self.train_freq = train_freq
-        self.gradient_steps = gradient_steps
         self._gamma = gamma
         self.tau = tau
         self.target_update_interval = target_update_interval
@@ -53,19 +51,28 @@ class SAC():
 
         self.learning_starts = learning_starts
 
-        state_dim = env.observation_space.shape[0]
+        state_dim = env.observation_space
         action_dim = env.action_space.shape[0]
         action_max = env.action_space.high[0]
-        self._pi = ActorNetwork(state_dim, action_dim, action_max=action_max, hidden_dim = hidden_dim).cuda()
+        if(img_obs):
+            self._pi = CNNPolicy(state_dim, action_dim, action_max=action_max, hidden_dim = hidden_dim).cuda()
+            self._q1 = CNNCritic(state_dim, action_dim,hidden_dim = hidden_dim).cuda()
+            self._q1_target = CNNCritic(state_dim, action_dim,hidden_dim = hidden_dim ).cuda()
+            self._q2 = CNNCritic(state_dim, action_dim,hidden_dim = hidden_dim).cuda()
+            self._q2_target = CNNCritic(state_dim, action_dim, hidden_dim = hidden_dim ).cuda()
+        else:
+            state_dim = state_dim.shape[0]
+            self._pi = ActorNetwork(state_dim, action_dim, action_max = action_max, hidden_dim = hidden_dim).cuda()     
+            self._q1 = CriticNetwork(state_dim, action_dim,hidden_dim = hidden_dim).cuda()
+            self._q1_target = CriticNetwork(state_dim, action_dim,hidden_dim = hidden_dim ).cuda()
+            self._q2 = CriticNetwork(state_dim, action_dim,hidden_dim = hidden_dim).cuda()
+            self._q2_target = CriticNetwork(state_dim, action_dim, hidden_dim = hidden_dim ).cuda()
+        
         self._pi_optim = optim.Adam(self._pi.parameters(), lr = actor_lr)
 
-        self._q1 = CriticNetwork(state_dim, action_dim,hidden_dim = hidden_dim).cuda()
-        self._q1_target = CriticNetwork(state_dim, action_dim,hidden_dim = hidden_dim ).cuda()
         self._q1_target.load_state_dict(self._q1.state_dict())
         self._q1_optimizer = optim.Adam(self._q1.parameters(), lr = critic_lr)
         
-        self._q2 = CriticNetwork(state_dim, action_dim,hidden_dim = hidden_dim).cuda()
-        self._q2_target = CriticNetwork(state_dim, action_dim, hidden_dim = hidden_dim ).cuda()
         self._q2_target.load_state_dict(self._q2.state_dict())
         self._q2_optimizer = optim.Adam(self._q2.parameters(), lr = critic_lr)
         
@@ -93,6 +100,45 @@ class SAC():
             return ent_coef_loss.item()
         else:
             return 0
+    
+    def update(self, td_target, batch_states, batch_actions, plot_data):
+        #Critic 1
+        curr_prediction_c1 = self._q1(batch_states, batch_actions)                
+        loss_c1 = self._loss_function(curr_prediction_c1, td_target.detach())
+
+        #Critic 2
+        curr_prediction_c2 = self._q2(batch_states, batch_actions)
+        loss_c2 = self._loss_function(curr_prediction_c2, td_target.detach())
+        #--- update two critics w/same optimizer ---#
+        self._q_optim.zero_grad()
+        loss_critics = loss_c1 + loss_c2
+        loss_critics.backward()
+        self._q_optim.step()
+
+        plot_data["critic_loss"] += [loss_c1.item(), loss_c2.item()]
+        #---------------- Policy network update -------------#
+        predicted_actions, log_probs = self._pi.act(batch_states, deterministic = False, reparametrize = True)
+        critic_value = torch.min(
+            self._q1(batch_states, predicted_actions),
+            self._q2(batch_states, predicted_actions) )
+        #Actor update/ gradient ascent
+        self._pi_optim.zero_grad()
+        policy_loss = (self.ent_coef * log_probs - critic_value).mean()
+        policy_loss.backward()
+        self._pi_optim.step()
+        plot_data["actor_loss"].append(policy_loss.item())
+
+        #---------------- Entropy network update -------------#
+        ent_coef_loss = self.update_entropy(log_probs)
+        plot_data["ent_coef"].append(self.ent_coef)
+        plot_data["ent_coef_loss"].append(ent_coef_loss)
+        
+        #------------------ Target Networks update -------------------#
+        soft_update(self._q1_target, self._q1, self.tau)
+        soft_update(self._q2_target, self._q2, self.tau)
+        
+        return plot_data
+
     def learn(self, total_timesteps = 10000, log_interval=100 , max_episode_length = None, n_eval_ep=5):
         if not isinstance(total_timesteps, int): #auto
             total_timesteps =  int(total_timesteps)
@@ -101,7 +147,7 @@ class SAC():
         writer = SummaryWriter(self.writer_name)
         episode = 0
         s = self.env.reset()
-        episode_reward, episode_length, avg_reward = 0,0,0 #avg_reward over log_interval timesteps
+        episode_reward, episode_length = 0,0
         best_reward, best_eval_reward = -np.inf, -np.inf
         if(max_episode_length is None):
             max_episode_length = sys.maxsize #"infinite"
@@ -111,11 +157,9 @@ class SAC():
             a, _ = self._pi.act(tt(s), deterministic = False)#sample action and scale it to action space
             a = a.cpu().detach().numpy()
             ns, r, done, info = self.env.step(a)
-            # if(info):
-            #     print(info)
+
             self._replay_buffer.add_transition(s, a, r, ns, done)
             s = ns
-            avg_reward+=r
             episode_reward +=r
             episode_length +=1                   
             
@@ -124,61 +168,19 @@ class SAC():
                 sample = self._replay_buffer.sample(self.batch_size)
                 batch_states, batch_actions, batch_rewards, batch_next_states, batch_terminal_flags = sample
 
-                if(t % self.train_freq == 0): #If we have done train_freq env. steps
-                    for n in range(self.gradient_steps):
-                        #---------------- Critic networks update -------------#
-                        with torch.no_grad():
-                            next_actions, log_probs = self._pi.act(batch_next_states, deterministic=False, reparametrize = False)
-                            #next_actions *= self.env.action_space.high[0] #scale action between high and -high action space
+                with torch.no_grad():
+                    next_actions, log_probs = self._pi.act(batch_next_states, deterministic=False, reparametrize = False)
+                    #next_actions *= self.env.action_space.high[0] #scale action between high and -high action space
 
-                            target_qvalue = torch.min(
-                                self._q1_target(batch_next_states, next_actions),
-                                self._q2_target(batch_next_states, next_actions) )
-                            
-                            td_target = batch_rewards + (1 - batch_terminal_flags) * self._gamma * \
-                                    (target_qvalue - self.ent_coef * log_probs)     
-                        #Critic 1
-                        curr_prediction_c1 = self._q1(batch_states, batch_actions)                
-                        #self._q1_optimizer.zero_grad()
-                        loss_c1 = self._loss_function(curr_prediction_c1, td_target.detach())
-                        #loss_c1.backward()
-                        #nn.utils.clip_grad_norm_(self._q1.parameters(),1)
-                        #self._q1_optimizer.step()
-                        
-                        #Critic 2
-                        curr_prediction_c2 = self._q2(batch_states, batch_actions)
-                        #self._q2_optimizer.zero_grad()
-                        loss_c2 = self._loss_function(curr_prediction_c2, td_target.detach())
-                        #loss_c2.backward()
-                        #nn.utils.clip_grad_norm_(self._q2.parameters(),1)
-                        #self._q2_optimizer.step()
-                        #--- update two critics w/same optimizer ---#
-                        self._q_optim.zero_grad()
-                        loss_critics = loss_c1 + loss_c2
-                        loss_critics.backward()
-                        self._q_optim.step()
-
-                        plot_data["critic_loss"] += [loss_c1.item(), loss_c2.item()]
-                        #---------------- Policy network update -------------#
-                        predicted_actions, log_probs = self._pi.act(batch_states, deterministic = False, reparametrize = True)
-                        critic_value = torch.min(
-                            self._q1(batch_states, predicted_actions),
-                            self._q2(batch_states, predicted_actions) )
-                        #Actor update/ gradient ascent
-                        self._pi_optim.zero_grad()
-                        policy_loss = (self.ent_coef * log_probs - critic_value).mean()
-                        policy_loss.backward()
-                        self._pi_optim.step()
-                        plot_data["actor_loss"].append(policy_loss.item())
-
-                        #---------------- Entropy network update -------------#
-                        ent_coef_loss = self.update_entropy(log_probs)
-                        plot_data["ent_coef"].append(self.ent_coef)
-                        plot_data["ent_coef_loss"].append(ent_coef_loss)
-                        
-                        #------------------ Target Networks update -------------------#
-                        soft_update(self._q1_target, self._q1, self.tau)
-                        soft_update(self._q2_target, self._q2, self.tau)
+                    target_qvalue = torch.min(
+                        self._q1_target(batch_next_states, next_actions),
+                        self._q2_target(batch_next_states, next_actions) )
+                    
+                    td_target = batch_rewards + (1 - batch_terminal_flags) * self._gamma * \
+                            (target_qvalue - self.ent_coef * log_probs)     
+                    
+                #----------------  Networks update -------------#
+                plot_data = self.update(td_target, batch_states, batch_actions, plot_data)
 
             if(done or (max_episode_length and (episode_length >= max_episode_length))): #End episode
                 stats.episode_lengths.append(episode_length)
@@ -188,11 +190,7 @@ class SAC():
                 writer.add_scalar('train/episode_return', episode_reward, episode)
                 writer.add_scalar('train/episode_length', episode_length, episode)
 
-                if(episode_reward>best_reward): #and episode>20):
-                    # if(episode_reward<0):
-                    #     self.save(self.trained_path+"_r-neg%d.pth"%(np.abs(round(episode_reward))))
-                    # else:
-                    #     self.save(self.trained_path+"_r-%d.pth"%(round(episode_reward)))
+                if(episode_reward>best_reward):
                     log.info("[%d] New best train ep. return!%.3f"%(episode, episode_reward))
                     self.save(self.trained_path+"_best.pth")
                     best_reward = episode_reward
@@ -222,23 +220,11 @@ class SAC():
                         best_eval_reward = mean_reward
                     writer.add_scalar('eval/mean_return(%dep)'%(n_eval_ep), mean_reward, t)
                     writer.add_scalar('eval/mean_ep_length(%dep)'%(n_eval_ep), mean_length, t)
-                    # self.log_tensorboard_eval(self.eval_env, writer, step = t,\
-                    #                     max_episode_length=max_episode_length, model_name=self.model_name) #timesteps in x axis
-                avg_reward = 0
-
         if(self.eval_env is not None):
             log.info("End of training evaluation:")
             self.evaluate(self.eval_env, max_episode_length, model_name = self.model_name, print_all_episodes = True)
-        #self.save_stats(stats, self.writer_name)
         return stats
-
-    def log_tensorboard_eval(self, env, writer, step, max_episode_length, n_eval_ep = 5, model_name="sac", write_file = False):
-        mean_reward, mean_length = self.evaluate(env, max_episode_length=max_episode_length,\
-                                                 model_name = model_name, write_file = write_file,\
-                                                 n_episodes=n_eval_ep)
-        writer.add_scalar('eval/mean_return(%dep)'%n_eval_ep, mean_reward, step)
-        writer.add_scalar('eval/mean_ep_length', mean_length, step)
-
+        
     def evaluate(self, env, max_episode_length = 150, n_episodes = 5, model_name = "sac",\
                  print_all_episodes = False, write_file = False, render = False):
         stats = EpisodeStats(episode_lengths = [], episode_rewards = [])

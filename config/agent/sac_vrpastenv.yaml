@@ -9,8 +9,8 @@ hyperparameters:
     tau: 0.019
     batch_size: 185
     buffer_size: 1e6
-    train_freq: 1 #timesteps collectng data
-    gradient_steps: 1 #timesteps updating gradients
+    # train_freq: 1 #timesteps collectng data
+    # gradient_steps: 1 #timesteps updating gradients
     learning_starts: 1000 #timesteps before starting updates
     hidden_dim: 322 #446
 

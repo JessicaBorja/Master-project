@@ -1,15 +1,20 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from torch.optim.lr_scheduler import LambdaLR
 import numpy as np
 from collections import namedtuple
 import os, pickle
 
 EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
 
-def tt(ndarray):
-  return Variable(torch.from_numpy(ndarray).float().cuda(), requires_grad=False)
+def tt(x):
+  if isinstance(x,dict):
+    dict_of_list = {}
+    for key, val in x.items():
+      dict_of_list[key] = Variable(torch.from_numpy(val).float().cuda(), requires_grad=False)
+    return dict_of_list
+  else:
+    return Variable(torch.from_numpy(x).float().cuda(), requires_grad=False)
 
 def soft_update(target, source, tau):
   for target_param, param in zip(target.parameters(), source.parameters()):

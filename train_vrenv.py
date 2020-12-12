@@ -6,6 +6,7 @@ import time
 import math
 import hydra
 import os,sys,inspect
+from utils.env_img_wrapper import ImgWrapper
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir) 
@@ -34,9 +35,12 @@ def main(cfg):
     for i in range(cfg.repeat_training):
         training_env =  gym.make("VREnv-v0", **cfg.env).env
         eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
+        if(cfg.img_obs):
+            training_env = ImgWrapper(training_env)
+            eval_env =  ImgWrapper(eval_env)
         model_name = cfg.model_name
         model = SAC(env = training_env, eval_env = eval_env, model_name = model_name,\
-                    save_dir = cfg.agent.save_dir, **cfg.agent.hyperparameters)
+                    save_dir = cfg.agent.save_dir, img_obs = cfg.img_obs, **cfg.agent.hyperparameters)
         model.learn(**cfg.agent.learn_config)
         training_env.close()
         eval_env.close()

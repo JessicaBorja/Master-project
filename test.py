@@ -8,11 +8,10 @@ import pybullet_data
 # from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
 #from gym.envs.mujoco import mujoco_env
 #import mujoco_py
-from utils.utils import read_optim_results
 from sac import SAC
-from datetime import datetime
-import time, os, pickle, sys, inspect
+import os, sys, inspect
 import yaml
+from utils.env_img_wrapper import ImgWrapper
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
@@ -67,6 +66,9 @@ def hydra_evaluateVRenv(cfg):
     elif(cfg.task == "drawer"):
         model_name = "optim_drawer_rn1_rs1_05-12_03-43_best_eval"
         folder_name = "drawer/2020-12-04/22-36-55"
+        #img
+        model_name = "drawer_img_optim_12-12_05-24_best_eval"
+        folder_name = "drawer/cluster/2020-12-12/02-02-29"
     else: #task == slide
         model_name = "optim_slide_rn1_rs1_05-12_04-28_best_eval"
         folder_name = "slide/2020-12-05/11-09-25"
@@ -74,10 +76,12 @@ def hydra_evaluateVRenv(cfg):
     agent_cfg = cfg.agent.hyperparameters
     eval_config =  cfg.eval_config
     eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
+    if(cfg.img_obs):
+        eval_env =  ImgWrapper(eval_env)
     path = "../../../outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
     print(os.path.abspath(path))
     print(agent_cfg)
-    model = SAC(eval_env, **agent_cfg)
+    model = SAC(eval_env, img_obs=cfg.img_obs, **agent_cfg)
     success = model.load(path)
     if(success):
         model.evaluate(eval_env, model_name = model_name, **eval_config)

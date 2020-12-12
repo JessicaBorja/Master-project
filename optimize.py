@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 # import mujoco_py
 import hydra
 import os,sys,inspect
+from utils.env_img_wrapper import ImgWrapper
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir) 
@@ -129,6 +130,11 @@ def optim_vrenv(cfg):
     hp["env"] = gym.make("VREnv-v0", **cfg.env).env
     hp["eval_env"] = gym.make("VREnv-v0", **cfg.eval_env).env
     hp["model_name"] = model_name
+    hp["img_obs"] = cfg.img_obs
+    if(cfg.img_obs):
+        hp["env"] = ImgWrapper(hp["env"])
+        hp["eval_env"] = ImgWrapper(hp["eval_env"] )
+
     hp = {**hyperparameters, **hp}
     optimize(model_name, hp, eval_config, learn_config,\
             max_budget=cfg.optim.max_budget, min_budget=cfg.optim.min_budget,\

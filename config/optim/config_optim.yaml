@@ -1,24 +1,22 @@
 # @package _group_
-max_budget: 100000
-min_budget: 50000
-n_iterations: 3
+max_budget: 110000
+min_budget: 60000
+n_iterations: 4
 n_workers: 1
 
 hyperparameters:
   gamma: 0.98
   buffer_size: 1e6
-  train_freq: 1 #timesteps collectng data
-  gradient_steps: 1 #timesteps updating gradients
   learning_starts: 1000 #timesteps before starting updates
   
 learn_config:
-  log_interval: 1000 #log timestep reward every log_interval steps
+  log_interval: 1400 #log timestep reward every log_interval steps
   max_episode_length: 200 #max episode length
   n_eval_ep: 5
 
 eval_config:
   max_episode_length: 200 
-  n_episodes: 50
+  n_episodes: 15
   render: False
   print_all_episodes: False
   write_file: False

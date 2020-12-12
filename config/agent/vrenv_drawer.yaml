@@ -15,7 +15,7 @@ hyperparameters:
     hidden_dim: 313
 
 learn_config:
-    total_timesteps: 100000
+    total_timesteps: 500000
     log_interval: 1000 #log timestep reward every log_interval steps
     max_episode_length: 200 #max episode length
     n_eval_ep: 10

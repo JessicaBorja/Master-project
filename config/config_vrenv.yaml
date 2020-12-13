@@ -1,14 +1,13 @@
 load_dir: ???
 data_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
 save_dir: ./outputs/${task}
-processes: 1
 task: slide
 model_name: sac_vrenv
 repeat_training: 1
 img_obs: True
 
 defaults:
-  - agent: sac_orig
+  - agent: sac_default
   - env: env
   - scene@env.scene: basic_playtable
   - camera_conf@env: static_and_gripper

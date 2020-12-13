@@ -67,11 +67,14 @@ def hydra_evaluateVRenv(cfg):
         model_name = "optim_drawer_rn1_rs1_05-12_03-43_best_eval"
         folder_name = "drawer/2020-12-04/22-36-55"
         #img
-        model_name = "drawer_img_optim_12-12_05-24_best_eval"
-        folder_name = "drawer/cluster/2020-12-12/02-02-29"
+        model_name = "drawer_img_default_13-12_01-42_best_eval"
+        folder_name = "drawer/cluster/2020-12-13/01-42-26"
     else: #task == slide
         model_name = "optim_slide_rn1_rs1_05-12_04-28_best_eval"
         folder_name = "slide/2020-12-05/11-09-25"
+        # #img
+        # model_name = "slide_img_14-12_07-41_best_eval"
+        # folder_name = "slide/cluster/2020-12-14/19-41-17"
 
     agent_cfg = cfg.agent.hyperparameters
     eval_config =  cfg.eval_config

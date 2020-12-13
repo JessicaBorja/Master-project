@@ -61,33 +61,38 @@ class SACWorker(Worker):
         :return: ConfigurationsSpace-Object
         """
         cs = CS.ConfigurationSpace()
-        actor_lr = CSH.UniformFloatHyperparameter('actor_lr', lower=1e-6, upper=1e-2, log=True)
-        critic_lr = CSH.UniformFloatHyperparameter('critic_lr', lower=1e-6, upper=1e-2, log=True)
-        alpha_lr = CSH.UniformFloatHyperparameter('alpha_lr', lower=1e-6, upper=1e-2, log=True)
+        actor_lr = CSH.UniformFloatHyperparameter('actor_lr', lower=1e-6, upper=1e-3, log=True)
+        critic_lr = CSH.UniformFloatHyperparameter('critic_lr', lower=1e-6, upper=1e-3, log=True)
+        alpha_lr = CSH.UniformFloatHyperparameter('alpha_lr', lower=1e-6, upper=1e-3, log=True)
         #alpha = CSH.UniformFloatHyperparameter('alpha', lower=0.01, upper=0.7)
-        tau = CSH.UniformFloatHyperparameter('tau', lower=0.001, upper=0.02)
+        tau = CSH.UniformFloatHyperparameter('tau', lower=0.001, upper=0.01)
         batch_size = CSH.UniformIntegerHyperparameter('batch_size', lower=32, upper=128)
         hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=256, upper=512)
 
         cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr, tau, batch_size, hidden_dim])
         return cs
 
-def optimize(trial_name, hyperparameters, eval_config, learn_config,\
+def optimize(trial_name, hyperparameters, eval_config, learn_config, run_id,\
                 max_budget = 250000, min_budget = 50000, n_iterations = 3, n_workers=1):  
-
+    
+    result_logger = hpres.json_result_logger(directory=".", overwrite=False)
     NS = hpns.NameServer(run_id='sac_hpo', host='127.0.0.1', port=None)
     NS.start()
-    workers=[]
+    
     #for i in range(n_workers):
     w = SACWorker(hyperparameters, eval_config, learn_config,\
-                    nameserver='127.0.0.1', run_id='sac_hpo')#, id=i)
+                    nameserver='127.0.0.1', run_id = run_id)#, id=i)
     w.run(background=True)
     #workers.append(w)
 
     bohb = BOHB( configspace = w.get_configspace(),
-            run_id = 'sac_hpo', nameserver='127.0.0.1',
-            min_budget=min_budget, max_budget=max_budget )
-    res = bohb.run(n_iterations=n_iterations) #, min_workers = n_workers)
+                 run_id = run_id,
+                 nameserver='127.0.0.1',
+                 result_logger=result_logger,
+                 min_budget=min_budget, 
+                 max_budget=max_budget )
+
+    res = bohb.run(n_iterations=n_iterations) #,min_n_workers = n_workers)
     # store results
     if not os.path.exists("./optimization_results/"): 
             os.makedirs("./optimization_results/")
@@ -136,7 +141,7 @@ def optim_vrenv(cfg):
         hp["eval_env"] = ImgWrapper(hp["eval_env"] )
 
     hp = {**hyperparameters, **hp}
-    optimize(model_name, hp, eval_config, learn_config,\
+    optimize(model_name, hp, eval_config, learn_config, run_id = cfg.optim.run_id,\
             max_budget=cfg.optim.max_budget, min_budget=cfg.optim.min_budget,\
             n_iterations = cfg.optim.n_iterations, n_workers=cfg.optim.n_workers)
     read_results("%s.pkl"%model_name)

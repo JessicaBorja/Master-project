@@ -1,7 +1,6 @@
 load_dir: ???
 data_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
 save_dir: ./outputs/past_env/
-processes: 1
 task: slide
 model_name: sac_vrenv
 repeat_training: 1

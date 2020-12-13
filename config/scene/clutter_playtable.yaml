@@ -49,7 +49,7 @@ scene_joints:  # the names are just for readability, only object_id and joint_in
     state: 0  # revolute
   slide_door:
     object_id: 0
-    joint_index: 3
+    joint_index: 4
     state: 0  # prismatic
   drawer:
     object_id: 1

@@ -72,22 +72,22 @@ class SACWorker(Worker):
         cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr, tau, batch_size, hidden_dim])
         return cs
 
-def optimize(trial_name, hyperparameters, eval_config, learn_config, run_id,\
+def optimize(trial_name, hyperparameters, eval_config, learn_config, run_id, nameserver,\
                 max_budget = 250000, min_budget = 50000, n_iterations = 3, n_workers=1):  
     
     result_logger = hpres.json_result_logger(directory=".", overwrite=False)
-    NS = hpns.NameServer(run_id='sac_hpo', host='127.0.0.1', port=None)
+    NS = hpns.NameServer(run_id='sac_hpo', host=nameserver, port=None)
     NS.start()
     
     #for i in range(n_workers):
     w = SACWorker(hyperparameters, eval_config, learn_config,\
-                    nameserver='127.0.0.1', run_id = run_id)#, id=i)
+                    nameserver = nameserver, run_id = run_id)#, id=i)
     w.run(background=True)
     #workers.append(w)
 
     bohb = BOHB( configspace = w.get_configspace(),
                  run_id = run_id,
-                 nameserver='127.0.0.1',
+                 nameserver = nameserver,
                  result_logger=result_logger,
                  min_budget=min_budget, 
                  max_budget=max_budget )
@@ -141,7 +141,7 @@ def optim_vrenv(cfg):
         hp["eval_env"] = ImgWrapper(hp["eval_env"] )
 
     hp = {**hyperparameters, **hp}
-    optimize(model_name, hp, eval_config, learn_config, run_id = cfg.optim.run_id,\
+    optimize(model_name, hp, eval_config, learn_config, run_id = cfg.optim.run_id, nameserver = cfg.optim.nameserver,\
             max_budget=cfg.optim.max_budget, min_budget=cfg.optim.min_budget,\
             n_iterations = cfg.optim.n_iterations, n_workers=cfg.optim.n_workers)
     read_results("%s.pkl"%model_name)

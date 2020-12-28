@@ -75,6 +75,8 @@ def hydra_evaluateVRenv(cfg):
         # #img
         # model_name = "slide_img_14-12_07-41_best_eval"
         # folder_name = "slide/cluster/2020-12-14/19-41-17"
+        model_name = "slide_img_27-12_12-32_best_eval"
+        folder_name = "slide/cluster/2020-12-27/00-31-39"
 
     agent_cfg = cfg.agent.hyperparameters
     eval_config =  cfg.eval_config

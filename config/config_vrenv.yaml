@@ -10,10 +10,10 @@ defaults:
   - agent: sac_default
   - env: env
   - scene@env.scene: basic_playtable
-  - camera_conf@env: static_and_gripper
+  - camera_conf@env: slide_drawer_camera
   - env@eval_env: env
   - scene@eval_env.scene: basic_playtable
-  - camera_conf@eval_env: static_and_gripper
+  - camera_conf@eval_env: slide_drawer_camera
   - eval@eval_config: eval_config
   - optim@optim: config_optim
   - hydra/job_logging: colorlog
@@ -25,6 +25,17 @@ img_wrapper:
   img_size: 100
   
 all_cameras:
+  slide_drawer_camera:    
+    _target_: src.camera.static_camera.StaticCamera
+    name: static
+    fov: 75
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 300
+    height: 300
+    look_at: [ 0.05, 0.8, 0.6 ]
+    look_from: [-0.5, 0.2, 1]
   static:
     _target_: src.camera.static_camera.StaticCamera
     name: static

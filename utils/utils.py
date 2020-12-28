@@ -5,7 +5,7 @@ import numpy as np
 from collections import namedtuple
 import os, pickle
 
-EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
+EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards", "validation_reward"])
 
 def tt(x):
   if isinstance(x,dict):

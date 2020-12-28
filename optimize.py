@@ -46,10 +46,15 @@ class SACWorker(Worker):
         train_reward = np.max(stats.episode_rewards)
         eval_mean_reward, _ = model.evaluate(model.eval_env, **self.eval_config)
 
+        if(len(stats.validation_reward>0)):
+            max_validation_reward = np.max(stats.validation_reward).item()
+        else:
+            max_validation_reward = eval_mean_reward
+
         return ({ #want to maximize reward then minimize negative reward
                 'loss': - eval_mean_reward, # remember: HpBandSter always minimizes!
                 'info': { 'Max train reward': train_reward,
-                          'Mean validation reward': eval_mean_reward,
+                          'Max validation reward': max_validation_reward,
                         } })
     
     @staticmethod
@@ -64,10 +69,10 @@ class SACWorker(Worker):
         actor_lr = CSH.UniformFloatHyperparameter('actor_lr', lower=1e-6, upper=1e-3, log=True)
         critic_lr = CSH.UniformFloatHyperparameter('critic_lr', lower=1e-6, upper=1e-3, log=True)
         alpha_lr = CSH.UniformFloatHyperparameter('alpha_lr', lower=1e-6, upper=1e-3, log=True)
-        #alpha = CSH.UniformFloatHyperparameter('alpha', lower=0.01, upper=0.7)
+        discount = CSH.UniformFloatHyperparameter('alpha', lower=0.96, upper=0.99)
         tau = CSH.UniformFloatHyperparameter('tau', lower=0.001, upper=0.01)
         batch_size = CSH.UniformIntegerHyperparameter('batch_size', lower=32, upper=128)
-        hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=256, upper=512)
+        #hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=256, upper=512)
 
         cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr, tau, batch_size, hidden_dim])
         return cs

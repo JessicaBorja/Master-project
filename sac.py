@@ -85,7 +85,7 @@ class SAC():
         #models folder
         if not os.path.exists(save_dir): 
             os.makedirs(save_dir)
-        self.model_name = "{}_{}".format(model_name, datetime.now().strftime('%d-%m_%I-%M'))
+        self.model_name = "{}_{}".format(model_name, datetime.now().strftime('%d-%m_%H-%M'))
         self.writer_name = "./results/{}".format(self.model_name)
         #self.eval_writer_name = "./results/%s_eval"%self.model_name
         self.trained_path = "{}/{}".format(self.save_dir, self.model_name)
@@ -142,7 +142,7 @@ class SAC():
     def learn(self, total_timesteps = 10000, log_interval=100 , max_episode_length = None, n_eval_ep=5):
         if not isinstance(total_timesteps, int): #auto
             total_timesteps =  int(total_timesteps)
-        stats = EpisodeStats(episode_lengths = [], episode_rewards = [])
+        stats = EpisodeStats(episode_lengths = [], episode_rewards = [], validation_reward = [])
         #eval_writer = SummaryWriter(self.eval_writer_name)
         writer = SummaryWriter(self.writer_name)
         episode = 0
@@ -214,6 +214,7 @@ class SAC():
                 if(self.eval_env is not None):
                     mean_reward, mean_length = self.evaluate(self.eval_env, max_episode_length,\
                                                              model_name = self.model_name, n_episodes=n_eval_ep)
+                    stats.validation_reward.append(mean_reward)
                     if(mean_reward > best_eval_reward):
                         log.info("[%d] New best eval avg. return!%.3f"%(episode, mean_reward))
                         self.save(self.trained_path+"_best_eval.pth")
@@ -227,7 +228,7 @@ class SAC():
         
     def evaluate(self, env, max_episode_length = 150, n_episodes = 5, model_name = "sac",\
                  print_all_episodes = False, write_file = False, render = False):
-        stats = EpisodeStats(episode_lengths = [], episode_rewards = [])
+        stats = EpisodeStats(episode_lengths = [], episode_rewards = [], validation_reward=[])
         for episode in range(n_episodes):
             s = env.reset()
             episode_length, episode_reward = 0,0

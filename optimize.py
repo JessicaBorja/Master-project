@@ -69,12 +69,12 @@ class SACWorker(Worker):
         actor_lr = CSH.UniformFloatHyperparameter('actor_lr', lower=1e-6, upper=1e-3, log=True)
         critic_lr = CSH.UniformFloatHyperparameter('critic_lr', lower=1e-6, upper=1e-3, log=True)
         alpha_lr = CSH.UniformFloatHyperparameter('alpha_lr', lower=1e-6, upper=1e-3, log=True)
-        discount = CSH.UniformFloatHyperparameter('alpha', lower=0.96, upper=0.99)
+        discount = CSH.UniformFloatHyperparameter('gamma', lower=0.97, upper=0.99)
         tau = CSH.UniformFloatHyperparameter('tau', lower=0.001, upper=0.01)
         batch_size = CSH.UniformIntegerHyperparameter('batch_size', lower=32, upper=128)
         #hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=256, upper=512)
 
-        cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr, tau, batch_size, hidden_dim])
+        cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr, tau, batch_size, discount])
         return cs
 
 def optimize(trial_name, hyperparameters, eval_config, learn_config, run_id, nameserver,\

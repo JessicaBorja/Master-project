@@ -1,0 +1,3 @@
+# @package _group_
+cameras:
+  - '${all_cameras.slide_hinge_camera}'

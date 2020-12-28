@@ -22,9 +22,9 @@ log = logging.getLogger(__name__)
 
 class SAC():
     def __init__(self, env, eval_env= None, save_dir = "./trained_models", gamma = 0.99, alpha = "auto" , \
-                 actor_lr = 1e-5, critic_lr = 1e-5, alpha_lr = 1e-5, hidden_dim = 256,
+                 actor_lr = 3e-4, critic_lr = 3e-4, alpha_lr = 3e-4, hidden_dim = 256,
                  tau = 0.005, learning_starts = 1000, img_obs = False,\
-                 target_update_interval = 1, batch_size = 256, buffer_size = 1e6, model_name = "sac"):
+                 batch_size = 256, buffer_size = 1e6, model_name = "sac"):
         self.save_dir = save_dir
         self.env = env
         self.eval_env = eval_env
@@ -36,7 +36,6 @@ class SAC():
         #Agent
         self._gamma = gamma
         self.tau = tau
-        self.target_update_interval = target_update_interval
 
         #networks
         self._auto_entropy = False

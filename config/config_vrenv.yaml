@@ -9,12 +9,12 @@ img_obs: True
 defaults:
   - agent: sac_default
   - env: env
-  - scene@env.scene: basic_playtable
-  - camera_conf@env: slide_hinge_camera
   - env@eval_env: env
-  - scene@eval_env.scene: basic_playtable
-  - camera_conf@eval_env: slide_hinge_camera
   - eval@eval_config: eval_config
+  - scene@env.scene: basic_playtable
+  - scene@eval_env.scene: basic_playtable
+  - camera_conf@env: slide_hinge_camera
+  - camera_conf@eval_env: slide_hinge_camera
   - optim@optim: config_optim
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog

@@ -46,7 +46,7 @@ class SACWorker(Worker):
         train_reward = np.max(stats.episode_rewards)
         eval_mean_reward, _ = model.evaluate(model.eval_env, **self.eval_config)
 
-        if(len(stats.validation_reward>0)):
+        if(len(stats.validation_reward)>0):
             max_validation_reward = np.max(stats.validation_reward).item()
         else:
             max_validation_reward = eval_mean_reward

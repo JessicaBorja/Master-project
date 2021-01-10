@@ -65,6 +65,7 @@ class CNNPolicy(nn.Module):
 
     self.fc1 = nn.Linear(w*h*16, 16)
     _position_shape = state_dim['position'].shape[0]
+    _position_shape = 0 ###
     self.policy_network = ActorNetwork(_position_shape + 16, action_dim, action_max,\
                                         non_linearity= non_linearity, hidden_dim=hidden_dim)
 
@@ -77,7 +78,8 @@ class CNNPolicy(nn.Module):
     x = F.relu(self.conv2(x))
     x = F.relu(self.conv3(x))
     x = F.relu(self.fc1(x.view(batch_size,-1))).squeeze() #bs, 16
-    x = self.policy_network(torch.cat((pos, x), dim=-1))
+    #x = self.policy_network(torch.cat((pos, x), dim=-1))
+    x = self.policy_network(x) ###
     return x
 
   #return action scaled to env

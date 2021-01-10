@@ -13,8 +13,8 @@ defaults:
   - eval@eval_config: eval_config
   - scene@env.scene: basic_playtable
   - scene@eval_env.scene: basic_playtable
-  - camera_conf@env: slide_hinge_camera
-  - camera_conf@eval_env: slide_hinge_camera
+  - camera_conf@env: slide_drawer_camera
+  - camera_conf@eval_env: slide_drawer_camera
   - optim@optim: config_optim
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
@@ -47,8 +47,10 @@ all_cameras:
     farval: 2
     width: 300
     height: 300
-    look_at: [ 0.05, 0.8, 0.6 ]
-    look_from: [-0.5, 0.2, 1]
+    # look_at: [ 0.05, 0.8, 0.6 ]
+    # look_from: [-0.5, 0.2, 1]
+    look_at: [ 0.2, 0.85, 0.5 ]
+    look_from: [0.2, 0.05, 1.3]
   static:
     _target_: src.camera.static_camera.StaticCamera
     name: static

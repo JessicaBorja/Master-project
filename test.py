@@ -63,6 +63,18 @@ def hydra_evaluateVRenv(cfg):
     if(cfg.task == "hinge"):
         model_name = "optim_hinge_rn1_rs1_04-12_03-17_best_eval"
         folder_name = "hinge/2020-12-04/12-44-23"
+
+        #cluster\2020-12-27\01-35-14\results\slide_img_27-12_01-35 
+        #me equivoque en el nombre de modelo y por eso dice slide pero es de hinge
+        # hidden_dim = 488
+        # model_name = "slide_img_27-12_01-35_best_eval"
+        # folder_name = "hinge/cluster/2020-12-27/01-35-14"
+
+        #cluster\2020-12-29\06-15-08\results\hinge_img_optim_31-12_01-02
+        hidden_dim = 300 
+        model_name = "hinge_img_optim_31-12_01-02_best_eval"
+        folder_name = "hinge/cluster/2020-12-29/06-15-08"
+
     elif(cfg.task == "drawer"):
         model_name = "optim_drawer_rn1_rs1_05-12_03-43_best_eval"
         folder_name = "drawer/2020-12-04/22-36-55"
@@ -73,12 +85,26 @@ def hydra_evaluateVRenv(cfg):
         model_name = "optim_slide_rn1_rs1_05-12_04-28_best_eval"
         folder_name = "slide/2020-12-05/11-09-25"
         # #img
-        # model_name = "slide_img_14-12_07-41_best_eval"
-        # folder_name = "slide/cluster/2020-12-14/19-41-17"
-        model_name = "slide_img_27-12_12-32_best_eval"
-        folder_name = "slide/cluster/2020-12-27/00-31-39"
+        #cluster\2020-12-13\16-39-08\results\slide_img_13-12_04-39
+        # model_name = "slide_img_13-12_04-39_best_eval"
+        # folder_name = "slide/cluster/2020-12-13/16-39-08"
+
+        #cluster\2020-12-29\06-14-54\results\slide_img_optim_30-12_17-43
+        hidden_dim=300
+        model_name = "slide_img_optim_30-12_17-43_best_eval"
+        folder_name = "slide/cluster/2020-12-29/06-14-54"
+
+        # model_name = "slide_img_27-12_12-32_best_eval"
+        # folder_name = "slide/cluster/2020-12-27/00-31-39"
+
+        
 
     agent_cfg = cfg.agent.hyperparameters
+    try:
+        agent_cfg.hidden_dim =  hidden_dim
+    except:
+        #No different hidden_dim
+        pass
     eval_config =  cfg.eval_config
     eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
     if(cfg.img_obs):

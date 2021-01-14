@@ -6,6 +6,8 @@ import torchvision
 from torch.utils.tensorboard import SummaryWriter
 from torch.distributions import Normal
 from utils.utils import tt
+import cv2
+import numpy as np 
 
 #policy
 class ActorNetwork(nn.Module):
@@ -71,6 +73,8 @@ class CNNPolicy(nn.Module):
 
   def forward(self, x):
     img, pos = x['rgb_obs'], x['position']
+    # cv2.imshow("forward pass", np.uint8(np.expand_dims(img[0].cpu().numpy(),-1)) )
+    # cv2.waitKey(1)
     if(len(img.shape) == 3):
       img = img.unsqueeze(0)
     batch_size = img.shape[0]

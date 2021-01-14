@@ -38,8 +38,8 @@ def main(cfg):
         training_env =  gym.make("VREnv-v0", **cfg.env).env
         eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
         if(cfg.img_obs):
-            training_env = ImgWrapper(training_env)
-            eval_env =  ImgWrapper(eval_env)
+            training_env = ImgWrapper(training_env, **cfg.img_wrapper)
+            eval_env =  ImgWrapper(eval_env, **cfg.img_wrapper)
         model_name = cfg.model_name
         model = SAC(env = training_env, eval_env = eval_env, model_name = model_name,\
                     save_dir = cfg.agent.save_dir, img_obs = cfg.img_obs, **cfg.agent.hyperparameters)

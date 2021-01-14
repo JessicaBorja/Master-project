@@ -16,6 +16,9 @@ class ImgWrapper(gym.ObservationWrapper):
         self.history_length = history_length
         self.obs_count = 0
         self.img_size = img_size
+        self._total_frames = np.zeros(( (skip_frames+1)*(self.history_length-1) + 1, self.img_size,self.img_size))
+        self._indices = [i for i in range(self._total_frames.shape[0]) if i%(skip_frames+1)==0]
+        assert len(self._indices) == history_length
         self._img_obs = None
 
     def observation(self, obs):
@@ -37,10 +40,15 @@ class ImgWrapper(gym.ObservationWrapper):
         # cv2.imshow("win",new_frame)
         # cv2.waitKey(1)
         new_frame = np.expand_dims(new_frame, 0)#1,100,100
-        if(self.obs_count == 0): #pos 0 is the most recent one
-            zeros = np.zeros((self.history_length-1,self.img_size,self.img_size))
-            self._img_obs = np.concatenate((new_frame, zeros), axis=0)
-        elif(self.obs_count%(self.skip_frames+1)==0):
-            self._img_obs = np.pad(self._img_obs,((1,0),(0,0),(0,0)), mode='constant')[:-1, :, :]
-            self._img_obs[0] = new_frame
+        self._total_frames = np.pad(self._total_frames,((1,0),(0,0),(0,0)), mode='constant')[:-1, :, :]
+        self._total_frames[0] = new_frame
+        
+        self._img_obs = self._total_frames[self._indices]
+
+        # if(self.obs_count == 0): #pos 0 is the most recent one
+        #     zeros = np.zeros((self.history_length-1,self.img_size,self.img_size))
+        #     self._img_obs = np.concatenate((new_frame, zeros), axis=0)
+        # elif(self.obs_count%(self.skip_frames+1)==0):            
+        #     self._img_obs = np.pad(self._img_obs,((1,0),(0,0),(0,0)), mode='constant')[:-1, :, :]
+        #     self._img_obs[0] = new_frame
         return self._img_obs

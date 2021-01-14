@@ -82,8 +82,11 @@ def hydra_evaluateVRenv(cfg):
             folder_name = "drawer/2020-12-04/22-36-55"
         else:
             #img
-            model_name = "drawer_img_default_13-12_01-42_best_eval"
-            folder_name = "drawer/cluster/2020-12-13/01-42-26"
+            # model_name = "drawer_img_default_13-12_01-42_best_eval"
+            # folder_name = "drawer/cluster/2020-12-13/01-42-26"
+            model_name = "drawer_img_only_10-01_23-06_best_eval"
+            folder_name = "drawer/cluster/2021-01-10/23-04-58"
+
     else: #task == slide
         if(not cfg.img_obs):
             model_name = "optim_slide_rn1_rs1_05-12_04-28_best_eval"
@@ -98,9 +101,8 @@ def hydra_evaluateVRenv(cfg):
             # hidden_dim=300
             # model_name = "slide_img_optim_30-12_17-43_best_eval"
             # folder_name = "slide/cluster/2020-12-29/06-14-54"
-
-            # model_name = "slide_img_27-12_12-32_best_eval"
-            # folder_name = "slide/cluster/2020-12-27/00-31-39"
+            model_name = "slide_img_only_10-01_23-06_best"
+            folder_name = "slide/cluster/2021-01-10/23-04-58"
 
     agent_cfg = cfg.agent.hyperparameters
     try:
@@ -111,7 +113,7 @@ def hydra_evaluateVRenv(cfg):
     eval_config =  cfg.eval_config
     eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
     if(cfg.img_obs):
-        eval_env =  ImgWrapper(eval_env)
+        eval_env =  ImgWrapper(eval_env, **cfg.img_wrapper)
     path = "../../../outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
     print(os.path.abspath(path))
     print(agent_cfg)

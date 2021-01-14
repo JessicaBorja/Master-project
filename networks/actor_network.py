@@ -56,20 +56,23 @@ class CNNPolicy(nn.Module):
     self.non_linearity = F.relu
 
     _history_length = state_dim['rgb_obs'].shape[0]
-    self.conv1 = nn.Conv2d(_history_length, 8, 3)
-    self.conv2 = nn.Conv2d(8, 16, 3)
-    self.conv3 = nn.Conv2d(16, 32, 3)
+    self.conv1 = nn.Conv2d(_history_length, 32, 8, stride=4)
+    self.conv2 = nn.Conv2d(32, 64, 4, stride=2)
+    self.conv3 = nn.Conv2d(64, 64, 3, stride=1)
 
     _img_size = state_dim['rgb_obs'].shape[-1]
-    w,h = self.calc_out_size(_img_size,_img_size,3,0,1)
-    w,h = self.calc_out_size(w,h,3,0,1)
+    w,h = self.calc_out_size(_img_size,_img_size,8,0,4)
+    w,h = self.calc_out_size(w,h,4,0,2)
     w,h = self.calc_out_size(w,h,3,0,1)
 
-    self.fc1 = nn.Linear(w*h*16, 16)
+    self.fc1 = nn.Linear(w*h*64, 16)
     _position_shape = state_dim['position'].shape[0]
     _position_shape = 0 ###
-    self.policy_network = ActorNetwork(_position_shape + 16, action_dim, action_max,\
-                                        non_linearity= non_linearity, hidden_dim=hidden_dim)
+    self.fc2 = nn.Linear(16, hidden_dim)
+    self.mu = nn.Linear(hidden_dim, action_dim)
+    self.sigma = nn.Linear(hidden_dim, action_dim)
+    # self.policy_network = ActorNetwork(_position_shape + 16, action_dim, action_max,\
+    #                                     non_linearity= non_linearity, hidden_dim=hidden_dim)
 
   def forward(self, x):
     img, pos = x['rgb_obs'], x['position']
@@ -83,8 +86,10 @@ class CNNPolicy(nn.Module):
     x = F.relu(self.conv3(x))
     x = F.relu(self.fc1(x.view(batch_size,-1))).squeeze() #bs, 16
     #x = self.policy_network(torch.cat((pos, x), dim=-1))
-    x = self.policy_network(x) ###
-    return x
+    x = F.relu(self.fc2(x))
+    mu =  self.mu(x)
+    sigma = F.softplus(self.sigma(x))
+    return mu, sigma
 
   #return action scaled to env
   def act(self, curr_obs, deterministic = False, reparametrize = False):

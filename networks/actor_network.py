@@ -56,9 +56,9 @@ class CNNPolicy(nn.Module):
     self.non_linearity = F.relu
 
     _history_length = state_dim['rgb_obs'].shape[0]
-    self.conv1 = nn.Conv2d(_history_length, 16, 5)
+    self.conv1 = nn.Conv2d(_history_length, 16, 3)
     self.conv2 = nn.Conv2d(16, 32, 3)
-    self.conv3 = nn.Conv2d(32, 16, 5)
+    self.conv3 = nn.Conv2d(32, 64, 3)
 
     _img_size = state_dim['rgb_obs'].shape[-1]
     w,h = self.calc_out_size(_img_size,_img_size,5,0,1)

@@ -67,8 +67,8 @@ class CNNPolicy(nn.Module):
 
     self.fc1 = nn.Linear(w*h*64, 16)
     _position_shape = state_dim['position'].shape[0]
-    _position_shape = 0 ###
-    self.fc2 = nn.Linear(16, hidden_dim)
+    #_position_shape = 0 ###
+    self.fc2 = nn.Linear(_position_shape + 16, hidden_dim)
     self.mu = nn.Linear(hidden_dim, action_dim)
     self.sigma = nn.Linear(hidden_dim, action_dim)
     # self.policy_network = ActorNetwork(_position_shape + 16, action_dim, action_max,\
@@ -85,7 +85,7 @@ class CNNPolicy(nn.Module):
     x = F.relu(self.conv2(x))
     x = F.relu(self.conv3(x))
     x = F.relu(self.fc1(x.view(batch_size,-1))).squeeze() #bs, 16
-    #x = self.policy_network(torch.cat((pos, x), dim=-1))
+    x = self.policy_network(torch.cat((pos, x), dim=-1))
     x = F.relu(self.fc2(x))
     mu =  self.mu(x)
     sigma = F.softplus(self.sigma(x))

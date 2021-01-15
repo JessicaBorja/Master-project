@@ -22,7 +22,7 @@ defaults:
 img_wrapper:
   history_length: 3
   skip_frames: 1
-  img_size: 100
+  img_size: 84
   
 all_cameras:
   slide_hinge_camera:    

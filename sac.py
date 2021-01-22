@@ -228,19 +228,23 @@ class SAC():
     def evaluate(self, env, max_episode_length = 150, n_episodes = 5, model_name = "sac",\
                  print_all_episodes = False, write_file = False, render = False):
         stats = EpisodeStats(episode_lengths = [], episode_rewards = [], validation_reward=[])
+        imgs = {}
         for episode in range(n_episodes):
             s = env.reset()
             episode_length, episode_reward = 0,0
             done = False
+            im_lst = []
             while( episode_length < max_episode_length and not done):
                 a, _ = self._pi.act(tt(s), deterministic = True)#sample action and scale it to action space
                 a = a.cpu().detach().numpy()
                 ns, r, done, info = env.step(a)
                 if(render):
-                    env.render()
+                    img = env.render()
+                    im_lst.append(img)
                 s = ns
                 episode_reward+=r
                 episode_length+=1
+            imgs[episode] = im_lst
             stats.episode_rewards.append(episode_reward)
             stats.episode_lengths.append(episode_length)
             if(print_all_episodes):
@@ -258,6 +262,13 @@ class SAC():
                 itemlist = {"episode_returns: ": stats.episode_rewards,
                             "episode_lengths: ": stats.episode_lengths}
                 json.dump(itemlist, fp)
+            import cv2
+            os.mkdir("./results/images/")
+            for ep, lst in imgs.items():
+                os.mkdir("./results/images/%d"%ep)
+                for i, im in enumerate(lst):
+                    filename = "./results/images/%d/image_%03d.jpg"%(ep,i)
+                    cv2.imwrite(filename, im)
             print("Evaluation results file at: %s"%os.path.abspath(file_name))
         
         log.info("Mean return: %.3f +/- %.3f , Mean length: %.3f +/- %.3f, over %d episodes"%(mean_reward, reward_std, mean_length, length_std, n_episodes))

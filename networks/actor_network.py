@@ -82,8 +82,9 @@ class CNNPolicy(nn.Module):
     x = F.relu(self.conv1(img))
     x = F.relu(self.conv2(x))
     x = F.relu(self.conv3(x))
-    x = F.relu(self.fc1(x.view(batch_size,-1))).squeeze() #bs, 16    
-    #x = torch.cat((pos,x),dim=-1)
+    x = F.relu(self.fc1(x.view(batch_size,-1))).squeeze() #bs, 16
+    # print("Img features", x)
+    # x = torch.cat((pos,x),dim=-1)
     x = F.relu(self.fc2(x))
     mu =  self.mu(x)
     sigma = F.softplus(self.sigma(x))

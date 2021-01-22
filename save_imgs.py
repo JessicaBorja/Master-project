@@ -23,17 +23,6 @@ gym.envs.register(
      max_episode_steps=200,
 )
 
-def evaluate(eval_config, model_name):
-    env_name = "Pusher-v2"
-    env = gym.make(env_name).env
-
-    model = SAC(env, hidden_dim=470)
-    success = model.load("./trained_models/%s.pth"%model_name)
-    if(success):
-        model_name = model_name.split("_r-")[0]#take model name, remove reward
-        eval_config["model_name"] = model_name
-        model.evaluate(env, **eval_config)
-
 def load_config(model_name, folder_name):
     path = "./hydra_outputs/%s/.hydra/config.yaml"%(folder_name)
     path = os.path.abspath(path)
@@ -44,22 +33,9 @@ def load_config(model_name, folder_name):
     eval_env_cfg["cameras"] = [cfg["static_camera"], cfg["gripper_camera"]]
     return eval_env_cfg, agent_cfg
 
-def evaluateVRenv(eval_config, model_name, hydra_folderpath):
-    evalenv_cfg, agent_cfg = load_config(model_name, hydra_folderpath)
-    if(eval_config["render"]):
-        evalenv_cfg["show_gui"]= True
-    eval_env =  gym.make("VREnv-v0", **evalenv_cfg).env
-    path = "./hydra_outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
-    agent_cfg["hidden_dim"] = 470
-    print(agent_cfg)
-    model = SAC(eval_env, **agent_cfg)
-    success = model.load(path)
-    if(success):
-        eval_config["model_name"] = model_name
-        model.evaluate(eval_env, **eval_config)
 
 @hydra.main(config_path="./config", config_name="config_vrenv")
-def hydra_evaluateVRenv(cfg):
+def save_imgs(cfg):
     #Hinge
     if(cfg.task == "hinge"):
         if(not cfg.img_obs):
@@ -88,10 +64,6 @@ def hydra_evaluateVRenv(cfg):
             # folder_name = "drawer/cluster/2020-12-13/01-42-26"
             model_name = "drawer_x1img_pos_15-01_13-09_best_eval"
             folder_name = "drawer/cluster/2021-01-15/13-09-23"
-
-            model_name = "drawer_imgx1_only_14-01_20-14_best_eval"
-            folder_name = "drawer/cluster/2021-01-14/20-13-54"
-
     else: #task == slide
         if(not cfg.img_obs):
             hidden_dim=265
@@ -109,14 +81,11 @@ def hydra_evaluateVRenv(cfg):
             # folder_name = "slide/cluster/2020-12-29/06-14-54"
             model_name = "slide_img_only_10-01_23-06_best"
             folder_name = "slide/cluster/2021-01-10/23-04-58"
-
-            model_name = "slide_x1img_pos_16-01_10-33_best_eval"
-            folder_name = "slide/cluster/2021-01-16/10-32-04"
     
     test_model_dir = "../../../../outputs/%s/"%folder_name
-    # run_cfg = OmegaConf.load(test_model_dir + ".hydra/config.yaml")
-    # agent_cfg = run_cfg.agent.hyperparameters
-    # cfg.img_wrapper = run_cfg.img_wrapper
+    #run_cfg = OmegaConf.load(test_model_dir + ".hydra/config.yaml")
+    #agent_cfg = run_cfg.agent.hyperparameters
+    #cfg.img_wrapper = run_cfg.img_wrapper
     agent_cfg = cfg.agent.hyperparameters
     try:
         agent_cfg.hidden_dim =  hidden_dim
@@ -132,10 +101,10 @@ def hydra_evaluateVRenv(cfg):
     print(agent_cfg)
     model = SAC(eval_env, img_obs=cfg.img_obs, **agent_cfg)
     success = model.load(path)
+
     if(success):
+        eval_config.write_file=True
         model.evaluate(eval_env, model_name = model_name, **eval_config)
 
 if __name__ == "__main__":
-    #read_optim_results("sac_mujocoPusher2.pkl")
-    #evaluateVRenv(eval_config, model_name, folder_name)
-    hydra_evaluateVRenv()
+    save_imgs()

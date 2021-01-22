@@ -114,7 +114,7 @@ def hydra_evaluateVRenv(cfg):
             folder_name = "slide/cluster/2021-01-16/10-32-04"
     
     test_model_dir = "../../../../outputs/%s/"%folder_name
-    # run_cfg = OmegaConf.load(test_model_dir + ".hydra/config.yaml")
+    run_cfg = OmegaConf.load(test_model_dir + ".hydra/config.yaml")
     # agent_cfg = run_cfg.agent.hyperparameters
     # cfg.img_wrapper = run_cfg.img_wrapper
     agent_cfg = cfg.agent.hyperparameters
@@ -126,7 +126,7 @@ def hydra_evaluateVRenv(cfg):
     eval_config =  cfg.eval_config
     eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
     if(cfg.img_obs):
-        eval_env =  ImgWrapper(eval_env, **cfg.img_wrapper)
+        eval_env =  ImgWrapper(eval_env, **run_cfg.img_wrapper)
     path = "../../../../outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
     print(os.path.abspath(path))
     print(agent_cfg)

@@ -22,12 +22,10 @@ class ImgWrapper(gym.ObservationWrapper):
         self._img_obs = None
 
     def observation(self, obs):
-        img_obs = self.env.render(mode="rgb_array")['rgb_obs'] #'rgb_obs': rgb_obs, 'depth_obs': depth_obs}
-        img_obs = img_obs[0][:, :, ::-1] #to get static camera
-        img_obs = self.img_preprocessing(img_obs)
-        full_obs, obs_dict = self.env.get_state_obs()#remove door states
+        obs_dict = self.get_obs()# "rgb_obs", "depth_obs", "robot_obs","scene_obs"
+        img_obs = self.img_preprocessing(obs_dict['rgb_obs'][0][:, :, ::-1])
         obs = {"rgb_obs": img_obs,
-                "position": obs_dict['robot_obs']
+                "position": obs_dict['robot_obs'][:7]
                 }
         self.obs_count +=1
         return obs

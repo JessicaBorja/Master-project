@@ -12,8 +12,13 @@ hyperparameters:
     # train_freq: 1 #timesteps collectng data
     # gradient_steps: 1 #timesteps updating gradients
     learning_starts: 200 #timesteps before starting updates
-    hidden_dim: 313
 
+net_cfg:
+    hidden_dim: 313
+    use_img: ${img_obs}
+    use_depth: False
+    use_pos: False
+    
 learn_config:
     total_timesteps: 100000
     log_interval: 2000 #log timestep reward every log_interval steps

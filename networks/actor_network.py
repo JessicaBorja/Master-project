@@ -8,7 +8,7 @@ from torch.distributions import Normal
 from utils.utils import tt
 import cv2
 import numpy as np 
-
+from networks.common_archs import CNNCommon
 #policy
 class ActorNetwork(nn.Module):
   def __init__(self, state_dim, action_dim, action_max, non_linearity= F.relu, hidden_dim=256):
@@ -49,43 +49,43 @@ class ActorNetwork(nn.Module):
     return action, log_probs
 
 class CNNPolicy(nn.Module):
-  def __init__(self, state_dim, action_dim, action_max,\
-                non_linearity= F.relu, hidden_dim=256): 
+  def __init__(self, state_dim, action_dim, action_max,use_img, use_pos=False, use_depth=False, hidden_dim=256): 
     super(CNNPolicy, self).__init__()
     self.action_max = action_max
-    self.non_linearity = F.relu
-
+    self._use_pos = use_pos
+    self._use_depth = use_depth
+    #Image obs net
     _history_length = state_dim['rgb_obs'].shape[0]
-    self.conv1 = nn.Conv2d(_history_length, 32, 8, stride=4)
-    self.conv2 = nn.Conv2d(32, 64, 4, stride=2)
-    self.conv3 = nn.Conv2d(64, 64, 3, stride=1)
-
     _img_size = state_dim['rgb_obs'].shape[-1]
-    w,h = self.calc_out_size(_img_size,_img_size,8,0,4)
-    w,h = self.calc_out_size(w,h,4,0,2)
-    w,h = self.calc_out_size(w,h,3,0,1)
 
-    self.fc1 = nn.Linear(w*h*64, 16)
-    _position_shape = state_dim['position'].shape[0]
-    _position_shape = 0 ###
+    if(use_pos):
+      _position_shape = state_dim['position'].shape[0]
+    else:
+      _position_shape = 0
+    
+    if(use_depth):
+      self.cnn_depth = CNNCommon(in_channels = 1, input_size = _img_size, out_feat = 8)
+      self.cnn_img = CNNCommon(in_channels = _history_length, input_size = _img_size, out_feat = 8)
+    else:
+      self.cnn_img = CNNCommon(in_channels = _history_length, input_size = _img_size, out_feat = 16)
+
     self.fc2 = nn.Linear(_position_shape + 16, hidden_dim)
     self.mu = nn.Linear(hidden_dim, action_dim)
     self.sigma = nn.Linear(hidden_dim, action_dim)
 
   def forward(self, x):
-    img, pos = x['rgb_obs'], x['position']
+    img, depth, pos = x['rgb_obs'], x['depth_obs'], x['position']
     # cv2.imshow("forward pass", np.uint8(np.expand_dims(img[0].cpu().numpy(),-1)) )
     # cv2.waitKey(1)
-    if(len(img.shape) == 3):
-      img = img.unsqueeze(0)
-    batch_size = img.shape[0]
-    x = F.relu(self.conv1(img))
-    x = F.relu(self.conv2(x))
-    x = F.relu(self.conv3(x))
-    x = F.relu(self.fc1(x.view(batch_size,-1))).squeeze() #bs, 16
+    features = self.cnn_img(img)
+    if(self._use_depth):
+      depth_features = self.cnn_depth(depth)
+      features = torch.cat((features, depth_features), dim=-1)
+    if(self._use_pos):
+      features = torch.cat((features, pos), dim=-1)
+
     # print("Img features", x)
-    # x = torch.cat((pos,x),dim=-1)
-    x = F.relu(self.fc2(x))
+    x = F.relu(self.fc2(features))
     mu =  self.mu(x)
     sigma = F.softplus(self.sigma(x))
     return mu, sigma
@@ -109,7 +109,3 @@ class CNNPolicy(nn.Module):
       log_probs = log_probs.sum(-1)#, keepdim=True)
     return action, log_probs
 
-  def calc_out_size(self,w,h,kernel_size,padding,stride):
-    width = (w - kernel_size +2*padding)//stride + 1
-    height = (h - kernel_size +2*padding)//stride + 1
-    return width, height

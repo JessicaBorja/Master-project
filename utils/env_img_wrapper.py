@@ -24,20 +24,27 @@ class ImgWrapper(gym.ObservationWrapper):
     def observation(self, obs):
         obs_dict = self.get_obs()# "rgb_obs", "depth_obs", "robot_obs","scene_obs"
         img_obs = self.img_preprocessing(obs_dict['rgb_obs'][0][:, :, ::-1])
+        depth_obs = self.depth_preprocessing(obs_dict['depth_obs'][0])
         obs = {"rgb_obs": img_obs,
+                "depth_obs": depth_obs,
                 "position": obs_dict['robot_obs'][:7]
                 }
         self.obs_count +=1
         return obs
+    def depth_preprocessing(self, frame):
+        new_frame = cv2.resize(
+            frame, (self.img_size, self.img_size), interpolation=cv2.INTER_AREA) #(img_size, img_size)
+        new_frame =  np.expand_dims(new_frame, axis=0) #(1, img_size, img_size)
+        return new_frame
 
     def img_preprocessing(self, frame): #obs is from 0-255, (300,300,3)
         new_frame = cv2.resize(
-            frame, (self.img_size, self.img_size), interpolation=cv2.INTER_AREA) #100,100
+            frame, (self.img_size, self.img_size), interpolation=cv2.INTER_AREA) #(img_size, img_size)
         new_frame = cv2.cvtColor(new_frame, cv2.COLOR_BGR2GRAY)
         #cv2.normalize(new_frame, new_frame, 0, 255, norm_type = cv2.NORM_MINMAX)
         # cv2.imshow("win",new_frame)
         # cv2.waitKey(1)
-        new_frame = np.expand_dims(new_frame, 0)#1,100,100
+        new_frame = np.expand_dims(new_frame, 0)#(1, img_size, img_size)
         self._total_frames = np.pad(self._total_frames,((1,0),(0,0),(0,0)), mode='constant')[:-1, :, :]
         self._total_frames[0] = new_frame
         

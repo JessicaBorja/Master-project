@@ -10,7 +10,12 @@ hyperparameters:
     batch_size: 96
     buffer_size: 1e6
     learning_starts: 200 #timesteps before starting updates
+
+net_cfg:
     hidden_dim: 307
+    use_img: ${img_obs}
+    use_depth: False
+    use_pos: False
 
 learn_config:
     total_timesteps: 100000

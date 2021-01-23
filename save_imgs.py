@@ -99,7 +99,7 @@ def save_imgs(cfg):
     path = "../../../../outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
     print(os.path.abspath(path))
     print(agent_cfg)
-    model = SAC(eval_env, img_obs=cfg.img_obs, **agent_cfg)
+    model = SAC(eval_env, img_obs=cfg.img_obs,net_cfg=cfg.agent.net_cfg, **agent_cfg)
     success = model.load(path)
 
     if(success):

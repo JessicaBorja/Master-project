@@ -12,7 +12,12 @@ hyperparameters:
     # train_freq: 1 #timesteps collectng data
     # gradient_steps: 1 #timesteps updating gradients
     learning_starts: 100 #timesteps before starting updates
+
+net_cfg:
     hidden_dim: 256
+    use_img: ${img_obs}
+    use_depth: False
+    use_pos: False
 
 learn_config:
     total_timesteps: 1e6 #millon 1e6

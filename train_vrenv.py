@@ -17,14 +17,6 @@ gym.envs.register(
      max_episode_steps=200,
 )
 
-eval_config = {
-        "n_episodes": 20,
-        "render": True,
-        "print_all_episodes": False,
-        "write_file": False,
-        "max_episode_length": 100,
-}
-
 @hydra.main(config_path="./config", config_name="config_vrenv")
 def main(cfg):
     #training_env = hydra.utils.instantiate(cfg.env)
@@ -42,7 +34,9 @@ def main(cfg):
             eval_env =  ImgWrapper(eval_env, **cfg.img_wrapper)
         model_name = cfg.model_name
         model = SAC(env = training_env, eval_env = eval_env, model_name = model_name,\
-                    save_dir = cfg.agent.save_dir, img_obs = cfg.img_obs, **cfg.agent.hyperparameters)
+                    save_dir = cfg.agent.save_dir, img_obs = cfg.img_obs, net_cfg=cfg.agent.net_cfg,
+                    **cfg.agent.hyperparameters)
+
         model.learn(**cfg.agent.learn_config)
         training_env.close()
         eval_env.close()

@@ -20,8 +20,8 @@ defaults:
   - hydra/hydra_logging: colorlog
 
 img_wrapper:
-  history_length: 3
-  skip_frames: 1
+  history_length: 1
+  skip_frames: 0
   img_size: 84
   
 all_cameras:

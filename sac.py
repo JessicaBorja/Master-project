@@ -22,9 +22,9 @@ log = logging.getLogger(__name__)
 
 class SAC():
     def __init__(self, env, eval_env= None, save_dir = "./trained_models", gamma = 0.99, alpha = "auto" , \
-                 actor_lr = 3e-4, critic_lr = 3e-4, alpha_lr = 3e-4, hidden_dim = 256,
+                 actor_lr = 3e-4, critic_lr = 3e-4, alpha_lr = 3e-4,
                  tau = 0.005, learning_starts = 1000, img_obs = False,\
-                 batch_size = 256, buffer_size = 1e6, model_name = "sac"):
+                 batch_size = 256, buffer_size = 1e6, model_name = "sac", net_cfg = None):
         self.save_dir = save_dir
         self.env = env
         self.eval_env = eval_env
@@ -54,18 +54,18 @@ class SAC():
         action_dim = env.action_space.shape[0]
         action_max = env.action_space.high[0]
         if(img_obs):
-            self._pi = CNNPolicy(state_dim, action_dim, action_max=action_max, hidden_dim = hidden_dim).cuda()
-            self._q1 = CNNCritic(state_dim, action_dim,hidden_dim = hidden_dim).cuda()
-            self._q1_target = CNNCritic(state_dim, action_dim,hidden_dim = hidden_dim ).cuda()
-            self._q2 = CNNCritic(state_dim, action_dim,hidden_dim = hidden_dim).cuda()
-            self._q2_target = CNNCritic(state_dim, action_dim, hidden_dim = hidden_dim ).cuda()
+            self._pi = CNNPolicy(state_dim, action_dim, action_max=action_max, **net_cfg).cuda()
+            self._q1 = CNNCritic(state_dim, action_dim, **net_cfg).cuda()
+            self._q1_target = CNNCritic(state_dim, action_dim, **net_cfg ).cuda()
+            self._q2 = CNNCritic(state_dim, action_dim,**net_cfg).cuda()
+            self._q2_target = CNNCritic(state_dim, action_dim, **net_cfg).cuda()
         else:
             state_dim = state_dim.shape[0]
-            self._pi = ActorNetwork(state_dim, action_dim, action_max = action_max, hidden_dim = hidden_dim).cuda()     
-            self._q1 = CriticNetwork(state_dim, action_dim,hidden_dim = hidden_dim).cuda()
-            self._q1_target = CriticNetwork(state_dim, action_dim,hidden_dim = hidden_dim ).cuda()
-            self._q2 = CriticNetwork(state_dim, action_dim,hidden_dim = hidden_dim).cuda()
-            self._q2_target = CriticNetwork(state_dim, action_dim, hidden_dim = hidden_dim ).cuda()
+            self._pi = ActorNetwork(state_dim, action_dim, action_max = action_max, hidden_dim = net_cfg.hidden_dim).cuda()     
+            self._q1 = CriticNetwork(state_dim, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
+            self._q1_target = CriticNetwork(state_dim, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
+            self._q2 = CriticNetwork(state_dim, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
+            self._q2_target = CriticNetwork(state_dim, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
         
         self._pi_optim = optim.Adam(self._pi.parameters(), lr = actor_lr)
 

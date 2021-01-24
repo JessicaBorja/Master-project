@@ -9,7 +9,8 @@ class ImgWrapper(gym.ObservationWrapper):
         self.env = env
         spaces = {
             'position': gym.spaces.Box(low=-0.5, high=0.5, shape=(7,)),
-            'rgb_obs': gym.spaces.Box(low=0, high=255, shape=(history_length,img_size,img_size))
+            'rgb_obs': gym.spaces.Box(low=0, high=255, shape=(history_length,img_size,img_size)),
+            'depth_obs': gym.spaces.Box(low=0, high=255, shape=(history_length,img_size,img_size))
         }
         self.observation_space = gym.spaces.Dict(spaces)
         self.skip_frames = skip_frames

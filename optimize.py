@@ -136,6 +136,7 @@ def optim_vrenv(cfg):
     hyperparameters = cfg.optim.hyperparameters
     learn_config = cfg.optim.learn_config
     eval_config =  cfg.optim.eval_config
+    net_cfg = cfg.optim.net_cfg
     hp = {}
     hp["env"] = gym.make("VREnv-v0", **cfg.env).env
     hp["eval_env"] = gym.make("VREnv-v0", **cfg.eval_env).env
@@ -145,10 +146,14 @@ def optim_vrenv(cfg):
         hp["env"] = ImgWrapper(hp["env"], **cfg.img_wrapper)
         hp["eval_env"] = ImgWrapper(hp["eval_env"], **cfg.img_wrapper )
 
-    hp = {**hyperparameters, **hp}
-    optimize(model_name, hp, eval_config, learn_config, run_id = cfg.optim.run_id, nameserver = cfg.optim.nameserver,\
-            max_budget=cfg.optim.max_budget, min_budget=cfg.optim.min_budget,\
-            n_iterations = cfg.optim.n_iterations, n_workers=cfg.optim.n_workers)
+    hp = {**hyperparameters, **hp, **net_cfg}
+    optimize(model_name, hp, eval_config, learn_config, 
+                run_id = cfg.optim.run_id, 
+                nameserver = cfg.optim.nameserver,\
+                max_budget=cfg.optim.max_budget, 
+                min_budget=cfg.optim.min_budget,\
+                n_iterations = cfg.optim.n_iterations, 
+                n_workers=cfg.optim.n_workers)
     read_results("%s.pkl"%model_name)
 
 def optim_gymenv(env_name, model_name):

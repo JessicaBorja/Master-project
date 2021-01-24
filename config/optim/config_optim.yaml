@@ -7,7 +7,6 @@ run_id: "sac_hpo"
 nameserver: "127.0.0.1"
 
 hyperparameters:
-  hidden_dim: 300
   buffer_size: 1e6
   learning_starts: 200 #timesteps before starting updates
 

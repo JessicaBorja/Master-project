@@ -146,7 +146,7 @@ def optim_vrenv(cfg):
         hp["env"] = ImgWrapper(hp["env"], **cfg.img_wrapper)
         hp["eval_env"] = ImgWrapper(hp["eval_env"], **cfg.img_wrapper )
 
-    hp = {**hyperparameters, **hp, **net_cfg}
+    hp = {**hyperparameters, **hp, 'net_cfg':net_cfg}
     optimize(model_name, hp, eval_config, learn_config, 
                 run_id = cfg.optim.run_id, 
                 nameserver = cfg.optim.nameserver,\

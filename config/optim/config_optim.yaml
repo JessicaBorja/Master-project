@@ -9,6 +9,7 @@ nameserver: "127.0.0.1"
 hyperparameters:
   buffer_size: 1e6
   learning_starts: 200 #timesteps before starting updates
+  gamma: 0.99
 
 net_cfg:
   hidden_dim: 256

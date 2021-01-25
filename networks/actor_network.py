@@ -5,19 +5,20 @@ import torch.optim as optim
 import torchvision
 from torch.utils.tensorboard import SummaryWriter
 from torch.distributions import Normal
-from utils.utils import tt
+from utils.utils import tt, get_activation_fn
 import cv2
 import numpy as np 
 from networks.common_archs import CNNCommon
+
 #policy
 class ActorNetwork(nn.Module):
-  def __init__(self, state_dim, action_dim, action_max, non_linearity= F.relu, hidden_dim=256):
+  def __init__(self, state_dim, action_dim, action_max, activation = "relu", hidden_dim=256):
     super(ActorNetwork, self).__init__()
     self.fc1 = nn.Linear(state_dim, hidden_dim)
     self.fc2 = nn.Linear(hidden_dim, hidden_dim)
     self.mu = nn.Linear(hidden_dim, action_dim)
     self.sigma = nn.Linear(hidden_dim, action_dim)
-    self._non_linearity = non_linearity
+    self._non_linearity = get_activation_fn(activation)
     self.action_max = action_max
 
   def forward(self, x):
@@ -49,11 +50,13 @@ class ActorNetwork(nn.Module):
     return action, log_probs
 
 class CNNPolicy(nn.Module):
-  def __init__(self, state_dim, action_dim, action_max,use_img, use_pos=False, use_depth=False, hidden_dim=256): 
+  def __init__(self, state_dim, action_dim, action_max, activation = "relu",\
+                use_img=True, use_pos=False, use_depth=False, hidden_dim=256): 
     super(CNNPolicy, self).__init__()
     self.action_max = action_max
     self._use_pos = use_pos
     self._use_depth = use_depth
+    self._non_linearity = get_activation_fn(activation)
     #Image obs net
     _history_length = state_dim['rgb_obs'].shape[0]
     _img_size = state_dim['rgb_obs'].shape[-1]
@@ -64,12 +67,12 @@ class CNNPolicy(nn.Module):
       _position_shape = 0
     
     if(use_depth):
-      self.cnn_depth = CNNCommon(in_channels = 1, input_size = _img_size, out_feat = 8)
-      self.cnn_img = CNNCommon(in_channels = _history_length, input_size = _img_size, out_feat = 8)
+      self.cnn_depth = CNNCommon(1, _img_size, out_feat = 8, non_linearity = self._non_linearity)
+      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 8, non_linearity = self._non_linearity)
     else:
-      self.cnn_img = CNNCommon(in_channels = _history_length, input_size = _img_size, out_feat = 16)
+      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 16, non_linearity = self._non_linearity)
 
-    self.fc2 = nn.Linear(_position_shape + 16, hidden_dim)
+    self.fc1 = nn.Linear(_position_shape + 16, hidden_dim)
     self.mu = nn.Linear(hidden_dim, action_dim)
     self.sigma = nn.Linear(hidden_dim, action_dim)
 
@@ -85,7 +88,7 @@ class CNNPolicy(nn.Module):
       features = torch.cat((features, pos), dim=-1)
 
     # print("Img features", x)
-    x = F.relu(self.fc2(features))
+    x = self._non_linearity(self.fc1(features))
     mu =  self.mu(x)
     sigma = F.softplus(self.sigma(x))
     return mu, sigma

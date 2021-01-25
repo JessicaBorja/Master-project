@@ -41,6 +41,8 @@ class SACWorker(Worker):
     def compute(self, config, budget, working_directory, *args, **kwargs):
         log.info("Running job/config_id: " + str(kwargs["config_id"]) )
         log.info(config)
+        if("hidden_dim" in config):
+            self.hyperparameters['net_cfg'].update({"hidden_dim":config.pop("hidden_dim")})
         model = SAC(**config, **self.hyperparameters)
         stats = model.learn(total_timesteps = int(budget), **self.learn_config)
         train_reward = np.max(stats.episode_rewards)

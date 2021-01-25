@@ -15,6 +15,7 @@ hyperparameters:
 
 net_cfg:
     hidden_dim: 309 #446
+    activation: relu
     use_img: ${img_obs}
     use_depth: False
     use_pos: False

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
 from collections import namedtuple
@@ -22,6 +23,14 @@ def soft_update(target, source, tau):
 
 def hard_update(target, source):
   soft_update(target, source, 1.0)
+
+def get_activation_fn(non_linearity):
+  if(non_linearity == "elu"):
+    return F.elu
+  elif (non_linearity == "leaky_relu"):
+    return F.leaky_relu
+  else:#relu
+    return F.relu
 
 def fan_in_uniform_init(tensor, fan_in=None):
     if fan_in is None:

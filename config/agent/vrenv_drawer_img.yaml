@@ -21,7 +21,7 @@ net_cfg:
     use_pos: False
     
 learn_config:
-    total_timesteps: 100000
+    total_timesteps: 200000
     log_interval: 2000 #log timestep reward every log_interval steps
     max_episode_length: 200 #max episode length
     n_eval_ep: 5

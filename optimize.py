@@ -80,17 +80,24 @@ class SACWorker(Worker):
         return cs
 
 def optimize(trial_name, hyperparameters, eval_config, learn_config, run_id, nameserver,\
-                max_budget = 250000, min_budget = 50000, n_iterations = 3, n_workers=1):  
+                max_budget = 250000, min_budget = 50000, n_iterations = 3, n_workers=1, worker=False):  
     
     result_logger = hpres.json_result_logger(directory=".", overwrite=False)
-    NS = hpns.NameServer(run_id='sac_hpo', host=nameserver, port=None)
+    # Start a nameserver (see example_1)
+    NS = hpns.NameServer(run_id=run_id, host=nameserver, port=None)
     NS.start()
     
-    #for i in range(n_workers):
-    w = SACWorker(hyperparameters, eval_config, learn_config,\
+    if worker:
+        w = SACWorker(hyperparameters, eval_config, learn_config,\
                     nameserver = nameserver, run_id = run_id)#, id=i)
-    w.run(background=True)
-    #workers.append(w)
+        w.run(background=False)
+        exit(0)
+    else:
+        w = SACWorker(hyperparameters, eval_config, learn_config,\
+                    nameserver = nameserver, run_id = run_id)#, id=i)
+        w.run(background=False)
+
+
 
     bohb = BOHB( configspace = w.get_configspace(),
                  run_id = run_id,
@@ -99,7 +106,8 @@ def optimize(trial_name, hyperparameters, eval_config, learn_config, run_id, nam
                  min_budget=min_budget, 
                  max_budget=max_budget )
 
-    res = bohb.run(n_iterations=n_iterations) #,min_n_workers = n_workers)
+    res = bohb.run(n_iterations=n_iterations
+                    , min_n_workers = n_workers)
     # store results
     if not os.path.exists("./optimization_results/"): 
             os.makedirs("./optimization_results/")
@@ -149,41 +157,19 @@ def optim_vrenv(cfg):
         hp["eval_env"] = ImgWrapper(hp["eval_env"], **cfg.img_wrapper )
 
     hp = {**hyperparameters, **hp, 'net_cfg':net_cfg}
+    worker=False
+    if(cfg.optim.n_workers>1):
+        worker=True
     optimize(model_name, hp, eval_config, learn_config, 
                 run_id = cfg.optim.run_id, 
                 nameserver = cfg.optim.nameserver,\
                 max_budget=cfg.optim.max_budget, 
                 min_budget=cfg.optim.min_budget,\
                 n_iterations = cfg.optim.n_iterations, 
-                n_workers=cfg.optim.n_workers)
+                n_workers=cfg.optim.n_workers,
+                worker=worker)
     read_results("%s.pkl"%model_name)
 
-def optim_gymenv(env_name, model_name):
-    hyperparameters = {
-        "gamma": 0.98,
-        "buffer_size": 1e6,
-        "train_freq": 1, #timesteps collectng data
-        "gradient_steps": 1, #timesteps updating gradients
-        "learning_starts": 1000, #timesteps before starting updates
-    }
-    eval_config = {
-        "max_episode_length": 1000, 
-        "n_episodes": 50,
-        "render": False,
-        "print_all_episodes": False,
-        "write_file": False,
-    }
-    learn_configuration = {
-        "log_interval": 1000, #log timestep reward every log_interval steps
-        "max_episode_length": 200, #max episode length
-    }
-    hyperparameters["env"] = gym.make(env_name).env
-    hyperparameters["eval_env"] = gym.make(env_name).env
-    hyperparameters["model_name"] = model_name
-    
-    optimize(model_name, hyperparameters, eval_config,\
-             learn_configuration, n_iterations = 2)
-    read_results("%s.pkl"%model_name)
 
 if __name__ == "__main__":
     # env_name = "Pusher-v2"

@@ -92,6 +92,9 @@ def hydra_evaluateVRenv(cfg):
             model_name = "drawer_imgx1_only_14-01_20-14_best_eval"
             folder_name = "drawer/cluster/2021-01-14/20-13-54"
 
+            model_name = "drawer_x1img_only_r05_23-01_12-00_best_eval"
+            folder_name = "drawer/cluster/2021-01-23/12-00-50"
+
     else: #task == slide
         if(not cfg.img_obs):
             hidden_dim=265

@@ -1,13 +1,13 @@
 # @package _group_
 save_dir: "./trained_models"
 hyperparameters:
-    gamma: 0.98
-    actor_lr: 0.000148
-    critic_lr: 0.00123
-    alpha_lr: 0.001526
+    gamma: 0.97
+    actor_lr: 0.000132
+    critic_lr: 1.909e-05
+    alpha_lr: 1.619e-06
     alpha: "auto" #"auto",
-    tau: 0.01569
-    batch_size: 64
+    tau: 0.0047
+    batch_size: 84
     buffer_size: 1e6
     # train_freq: 1 #timesteps collectng data
     # gradient_steps: 1 #timesteps updating gradients

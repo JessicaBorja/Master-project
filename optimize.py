@@ -11,13 +11,7 @@ from hpbandster.optimizers import BOHB
 import logging, yaml
 import gym
 log = logging.getLogger(__name__)
-# import pybullet as p
-# import pybullet_data
-# from pybullet_envs.gym_manipulator_envs import ReacherBulletEnv, PusherBulletEnv
-# from pybullet_envs.gym_locomotion_envs import HalfCheetahBulletEnv
-# from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
-# from gym.envs.mujoco import mujoco_env
-# import mujoco_py
+
 import hydra
 import os,sys,inspect
 from utils.env_img_wrapper import ImgWrapper
@@ -32,8 +26,8 @@ gym.envs.register(
 )
 
 class SACWorker(Worker):
-    def __init__(self, hyperparameters, eval_config, learn_config, run_id, nameserver):
-        super(SACWorker,self).__init__(run_id, nameserver = nameserver)
+    def __init__(self, hyperparameters, eval_config, learn_config, run_id, nameserver, logger):
+        super().__init__(run_id, nameserver, logger = logger)
         self.hyperparameters = hyperparameters
         self.eval_config = eval_config
         self.learn_config = learn_config
@@ -83,21 +77,15 @@ def optimize(trial_name, hyperparameters, eval_config, learn_config, run_id, nam
                 max_budget = 250000, min_budget = 50000, n_iterations = 3, n_workers=1, worker=False):  
     
     result_logger = hpres.json_result_logger(directory=".", overwrite=False)
+    logging.basicConfig(level=logging.DEBUG)
+
     # Start a nameserver (see example_1)
     NS = hpns.NameServer(run_id=run_id, host=nameserver, port=None)
     NS.start()
-    
-    if worker:
-        w = SACWorker(hyperparameters, eval_config, learn_config,\
-                    nameserver = nameserver, run_id = run_id)#, id=i)
-        w.run(background=False)
-        exit(0)
-    else:
-        w = SACWorker(hyperparameters, eval_config, learn_config,\
-                    nameserver = nameserver, run_id = run_id)#, id=i)
-        w.run(background=False)
 
-
+    w = SACWorker(hyperparameters, eval_config, learn_config,\
+                nameserver = nameserver, run_id = run_id, logger = log)#, id=i)
+    w.run(background=True)
 
     bohb = BOHB( configspace = w.get_configspace(),
                  run_id = run_id,
@@ -106,8 +94,8 @@ def optimize(trial_name, hyperparameters, eval_config, learn_config, run_id, nam
                  min_budget=min_budget, 
                  max_budget=max_budget )
 
-    res = bohb.run(n_iterations=n_iterations
-                    , min_n_workers = n_workers)
+    res = bohb.run(n_iterations=n_iterations)
+                   # , min_n_workers = n_workers)
     # store results
     if not os.path.exists("./optimization_results/"): 
             os.makedirs("./optimization_results/")

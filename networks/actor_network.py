@@ -88,7 +88,7 @@ class CNNPolicy(nn.Module):
       features = torch.cat((features, pos), dim=-1)
 
     # print("Img features", x)
-    x = self._non_linearity(self.fc1(features))
+    x = nn.ELU(self.fc1(features))
     mu =  self.mu(x)
     sigma = F.softplus(self.sigma(x))
     return mu, sigma

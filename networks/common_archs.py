@@ -19,10 +19,17 @@ class CNNCommon(nn.Module):
 
     self.conv1 = nn.Conv2d(in_channels, 32, 8, stride=4)
     self.conv2 = nn.Conv2d(32, 64, 4, stride=2)
-    self.conv3 = nn.Conv2d(64, 64, 3, stride=1)
-    self.fc1 = nn.Linear(w*h*64, out_feat)
+    self.conv3 = nn.Conv2d(64, 32, 3, stride=1)
+    self.fc1 = nn.Linear(w*h*32, out_feat)
     self._non_linearity = non_linearity
-
+      # nn.Conv2d(kwargs['in_channels'], 32, kernel_size=8, stride=4),
+      # nn.ReLU(True),
+      # nn.Conv2d(32, 64, kernel_size=4, stride=2),
+      # nn.ReLU(True),
+      # nn.Conv2d(64, 32, kernel_size=3, stride=1),
+      # Flatten(),
+      # nn.Linear(32*6*6, hidden_size),
+      # nn.ReLU(True),
 
   def forward(self, x):
     # cv2.imshow("forward pass", np.uint8(np.expand_dims(img[0].cpu().numpy(),-1)) )

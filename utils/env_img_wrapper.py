@@ -32,6 +32,7 @@ class ImgWrapper(gym.ObservationWrapper):
                 }
         self.obs_count +=1
         return obs
+        
     def depth_preprocessing(self, frame):
         new_frame = cv2.resize(
             frame, (self.img_size, self.img_size), interpolation=cv2.INTER_AREA) #(img_size, img_size)

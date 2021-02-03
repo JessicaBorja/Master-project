@@ -88,7 +88,7 @@ def save_imgs(cfg):
     #cfg.img_wrapper = run_cfg.img_wrapper
     agent_cfg = cfg.agent.hyperparameters
     try:
-        agent_cfg.hidden_dim =  hidden_dim
+        agent_cfg.net_cfg.hidden_dim =  hidden_dim
     except:
         #No different hidden_dim
         pass

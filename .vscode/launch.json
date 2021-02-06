@@ -1,0 +1,50 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Training",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${fileDirname}",
+            "justMyCode": false,
+            "args": ["eval_env.show_gui=false", "env.show_gui=false"]
+        },
+        {
+            "name": "train VREnv",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${fileDirname}",
+            "justMyCode": false,
+            "args": ["agent=sac_default", "task=slide", "model_name=slide_test_img", "img_obs=True", "agent.net_cfg.activation=elu"]
+        },
+        {
+            "name": "Optim",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${fileDirname}",
+            "justMyCode": false,
+            "args": ["agent=sac_default", "task=slide", "model_name=slide_img_optim", "img_obs=True", 
+                     "optim.nameserver=127.0.0.2"]
+        },
+        {
+            "name": "Test VREnv",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${fileDirname}",
+            "justMyCode": false,
+            "args": ["eval_env.show_gui=true", "agent=vrenv_drawer", "task=drawer", "save_dir=./test_runs/${task}",
+                        "img_obs=False"]
+        }
+    ]
+}

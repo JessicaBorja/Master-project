@@ -20,7 +20,7 @@ import logging
 log = logging.getLogger(__name__)
 
 class SAC():
-    def __init__(self, env, eval_env= None, save_dir = "./trained_models", gamma = 0.99, alpha = "auto" , \
+    def __init__(self, env = None, eval_env= None, save_dir = "./trained_models", gamma = 0.99, alpha = "auto" , \
                  actor_lr = 3e-4, critic_lr = 3e-4, alpha_lr = 3e-4,
                  tau = 0.005, learning_starts = 1000, img_obs = False,\
                  batch_size = 256, buffer_size = 1e6, model_name = "sac", net_cfg = None):
@@ -49,22 +49,22 @@ class SAC():
 
         self.learning_starts = learning_starts
 
-        state_dim = env.observation_space
+        obs_space = env.observation_space
         action_dim = env.action_space.shape[0]
         action_max = env.action_space.high[0]
         if(img_obs):
-            self._pi = CNNPolicy(state_dim, action_dim, action_max=action_max, **net_cfg).cuda()
-            self._q1 = CNNCritic(state_dim, action_dim, **net_cfg).cuda()
-            self._q1_target = CNNCritic(state_dim, action_dim, **net_cfg ).cuda()
-            self._q2 = CNNCritic(state_dim, action_dim,**net_cfg).cuda()
-            self._q2_target = CNNCritic(state_dim, action_dim, **net_cfg).cuda()
+            self._pi = CNNPolicy(obs_space, action_dim, action_max=action_max, **net_cfg).cuda()
+            self._q1 = CNNCritic(obs_space, action_dim, **net_cfg).cuda()
+            self._q1_target = CNNCritic(obs_space, action_dim, **net_cfg ).cuda()
+            self._q2 = CNNCritic(obs_space, action_dim,**net_cfg).cuda()
+            self._q2_target = CNNCritic(obs_space, action_dim, **net_cfg).cuda()
         else:#Original/baseline implementation takes proprio and the door states
-            state_dim = state_dim.shape[0]
-            self._pi = ActorNetwork(state_dim, action_dim, action_max = action_max, hidden_dim = net_cfg.hidden_dim).cuda()     
-            self._q1 = CriticNetwork(state_dim, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
-            self._q1_target = CriticNetwork(state_dim, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
-            self._q2 = CriticNetwork(state_dim, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
-            self._q2_target = CriticNetwork(state_dim, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
+            obs_space = obs_space.shape[0]
+            self._pi = ActorNetwork(obs_space, action_dim, action_max = action_max, hidden_dim = net_cfg.hidden_dim).cuda()     
+            self._q1 = CriticNetwork(obs_space, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
+            self._q1_target = CriticNetwork(obs_space, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
+            self._q2 = CriticNetwork(obs_space, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
+            self._q2_target = CriticNetwork(obs_space, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
         
         self._pi_optim = optim.Adam(self._pi.parameters(), lr = actor_lr)
 
@@ -210,8 +210,7 @@ class SAC():
                 
                 plot_data = {"actor_loss": [] , "critic_loss": [], "ent_coef_loss": [], "ent_coef":[]}
                 if(self.eval_env is not None):
-                    mean_reward, mean_length = self.evaluate(self.eval_env, max_episode_length,\
-                                                             model_name = self.model_name, n_episodes=n_eval_ep)
+                    mean_reward, mean_length = self.evaluate(self.eval_env, max_episode_length,n_episodes=n_eval_ep)
                     stats.validation_reward.append(mean_reward)
                     if(mean_reward > best_eval_reward):
                         log.info("[%d] New best eval avg. return!%.3f"%(episode, mean_reward))
@@ -221,13 +220,12 @@ class SAC():
                     writer.add_scalar('eval/mean_ep_length(%dep)'%(n_eval_ep), mean_length, t)
         if(self.eval_env is not None):
             log.info("End of training evaluation:")
-            self.evaluate(self.eval_env, max_episode_length, model_name = self.model_name, print_all_episodes = True)
+            self.evaluate(self.eval_env, max_episode_length, print_all_episodes = True)
         return stats
         
-    def evaluate(self, env, max_episode_length = 150, n_episodes = 5, model_name = "sac",\
-                 print_all_episodes = False, write_file = False, render = False):
+    def evaluate(self, env, max_episode_length = 150, n_episodes = 5,\
+                 print_all_episodes = False, render = False):
         stats = EpisodeStats(episode_lengths = [], episode_rewards = [], validation_reward=[])
-        imgs = {}
         for episode in range(n_episodes):
             s = env.reset()
             episode_length, episode_reward = 0,0
@@ -243,7 +241,6 @@ class SAC():
                 s = ns
                 episode_reward+=r
                 episode_length+=1
-            imgs[episode] = im_lst
             stats.episode_rewards.append(episode_reward)
             stats.episode_lengths.append(episode_length)
             if(print_all_episodes):
@@ -253,22 +250,6 @@ class SAC():
         reward_std = np.std(stats.episode_rewards)
         mean_length =  np.mean(stats.episode_lengths)
         length_std = np.std(stats.episode_lengths)
-
-        #write_file
-        if(write_file):
-            file_name = "./results/%s_eval.json"%model_name
-            with open(file_name, 'w') as fp:
-                itemlist = {"episode_returns: ": stats.episode_rewards,
-                            "episode_lengths: ": stats.episode_lengths}
-                json.dump(itemlist, fp)
-            import cv2
-            os.mkdir("./results/images/")
-            for ep, lst in imgs.items():
-                os.mkdir("./results/images/%d"%ep)
-                for i, im in enumerate(lst):
-                    filename = "./results/images/%d/image_%03d.jpg"%(ep,i)
-                    cv2.imwrite(filename, im)
-            print("Evaluation results file at: %s"%os.path.abspath(file_name))
         
         log.info("Mean return: %.3f +/- %.3f , Mean length: %.3f +/- %.3f, over %d episodes"%(mean_reward, reward_std, mean_length, length_std, n_episodes))
         print("Mean return: %.3f +/- %.3f , Mean length: %.3f +/- %.3f, over %d episodes"%(mean_reward, reward_std, mean_length, length_std, n_episodes))

@@ -1,6 +1,7 @@
 load_dir: ???
 env_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv
 data_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
+models_dir: C:/Users/Jessica/Documents/Proyecto_ssd/SAC/hydra_outputs/
 save_dir: ./hydra_outputs/${task}
 task: slide
 model_name: sac_vrenv
@@ -20,6 +21,14 @@ defaults:
   - optim@optim: config_optim
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
+
+data_collection:
+  viz: True
+  n_episodes: 5
+  max_timesteps: 200
+  model_name: optim_drawer_rn1_rs1_05-12_03-43_best_eval
+  folder_name: ${models_dir}/trained_no_img/drawer/
+  save_dir: "C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_affordance"
 
 env_wrapper:
   use_img: ${img_obs}

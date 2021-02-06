@@ -8,7 +8,7 @@ from torch.distributions import Normal
 from sac_agent.sac_utils.utils import tt, get_activation_fn
 import cv2
 import numpy as np 
-from sac_agent.networks.common_archs import CNNCommon
+from sac_agent.networks.networks_common import *
 
 #policy
 class ActorNetwork(nn.Module):
@@ -50,45 +50,24 @@ class ActorNetwork(nn.Module):
     return action, log_probs
 
 class CNNPolicy(nn.Module):
-  def __init__(self, state_dim, action_dim, action_max, activation = "relu",\
-                use_img=True, use_pos=False, use_depth=False, hidden_dim=256): 
+  def __init__(self, obs_space, action_dim, action_max, activation = "relu", hidden_dim=256): 
     super(CNNPolicy, self).__init__()
     self.action_max = action_max
-    self._use_pos = use_pos
-    self._use_depth = use_depth
-    self._activation = get_activation_fn(activation)
-    #Image obs net
-    _history_length = state_dim['img_obs'].shape[0]
-    _img_size = state_dim['img_obs'].shape[-1]
+    _position_shape = get_pos_shape(obs_space)
+    self.cnn_depth = get_depth_network(obs_space, out_feat = 8, activation = activation)
+    self.cnn_img = get_img_network(obs_space, out_feat = 8, activation = activation)
 
-    if(use_pos):
-      _position_shape = state_dim['robot_obs'].shape[0]
-    else:
-      _position_shape = 0
-    
-    if(use_depth):
-      self.cnn_depth = CNNCommon(1, _img_size, out_feat = 8, non_linearity = self._activation)
-      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 8, non_linearity = self._activation)
-    else:
-      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 16, non_linearity = self._activation)
+    out_feat = 16 if self.cnn_depth is not None else 8
+    out_feat += _position_shape
 
-    self.fc1 = nn.Linear(_position_shape + 16, hidden_dim)
+    self.fc1 = nn.Linear(out_feat, hidden_dim)
     self.mu = nn.Linear(hidden_dim, action_dim)
     self.sigma = nn.Linear(hidden_dim, action_dim)
 
-  def forward(self, x):
-    img, depth, pos = x['img_obs'], x['depth_obs'], x['robot_obs']
-    # cv2.imshow("forward pass", np.uint8(np.expand_dims(img[0].cpu().numpy(),-1)) )
-    # cv2.waitKey(1)
-    features = self.cnn_img(img)
-    if(self._use_depth):
-      depth_features = self.cnn_depth(depth)
-      features = torch.cat((features, depth_features), dim=-1)
-    if(self._use_pos):
-      features = torch.cat((features, pos), dim=-1)
+  def forward(self, obs):
+    features = get_concat_features(obs, self.cnn_img, self.cnn_depth)
 
-    # print("Img features", x)
-    x = nn.ELU(self.fc1(features))
+    x = F.elu(self.fc1(features))
     mu =  self.mu(x)
     sigma = F.softplus(self.sigma(x))
     return mu, sigma

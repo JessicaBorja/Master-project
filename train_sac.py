@@ -1,8 +1,8 @@
 import gym
 import pybullet as p
 import hydra
-from omegaconf import DictConfig, OmegaConf
-import os,sys,inspect
+from omegaconf import OmegaConf
+import os,sys
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, parent_dir+"/VREnv/")
@@ -23,8 +23,8 @@ def main(cfg):
     for i in range(cfg.repeat_training):
         training_env =  gym.make("VREnv-v0", **cfg.env).env
         eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
-        training_env = EnvWrapper(training_env, cfg.img_obs, img_processing = cfg.env_wrapper)
-        eval_env =  EnvWrapper(eval_env, cfg.img_obs, img_processing = cfg.env_wrapper)
+        training_env = EnvWrapper(training_env, **cfg.env_wrapper)
+        eval_env =  EnvWrapper(eval_env, **cfg.env_wrapper)
         model_name = cfg.model_name
         model = SAC(env = training_env, eval_env = eval_env, model_name = model_name,\
                     save_dir = cfg.agent.save_dir, img_obs = cfg.img_obs, net_cfg=cfg.agent.net_cfg,

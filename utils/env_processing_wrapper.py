@@ -4,10 +4,11 @@ import cv2
 import numpy as np
 
 class EnvWrapper(gym.ObservationWrapper):
-    def __init__(self, env = None, img_obs=False, img_processing={}):
+    def __init__(self, env, use_img, use_depth, use_pos, history_length, skip_frames, img_size):
         super(EnvWrapper, self).__init__(env)
         self.env = env
-        skip_frames, history_length, img_size = img_processing['skip_frames'], img_processing['history_length'], img_processing['img_size']
+
+        #settup to stack images
         self.skip_frames = skip_frames
         self.history_length = history_length
         self.obs_count = 0
@@ -16,18 +17,21 @@ class EnvWrapper(gym.ObservationWrapper):
         self._indices = [i for i in range(self._total_frames.shape[0]) if i%(skip_frames+1)==0]
         assert len(self._indices) == history_length
         self._cur_img_obs = None
-        self._use_img_obs = img_obs
-        self.observation_space = self.get_obs_space(img_obs)
 
+        #parameters to define observation
+        self._use_img_obs = use_img
+        self._use_robot_obs = use_pos
+        self._use_depth = use_depth
+        self.observation_space = self.get_obs_space(use_img, use_depth, use_pos)
 
-    def get_obs_space(self, img_obs):
-        if(img_obs):
-            # robot_obs= 3 for pos, 3 for angle and 1 for gripper. idk how to define the obs space for this.
-            obs_space_dict = {
-                'robot_obs': gym.spaces.Box(low=-0.5, high=0.5, shape=(7,)), 
-                'img_obs': gym.spaces.Box(low=0, high=255, shape=(self.history_length, self.img_size, self.img_size)),
-                'depth_obs': gym.spaces.Box(low=0, high=255, shape=(self.history_length, self.img_size, self.img_size))
-            }
+    def get_obs_space(self, use_img, use_depth, use_pos):
+        if(use_img):
+            obs_space_dict = {'img_obs': gym.spaces.Box(low=0, high=255, shape=(self.history_length, self.img_size, self.img_size)),}
+            if(use_depth):
+                obs_space_dict['depth_obs'] = gym.spaces.Box(low=0, high=255, shape=(self.history_length, self.img_size, self.img_size))
+            if(use_pos):
+                # *tcp_pos(3), *tcp_euler(3),gripper_opening_width(1),
+                obs_space_dict['robot_obs'] = gym.spaces.Box(low=-0.5, high=0.5, shape=(7,))
             return gym.spaces.Dict(obs_space_dict)
         else:
             # robot_obs= 3 for pos, 3 for angle and 1 for gripper. idk how to define the obs space for this.
@@ -41,11 +45,12 @@ class EnvWrapper(gym.ObservationWrapper):
         if(self._use_img_obs):
             obs_dict = self.get_obs()# "rgb_obs", "depth_obs", "robot_obs","scene_obs"
             img_obs = self.img_preprocessing(obs_dict['rgb_obs'][0][:, :, ::-1]) #from rgb to grayscale
-            depth_obs = self.depth_preprocessing(obs_dict['depth_obs'][0])
-            obs = {"img_obs": img_obs,
-                    "depth_obs": depth_obs,
-                    "robot_obs": obs_dict['robot_obs'][:7]
-                    }
+            obs = {"img_obs": img_obs}
+            if(self._use_depth):
+                depth_obs = self.depth_preprocessing(obs_dict['depth_obs'][0])
+                obs["depth_obs"] = depth_obs
+            if(self._use_robot_obs): # *tcp_pos(3), *tcp_euler(3),gripper_opening_width(1),
+                obs["robot_obs"] = obs_dict["robot_obs"][:7]
             self.obs_count +=1
         else:
             robot_obs, scene_obs =  obs['robot_obs'], obs['scene_obs']

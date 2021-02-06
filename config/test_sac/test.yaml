@@ -1,18 +1,18 @@
 # @package _group_
+#absolute path where models are stored
+model_name: "optim_drawer_rn1_rs1_05-12_03-43_best_eval"
+folder_name: ${models_dir}/trained_no_img/drawer/
+
 # model_name: "optim_hinge_rn1_rs1_04-12_03-17_best_eval"
 # folder_name: "trained_no_img/hinge/"
 
 # model_name: "optim_slide_rn1_rs1_05-12_04-28_best_eval"
 # folder_name: "trained_no_img/slide/"
 
-model_name: "optim_drawer_rn1_rs1_05-12_03-43_best_eval"
-folder_name: "trained_no_img/drawer"
-
 eval_cfg:
   n_episodes: 5
   render: True
   print_all_episodes: True
-  write_file: False
   max_episode_length: 200
 
 # #Hinge

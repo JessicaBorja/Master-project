@@ -67,8 +67,7 @@ def hydra_evaluateVRenv(cfg):
     # important parameters are hidden_dim (defines the network)
     # img_obs and img_wrapper
     test_cfg = cfg.test_sac
-    test_model_dir = "../../../../hydra_outputs/%s/"%test_cfg.folder_name
-    run_cfg = OmegaConf.load(test_model_dir + ".hydra/config.yaml")
+    run_cfg = OmegaConf.load(test_cfg.folder_name + ".hydra/config.yaml")
     #net_cfg, img_obs, env_wrapper = check_consistency(cfg, run_cfg)
     net_cfg = run_cfg.agent.net_cfg
     img_obs = run_cfg.img_obs
@@ -80,15 +79,15 @@ def hydra_evaluateVRenv(cfg):
     cfg.eval_env.task = run_cfg.task
     print(cfg.eval_env.task)
     eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
-    eval_env =  EnvWrapper(eval_env, img_obs, img_processing = env_wrapper)
+    eval_env =  EnvWrapper(eval_env, **env_wrapper)
 
     #Load model
-    path = "../../../../hydra_outputs/%s/trained_models/%s.pth"%(test_cfg.folder_name, test_cfg.model_name)
+    path = "%s/trained_models/%s.pth"%(test_cfg.folder_name, test_cfg.model_name)
     print(os.path.abspath(path))
     model = SAC(eval_env, img_obs = img_obs, net_cfg = net_cfg, **agent_cfg)
     success = model.load(path)
     if(success):
-        model.evaluate(eval_env, model_name = test_cfg.model_name, **cfg.test_sac.eval_cfg)
+        model.evaluate(eval_env, **cfg.test_sac.eval_cfg)
 
 if __name__ == "__main__":
     hydra_evaluateVRenv()

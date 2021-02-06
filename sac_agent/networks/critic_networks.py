@@ -5,7 +5,7 @@ import torch.optim as optim
 import torchvision
 from torch.utils.tensorboard import SummaryWriter
 from torch.distributions import Normal
-from sac_agent.networks.common_archs import CNNCommon
+from sac_agent.networks.networks_common import *
 from sac_agent.sac_utils.utils import tt, get_activation_fn
 import numpy as np
 #q function     
@@ -25,40 +25,23 @@ class CriticNetwork(nn.Module):
 
 #q function     
 class CNNCritic(nn.Module):
-  def __init__(self, state_dim, action_dim, use_img, use_pos=False, use_depth=False,\
-                 hidden_dim=256, activation = "relu"):
+  def __init__(self, obs_space, action_dim, hidden_dim=256, activation = "relu"):
     super(CNNCritic, self).__init__()
-    self._use_pos = use_pos
-    self._use_depth = use_depth
-    self._activation = get_activation_fn(activation)
-    #Image obs net
-    _history_length = state_dim['img_obs'].shape[0]
-    _img_size = state_dim['img_obs'].shape[-1]
+    _position_shape = get_pos_shape(obs_space)
+    self.cnn_depth = get_depth_network(obs_space, out_feat = 8, activation = activation)
+    self.cnn_img = get_img_network(obs_space, out_feat = 8, activation = activation)
 
-    if(use_pos):
-      _position_shape = state_dim['robot_obs'].shape[0]
-    else:
-      _position_shape = 0
-    
-    if(use_depth):
-      self.cnn_depth = CNNCommon(1, _img_size, out_feat = 8, non_linearity = self._activation)
-      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 8, non_linearity = self._activation)
-    else:
-      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 16, non_linearity = self._activation)
+    out_feat = 16 if self.cnn_depth is not None else 8
+    out_feat += _position_shape + action_dim
 
-    self.fc1 = nn.Linear(16 + _position_shape + action_dim, hidden_dim)
+    self._activation = activation
+    self.fc1 = nn.Linear(out_feat, hidden_dim)
     self.q = nn.Linear(hidden_dim, 1)
 
   def forward(self, states, actions):
-    img, depth, pos = states['img_obs'], states['depth_obs'], states['robot_obs']
-    features = self.cnn_img(img)
-    if(self._use_depth):
-      depth_features = self.cnn_depth(depth)
-      features = torch.cat((features, depth_features), dim=-1)
-    if(self._use_pos):
-      features = torch.cat((features, pos), dim=-1)
+    features = get_concat_features(states, self.cnn_img, self.cnn_depth)
 
     x = torch.cat((features,actions), -1)
-    x = self._activation( self.fc1(x) )
+    x = F.elu(self.fc1(x))
     x = self.q(x).squeeze()
     return x

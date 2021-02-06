@@ -25,5 +25,3 @@ eval_config:
   n_episodes: 5
   render: False
   print_all_episodes: False
-  write_file: False
-

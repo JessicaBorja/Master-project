@@ -16,9 +16,6 @@ hyperparameters:
 net_cfg:
     hidden_dim: 313
     activation: relu
-    use_img: ${img_obs}
-    use_depth: False
-    use_pos: False
 
 learn_config:
     total_timesteps: 100000

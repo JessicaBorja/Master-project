@@ -5,7 +5,7 @@ import torch.optim as optim
 import torchvision
 from torch.utils.tensorboard import SummaryWriter
 from torch.distributions import Normal
-from utils.utils import tt
+from  sac_agent.sac_utils.utils import tt
 import cv2
 import numpy as np 
 
@@ -21,7 +21,7 @@ class CNNCommon(nn.Module):
     self.conv2 = nn.Conv2d(32, 64, 4, stride=2)
     self.conv3 = nn.Conv2d(64, 32, 3, stride=1)
     self.fc1 = nn.Linear(w*h*32, out_feat)
-    self._non_linearity = non_linearity
+    self._activation = non_linearity
       # nn.Conv2d(kwargs['in_channels'], 32, kernel_size=8, stride=4),
       # nn.ReLU(True),
       # nn.Conv2d(32, 64, kernel_size=4, stride=2),
@@ -37,10 +37,10 @@ class CNNCommon(nn.Module):
     if(len(x.shape) == 3):
       x = x.unsqueeze(0)
     batch_size = x.shape[0]
-    x = self._non_linearity(self.conv1(x))
-    x = self._non_linearity(self.conv2(x))
-    x = self._non_linearity(self.conv3(x))
-    x = self._non_linearity(self.fc1(x.view(batch_size,-1))).squeeze() #bs, out_feat
+    x = self._activation(self.conv1(x))
+    x = self._activation(self.conv2(x))
+    x = self._activation(self.conv3(x))
+    x = self._activation(self.fc1(x.view(batch_size,-1))).squeeze() #bs, out_feat
     return x
 
   def calc_out_size(self,w,h,kernel_size,padding,stride):

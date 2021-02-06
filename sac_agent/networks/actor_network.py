@@ -5,10 +5,10 @@ import torch.optim as optim
 import torchvision
 from torch.utils.tensorboard import SummaryWriter
 from torch.distributions import Normal
-from utils.utils import tt, get_activation_fn
+from sac_agent.sac_utils.utils import tt, get_activation_fn
 import cv2
 import numpy as np 
-from networks.common_archs import CNNCommon
+from sac_agent.networks.common_archs import CNNCommon
 
 #policy
 class ActorNetwork(nn.Module):
@@ -18,12 +18,12 @@ class ActorNetwork(nn.Module):
     self.fc2 = nn.Linear(hidden_dim, hidden_dim)
     self.mu = nn.Linear(hidden_dim, action_dim)
     self.sigma = nn.Linear(hidden_dim, action_dim)
-    self._non_linearity = get_activation_fn(activation)
+    self._activation = get_activation_fn(activation)
     self.action_max = action_max
 
   def forward(self, x):
-    x = self._non_linearity(self.fc1(x))
-    x = self._non_linearity(self.fc2(x))
+    x = self._activation(self.fc1(x))
+    x = self._activation(self.fc2(x))
     mu =  self.mu(x)
     sigma = F.softplus(self.sigma(x))
     #ensure sigma is between "0" and 1
@@ -56,28 +56,28 @@ class CNNPolicy(nn.Module):
     self.action_max = action_max
     self._use_pos = use_pos
     self._use_depth = use_depth
-    self._non_linearity = get_activation_fn(activation)
+    self._activation = get_activation_fn(activation)
     #Image obs net
-    _history_length = state_dim['rgb_obs'].shape[0]
-    _img_size = state_dim['rgb_obs'].shape[-1]
+    _history_length = state_dim['img_obs'].shape[0]
+    _img_size = state_dim['img_obs'].shape[-1]
 
     if(use_pos):
-      _position_shape = state_dim['position'].shape[0]
+      _position_shape = state_dim['robot_obs'].shape[0]
     else:
       _position_shape = 0
     
     if(use_depth):
-      self.cnn_depth = CNNCommon(1, _img_size, out_feat = 8, non_linearity = self._non_linearity)
-      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 8, non_linearity = self._non_linearity)
+      self.cnn_depth = CNNCommon(1, _img_size, out_feat = 8, non_linearity = self._activation)
+      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 8, non_linearity = self._activation)
     else:
-      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 16, non_linearity = self._non_linearity)
+      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 16, non_linearity = self._activation)
 
     self.fc1 = nn.Linear(_position_shape + 16, hidden_dim)
     self.mu = nn.Linear(hidden_dim, action_dim)
     self.sigma = nn.Linear(hidden_dim, action_dim)
 
   def forward(self, x):
-    img, depth, pos = x['rgb_obs'], x['depth_obs'], x['position']
+    img, depth, pos = x['img_obs'], x['depth_obs'], x['robot_obs']
     # cv2.imshow("forward pass", np.uint8(np.expand_dims(img[0].cpu().numpy(),-1)) )
     # cv2.waitKey(1)
     features = self.cnn_img(img)

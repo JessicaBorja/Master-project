@@ -1,16 +1,18 @@
 load_dir: ???
+env_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv
 data_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
-save_dir: ./outputs/${task}
+save_dir: ./hydra_outputs/${task}
 task: slide
 model_name: sac_vrenv
 repeat_training: 1
 img_obs: False
 
+#Env 
 defaults:
   - agent: sac_default
+  - test_sac: test
   - env: env
   - env@eval_env: env
-  - eval@eval_config: eval_config
   - scene@env.scene: basic_playtable
   - scene@eval_env.scene: basic_playtable
   - camera_conf@env: slide_drawer_camera
@@ -19,7 +21,10 @@ defaults:
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
 
-img_wrapper:
+env_wrapper:
+  use_img: ${img_obs}
+  use_depth: False
+  use_pos: False
   history_length: 1
   skip_frames: 0
   img_size: 80

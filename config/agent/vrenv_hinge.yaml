@@ -9,16 +9,11 @@ hyperparameters:
     tau: 0.0175
     batch_size: 162
     buffer_size: 1e6
-    # train_freq: 1 #timesteps collectng data
-    # gradient_steps: 1 #timesteps updating gradients
     learning_starts: 1000 #timesteps before starting updates
 
 net_cfg:
     hidden_dim: 309 #446
     activation: relu
-    use_img: ${img_obs}
-    use_depth: False
-    use_pos: False
 
 learn_config:
     total_timesteps: 100000

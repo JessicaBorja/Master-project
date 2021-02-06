@@ -5,9 +5,9 @@ import torch.optim as optim
 import torchvision
 from torch.utils.tensorboard import SummaryWriter
 from torch.distributions import Normal
-from networks.common_archs import CNNCommon
-from utils.utils import tt, get_activation_fn
-
+from sac_agent.networks.common_archs import CNNCommon
+from sac_agent.sac_utils.utils import tt, get_activation_fn
+import numpy as np
 #q function     
 class CriticNetwork(nn.Module):
   def __init__(self, state_dim, action_dim, activation = "relu", hidden_dim=256 ):
@@ -15,12 +15,12 @@ class CriticNetwork(nn.Module):
     self.fc1 = nn.Linear(state_dim + action_dim, hidden_dim)
     self.fc2 = nn.Linear(hidden_dim, hidden_dim)
     self.q = nn.Linear(hidden_dim, 1)
-    self._non_linearity = get_activation_fn(activation)
+    self._activation = get_activation_fn(activation)
 
   def forward(self, states, actions):
     x = torch.cat((states,actions), -1)
-    x = self._non_linearity(self.fc1(x))
-    x = self._non_linearity(self.fc2(x))
+    x = self._activation(self.fc1(x))
+    x = self._activation(self.fc2(x))
     return self.q(x).squeeze()
 
 #q function     
@@ -30,27 +30,27 @@ class CNNCritic(nn.Module):
     super(CNNCritic, self).__init__()
     self._use_pos = use_pos
     self._use_depth = use_depth
-    self._non_linearity = get_activation_fn(activation)
+    self._activation = get_activation_fn(activation)
     #Image obs net
-    _history_length = state_dim['rgb_obs'].shape[0]
-    _img_size = state_dim['rgb_obs'].shape[-1]
+    _history_length = state_dim['img_obs'].shape[0]
+    _img_size = state_dim['img_obs'].shape[-1]
 
     if(use_pos):
-      _position_shape = state_dim['position'].shape[0]
+      _position_shape = state_dim['robot_obs'].shape[0]
     else:
       _position_shape = 0
     
     if(use_depth):
-      self.cnn_depth = CNNCommon(1, _img_size, out_feat = 8, non_linearity = self._non_linearity)
-      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 8, non_linearity = self._non_linearity)
+      self.cnn_depth = CNNCommon(1, _img_size, out_feat = 8, non_linearity = self._activation)
+      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 8, non_linearity = self._activation)
     else:
-      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 16, non_linearity = self._non_linearity)
+      self.cnn_img = CNNCommon( _history_length, _img_size, out_feat = 16, non_linearity = self._activation)
 
     self.fc1 = nn.Linear(16 + _position_shape + action_dim, hidden_dim)
     self.q = nn.Linear(hidden_dim, 1)
 
   def forward(self, states, actions):
-    img, depth, pos = states['rgb_obs'], states['depth_obs'], states['position']
+    img, depth, pos = states['img_obs'], states['depth_obs'], states['robot_obs']
     features = self.cnn_img(img)
     if(self._use_depth):
       depth_features = self.cnn_depth(depth)
@@ -59,6 +59,6 @@ class CNNCritic(nn.Module):
       features = torch.cat((features, pos), dim=-1)
 
     x = torch.cat((features,actions), -1)
-    x = self._non_linearity( self.fc1(x) )
+    x = self._activation( self.fc1(x) )
     x = self.q(x).squeeze()
     return x

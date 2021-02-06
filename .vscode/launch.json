@@ -20,9 +20,13 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}",
             "justMyCode": false,
-            "args": ["agent=sac_default", "task=slide", "model_name=slide_test_img", "img_obs=True", "agent.net_cfg.activation=elu"]
+            "args": ["agent=sac_default", 
+                    "task=slide", 
+                    "model_name=slide_test", 
+                    //"img_obs=True", 
+                    "agent.net_cfg.activation=elu"]
         },
         {
             "name": "Optim",
@@ -41,10 +45,10 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}",
             "justMyCode": false,
-            "args": ["eval_env.show_gui=true", "agent=vrenv_drawer", "task=drawer", "save_dir=./test_runs/${task}",
-                        "img_obs=False"]
+            "args": ["eval_env.show_gui=true",
+                     "save_dir=../test_runs/${task}"]
         }
     ]
 }

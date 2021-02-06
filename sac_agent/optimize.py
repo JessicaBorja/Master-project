@@ -1,6 +1,6 @@
 
 import numpy as np
-from sac import SAC
+from sac_agent.sac import SAC
 import os, pickle
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
@@ -9,21 +9,23 @@ import hpbandster.core.nameserver as hpns
 import hpbandster.core.result as hpres
 from hpbandster.optimizers import BOHB
 import logging, yaml
-import gym
 log = logging.getLogger(__name__)
-
+import gym
 import hydra
 import os,sys,inspect
-from utils.env_img_wrapper import ImgWrapper
-current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir) 
-sys.path.insert(0, parent_dir+"/VREnv/") 
+parent_dir = os.path.dirname(os.getcwd())
+sys.path.insert(0, os.getcwd())
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, parent_dir+"/VREnv/")
+from utils.env_processing_wrapper import EnvWrapper
+from sac_agent.sac import SAC
+from utils.env_processing_wrapper import EnvWrapper
 gym.envs.register(
      id='VREnv-v0',
      entry_point='VREnv.src.envs.play_table_env:PlayTableSimEnv',
      max_episode_steps=200,
 )
+
 
 class SACWorker(Worker):
     def __init__(self, hyperparameters, eval_config, learn_config, run_id, nameserver, logger):
@@ -117,18 +119,7 @@ def read_results(name):
     incumbent = res.get_incumbent_id()
     print(id2config[incumbent])
 
-def load_env_config(config_path = "./config/config.yaml"):
-    config  = yaml.load(open(config_path, 'r'))
-    return config["env"]
-
-def load_agent_config(config_path = "./config/config.yaml"):
-    config  = yaml.load(open(config_path, 'r'))
-    agent_config =  config["agent"]["hyperparameters"]
-    agent_config["save_dir"] =  config["agent"]["save_dir"]
-    learn_config = config["agent"]["learn_configuration"]
-    return agent_config, learn_config
-
-@hydra.main(config_path="./config", config_name="config_vrenv")
+@hydra.main(config_path="../config", config_name="cfg_sac")
 def optim_vrenv(cfg):
     model_name = cfg.model_name
     hyperparameters = cfg.optim.hyperparameters
@@ -140,9 +131,8 @@ def optim_vrenv(cfg):
     hp["eval_env"] = gym.make("VREnv-v0", **cfg.eval_env).env
     hp["model_name"] = model_name
     hp["img_obs"] = cfg.img_obs
-    if(cfg.img_obs):
-        hp["env"] = ImgWrapper(hp["env"], **cfg.img_wrapper)
-        hp["eval_env"] = ImgWrapper(hp["eval_env"], **cfg.img_wrapper )
+    hp["env"] = EnvWrapper(hp["env"], **cfg.env_wrapper)
+    hp["eval_env"] = EnvWrapper(hp["eval_env"], **cfg.env_wrapper)
 
     hp = {**hyperparameters, **hp, 'net_cfg':net_cfg}
     worker=False
@@ -160,7 +150,4 @@ def optim_vrenv(cfg):
 
 
 if __name__ == "__main__":
-    # env_name = "Pusher-v2"
-    # model_name = "sac_vrenv200steps"
-    #optim_gymenv(env_name, model_name)
     optim_vrenv()

@@ -6,17 +6,15 @@ n_workers: 2
 run_id: "sac_hpo"
 nameserver: "127.0.0.1"
 
-hyperparameters:
+hyperparameters: #Hyperparameters that are not optimized
   buffer_size: 1e6
-  learning_starts: 200 #timesteps before starting updates
+  learning_starts: 200 
   gamma: 0.99
 
 net_cfg:
-  hidden_dim: 256
-  use_img: ${img_obs}
-  use_depth: False
-  use_pos: False
-
+    hidden_dim: 265
+    activation: relu
+    
 learn_config:
   log_interval: 1400 #log timestep reward every log_interval steps
   max_episode_length: 200 #max episode length

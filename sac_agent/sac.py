@@ -11,11 +11,10 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.distributions import Normal
 import itertools
 
-import time
-from utils.replay_buffer import ReplayBuffer
-from utils.utils import EpisodeStats, tt, soft_update
-from networks.actor_network import ActorNetwork, CNNPolicy
-from networks.value_networks import CriticNetwork, CNNCritic
+from sac_agent.sac_utils.replay_buffer import ReplayBuffer
+from sac_agent.sac_utils.utils import EpisodeStats, tt, soft_update
+from sac_agent.networks.actor_network import ActorNetwork, CNNPolicy
+from sac_agent.networks.critic_networks import CriticNetwork, CNNCritic
 import logging
 # A logger for this file
 log = logging.getLogger(__name__)
@@ -59,7 +58,7 @@ class SAC():
             self._q1_target = CNNCritic(state_dim, action_dim, **net_cfg ).cuda()
             self._q2 = CNNCritic(state_dim, action_dim,**net_cfg).cuda()
             self._q2_target = CNNCritic(state_dim, action_dim, **net_cfg).cuda()
-        else:
+        else:#Original/baseline implementation takes proprio and the door states
             state_dim = state_dim.shape[0]
             self._pi = ActorNetwork(state_dim, action_dim, action_max = action_max, hidden_dim = net_cfg.hidden_dim).cuda()     
             self._q1 = CriticNetwork(state_dim, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()

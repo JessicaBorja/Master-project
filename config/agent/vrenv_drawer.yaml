@@ -5,20 +5,15 @@ hyperparameters:
     actor_lr: 0.000148
     critic_lr: 0.00123
     alpha_lr: 0.001526
-    alpha: "auto" #"auto",
+    alpha: "auto"
     tau: 0.01569
     batch_size: 235
     buffer_size: 1e6
-    # train_freq: 1 #timesteps collectng data
-    # gradient_steps: 1 #timesteps updating gradients
-    learning_starts: 1000 #timesteps before starting updates
+    learning_starts: 1000
 
 net_cfg:
     hidden_dim: 313
     activation: relu
-    use_img: ${img_obs}
-    use_depth: False
-    use_pos: False
 
 learn_config:
     total_timesteps: 500000

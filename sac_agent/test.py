@@ -1,145 +1,94 @@
 import gym
-from gym.wrappers.monitoring.video_recorder import VideoRecorder
 import hydra
-import pybullet as p
-import pybullet_data
-# from pybullet_envs.gym_manipulator_envs import ReacherBulletEnv, PusherBulletEnv
-# from pybullet_envs.gym_locomotion_envs import HalfCheetahBulletEnv
-# from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
-#from gym.envs.mujoco import mujoco_env
-#import mujoco_py
-from sac import SAC
-import os, sys, inspect
-import yaml
-from utils.env_img_wrapper import ImgWrapper
-from omegaconf import DictConfig, OmegaConf
-current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parent_dir = os.path.dirname(current_dir)
+import os, sys
+#current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+#parent_dir = os.path.dirname(current_dir)
+parent_dir = os.path.dirname(os.getcwd())
+sys.path.insert(0, os.getcwd())
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, parent_dir+"/VREnv/")
+from sac_agent.sac import SAC
+from utils.env_processing_wrapper import EnvWrapper
+from omegaconf import OmegaConf
+
 gym.envs.register(
      id='VREnv-v0',
      entry_point='VREnv.src.envs.play_table_env:PlayTableSimEnv',
      max_episode_steps=200,
 )
 
-def evaluate(eval_config, model_name):
-    env_name = "Pusher-v2"
-    env = gym.make(env_name).env
-
-    model = SAC(env, hidden_dim=470)
-    success = model.load("./trained_models/%s.pth"%model_name)
-    if(success):
-        model_name = model_name.split("_r-")[0]#take model name, remove reward
-        eval_config["model_name"] = model_name
-        model.evaluate(env, **eval_config)
-
-def load_config(model_name, folder_name):
-    path = "./hydra_outputs/%s/.hydra/config.yaml"%(folder_name)
-    path = os.path.abspath(path)
-    cfg = yaml.load(open(path,'r'), Loader=yaml.FullLoader)
-    eval_env_cfg = cfg["eval_env"]
-    agent_cfg = cfg["agent"]["hyperparameters"]
-    eval_env_cfg["cameras"].pop()
-    eval_env_cfg["cameras"] = [cfg["static_camera"], cfg["gripper_camera"]]
-    return eval_env_cfg, agent_cfg
-
-def evaluateVRenv(eval_config, model_name, hydra_folderpath):
-    evalenv_cfg, agent_cfg = load_config(model_name, hydra_folderpath)
-    if(eval_config["render"]):
-        evalenv_cfg["show_gui"]= True
-    eval_env =  gym.make("VREnv-v0", **evalenv_cfg).env
-    path = "./hydra_outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
-    agent_cfg["hidden_dim"] = 470
-    print(agent_cfg)
-    model = SAC(eval_env, **agent_cfg)
-    success = model.load(path)
-    if(success):
-        eval_config["model_name"] = model_name
-        model.evaluate(eval_env, **eval_config)
-
-@hydra.main(config_path="./config", config_name="config_vrenv")
-def hydra_evaluateVRenv(cfg):
-    #Hinge
-    if(cfg.task == "hinge"):
-        if(not cfg.img_obs):
-            hidden_dim = 309
-            model_name = "optim_hinge_rn1_rs1_04-12_03-17_best_eval"
-            folder_name = "hinge/2020-12-04/12-44-23"
-        else:
-            #cluster\2020-12-27\01-35-14\results\slide_img_27-12_01-35 
-            #me equivoque en el nombre de modelo y por eso dice slide pero es de hinge
-            # hidden_dim = 488
-            # model_name = "slide_img_27-12_01-35_best_eval"
-            # folder_name = "hinge/cluster/2020-12-27/01-35-14"
-
-            #cluster\2020-12-29\06-15-08\results\hinge_img_optim_31-12_01-02
-            hidden_dim = 300 
-            model_name = "hinge_img_optim_31-12_01-02_best_eval"
-            folder_name = "hinge/cluster/2020-12-29/06-15-08"
-    elif(cfg.task == "drawer"):
-        if(not cfg.img_obs):
-            hidden_dim=313
-            model_name = "optim_drawer_rn1_rs1_05-12_03-43_best_eval"
-            folder_name = "drawer/2020-12-04/22-36-55"
-        else:
-            #img
-            # model_name = "drawer_img_default_13-12_01-42_best_eval"
-            # folder_name = "drawer/cluster/2020-12-13/01-42-26"
-            model_name = "drawer_x1img_pos_15-01_13-09_best_eval"
-            folder_name = "drawer/cluster/2021-01-15/13-09-23"
-
-            model_name = "drawer_imgx1_only_14-01_20-14_best_eval"
-            folder_name = "drawer/cluster/2021-01-14/20-13-54"
-
-            model_name = "drawer_x1img_only_r05_23-01_12-00_best_eval"
-            folder_name = "drawer/cluster/2021-01-23/12-00-50"
-
-    else: #task == slide
-        if(not cfg.img_obs):
-            hidden_dim=265
-            model_name = "optim_slide_rn1_rs1_05-12_04-28_best_eval"
-            folder_name = "slide/2020-12-05/11-09-25"
-        else:
-            # #img
-            # cluster\2020-12-13\16-39-08\results\slide_img_13-12_04-39
-            model_name = "slide_img_13-12_04-39_best_eval"
-            folder_name = "slide/cluster/2020-12-13/16-39-08"
-
-            #cluster\2020-12-29\06-14-54\results\slide_img_optim_30-12_17-43
-            # hidden_dim=300
-            # model_name = "slide_img_optim_30-12_17-43_best_eval"
-            # folder_name = "slide/cluster/2020-12-29/06-14-54"
-            model_name = "slide_img_only_10-01_23-06_best"
-            folder_name = "slide/cluster/2021-01-10/23-04-58"
-
-            model_name = "slide_x1img_pos_16-01_10-33_best_eval"
-            folder_name = "slide/cluster/2021-01-16/10-32-04"
-    
-    test_model_dir = "../../../../outputs/%s/"%folder_name
-    run_cfg = OmegaConf.load(test_model_dir + ".hydra/config.yaml")
-    # agent_cfg = run_cfg.agent.hyperparameters
-    # cfg.img_wrapper = run_cfg.img_wrapper
-    agent_cfg = cfg.agent.hyperparameters
+def check_consistency(cfg, run_cfg):
+    #Default values in case not in config because it's old hydra structure
+    img_obs = False
+    env_wrapper = cfg.env_wrapper
     net_cfg = cfg.agent.net_cfg
+
+    #find hidden dim
     try:
-        net_cfg.hidden_dim =  hidden_dim
+        net_cfg.hidden_dim = cfg.test_sac.hidden_dim
+        print("hidden_dim loaded from test_sac.hidden_dim: %d"%net_cfg.hidden_dim )
     except:
-        #No different hidden_dim
+        if(run_cfg.agent.net_cfg):#net structure
+            net_cfg = run_cfg.agent.net_cfg
+            print("hidden_dim loaded from agent.net_cfg.hidden_dim: %d"%OmegaConf.to_yaml(net_cfg) )
+        elif(run_cfg.agent.hyperparameters.hidden_dim):
+            net_cfg.hidden_dim = run_cfg.agent.hyperparameters.hidden_dim
+            print("hidden_dim loaded from agent.hyperparmeters.hidden_dim: %d"%net_cfg.hidden_dim)
+        else:#no hidden_dim in run_cfg
+            print("taking hidden_dim default value: %d"%net_cfg.hidden_dim)
+        if(run_cfg.img_obs):
+            img_obs = run_cfg.img_obs
+        else:
+            print("No img_obs in loaded config, taking default value: %s"%img_obs)
+            pass
+    
+    #Wrapper configuration
+    if(run_cfg.env_wrapper):
+        env_wrapper = run_cfg.env_wrapper
+    elif(run_cfg.img_wrapper):
+        env_wrapper = run_cfg.img_wrapper
+    else:
+        print("No env_wrapper in loaded config, taking default value:\n%s"%OmegaConf.to_yaml(cfg.env_wrapper) )
+
+    #Set env configurations
+    try:
+        cfg_lst = ["use_img", "use_pos", "use_depth"]
+        for c in cfg_lst:
+            env_wrapper[c] = net_cfg[c]
+            net_cfg.pop(c)
+    except:
         pass
-    eval_config =  cfg.eval_config
+
+    return net_cfg, img_obs, env_wrapper
+
+@hydra.main(config_path="../config", config_name="cfg_sac")
+def hydra_evaluateVRenv(cfg):
+    # Get hydra config from tested model and load it
+    # important parameters are hidden_dim (defines the network)
+    # img_obs and img_wrapper
+    test_cfg = cfg.test_sac
+    test_model_dir = "../../../../hydra_outputs/%s/"%test_cfg.folder_name
+    run_cfg = OmegaConf.load(test_model_dir + ".hydra/config.yaml")
+    #net_cfg, img_obs, env_wrapper = check_consistency(cfg, run_cfg)
+    net_cfg = run_cfg.agent.net_cfg
+    img_obs = run_cfg.img_obs
+    env_wrapper = run_cfg.env_wrapper
+    agent_cfg = run_cfg.agent.hyperparameters
+
+    # Create evaluation environment and wrapper for the image in case there's
+    # an image observation
+    cfg.eval_env.task = run_cfg.task
+    print(cfg.eval_env.task)
     eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
-    if(cfg.img_obs):
-        eval_env =  ImgWrapper(eval_env, **run_cfg.img_wrapper)
-    path = "../../../../outputs/%s/trained_models/%s.pth"%(folder_name, model_name)
+    eval_env =  EnvWrapper(eval_env, img_obs, img_processing = env_wrapper)
+
+    #Load model
+    path = "../../../../hydra_outputs/%s/trained_models/%s.pth"%(test_cfg.folder_name, test_cfg.model_name)
     print(os.path.abspath(path))
-    print(agent_cfg)
-    model = SAC(eval_env, img_obs=cfg.img_obs, net_cfg = net_cfg, **agent_cfg)
+    model = SAC(eval_env, img_obs = img_obs, net_cfg = net_cfg, **agent_cfg)
     success = model.load(path)
     if(success):
-        model.evaluate(eval_env, model_name = model_name, **eval_config)
+        model.evaluate(eval_env, model_name = test_cfg.model_name, **cfg.test_sac.eval_cfg)
 
 if __name__ == "__main__":
-    #read_optim_results("sac_mujocoPusher2.pkl")
-    #evaluateVRenv(eval_config, model_name, folder_name)
     hydra_evaluateVRenv()

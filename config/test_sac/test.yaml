@@ -1,0 +1,72 @@
+# @package _group_
+# model_name: "optim_hinge_rn1_rs1_04-12_03-17_best_eval"
+# folder_name: "trained_no_img/hinge/"
+
+# model_name: "optim_slide_rn1_rs1_05-12_04-28_best_eval"
+# folder_name: "trained_no_img/slide/"
+
+model_name: "optim_drawer_rn1_rs1_05-12_03-43_best_eval"
+folder_name: "trained_no_img/drawer"
+
+eval_cfg:
+  n_episodes: 5
+  render: True
+  print_all_episodes: True
+  write_file: False
+  max_episode_length: 200
+
+# #Hinge
+# if(cfg.task == "hinge"):
+#     if(not cfg.img_obs):
+#         hidden_dim = 309
+#         model_name = "optim_hinge_rn1_rs1_04-12_03-17_best_eval"
+#         folder_name = "hinge/2020-12-04/12-44-23"
+#     else:
+#         #cluster\2020-12-27\01-35-14\results\slide_img_27-12_01-35 
+#         #me equivoque en el nombre de modelo y por eso dice slide pero es de hinge
+#         # hidden_dim = 488
+#         # model_name = "slide_img_27-12_01-35_best_eval"
+#         # folder_name = "hinge/cluster/2020-12-27/01-35-14"
+
+#         #cluster\2020-12-29\06-15-08\results\hinge_img_optim_31-12_01-02
+#         hidden_dim = 300 
+#         model_name = "hinge_img_optim_31-12_01-02_best_eval"
+#         folder_name = "hinge/cluster/2020-12-29/06-15-08"
+# elif(cfg.task == "drawer"):
+#     if(not cfg.img_obs):
+#         hidden_dim=313
+#         model_name = "optim_drawer_rn1_rs1_05-12_03-43_best_eval"
+#         folder_name = "drawer/2020-12-04/22-36-55"
+#     else:
+#         #img
+#         # model_name = "drawer_img_default_13-12_01-42_best_eval"
+#         # folder_name = "drawer/cluster/2020-12-13/01-42-26"
+#         model_name = "drawer_x1img_pos_15-01_13-09_best_eval"
+#         folder_name = "drawer/cluster/2021-01-15/13-09-23"
+
+#         model_name = "drawer_imgx1_only_14-01_20-14_best_eval"
+#         folder_name = "drawer/cluster/2021-01-14/20-13-54"
+
+#         model_name = "drawer_x1img_only_r05_23-01_12-00_best_eval"
+#         folder_name = "drawer/cluster/2021-01-23/12-00-50"
+
+# else: #task == slide
+#     if(not cfg.img_obs):
+#         hidden_dim=265
+#         model_name = "optim_slide_rn1_rs1_05-12_04-28_best_eval"
+#         folder_name = "slide/2020-12-05/11-09-25"
+#     else:
+#         # #img
+#         # cluster\2020-12-13\16-39-08\results\slide_img_13-12_04-39
+#         model_name = "slide_img_13-12_04-39_best_eval"
+#         folder_name = "slide/cluster/2020-12-13/16-39-08"
+
+#         #cluster\2020-12-29\06-14-54\results\slide_img_optim_30-12_17-43
+#         # hidden_dim=300
+#         # model_name = "slide_img_optim_30-12_17-43_best_eval"
+#         # folder_name = "slide/cluster/2020-12-29/06-14-54"
+#         model_name = "slide_img_only_10-01_23-06_best"
+#         folder_name = "slide/cluster/2021-01-10/23-04-58"
+
+#         model_name = "slide_x1img_pos_16-01_10-33_best_eval"
+#         folder_name = "slide/cluster/2021-01-16/10-32-04"

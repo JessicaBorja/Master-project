@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 class EnvWrapper(gym.ObservationWrapper):
-    def __init__(self, env, use_img, use_depth, use_pos, history_length, skip_frames, img_size):
+    def __init__(self, env, use_img, use_depth, use_pos, history_length, skip_frames, img_size, train=False):
         super(EnvWrapper, self).__init__(env)
         self.env = env
 
@@ -23,6 +23,7 @@ class EnvWrapper(gym.ObservationWrapper):
         self._use_robot_obs = use_pos
         self._use_depth = use_depth
         self.observation_space = self.get_obs_space(use_img, use_depth, use_pos)
+        self._training = train
 
     def get_obs_space(self, use_img, use_depth, use_pos):
         if(use_img):
@@ -58,7 +59,7 @@ class EnvWrapper(gym.ObservationWrapper):
                                   scene_obs[:3])) #only doors states
         return obs
         
-    def depth_preprocessing(self, frame):
+    def depth_preprocessing(self, frame): #obs is from 0-255, (300,300,1)
         new_frame = cv2.resize(
             frame, (self.img_size, self.img_size), interpolation=cv2.INTER_AREA) #(img_size, img_size)
         new_frame =  np.expand_dims(new_frame, axis=0) #(1, img_size, img_size)
@@ -67,20 +68,18 @@ class EnvWrapper(gym.ObservationWrapper):
     def img_preprocessing(self, frame): #obs is from 0-255, (300,300,3)
         new_frame = cv2.resize(
             frame, (self.img_size, self.img_size), interpolation=cv2.INTER_AREA) #(img_size, img_size)
-        new_frame = cv2.cvtColor(new_frame, cv2.COLOR_BGR2GRAY)
-        #cv2.normalize(new_frame, new_frame, 0, 255, norm_type = cv2.NORM_MINMAX)
-        # cv2.imshow("win",new_frame)
-        # cv2.waitKey(1)
+        new_frame = cv2.cvtColor(new_frame, cv2.COLOR_BGR2GRAY).astype(float)
+
+        #"Transforms"
+        #norm_image = np.copy(new_frame)
+        cv2.normalize(new_frame, new_frame, -1, 1, norm_type = cv2.NORM_MINMAX)#(0,255) -> (-1,1)
+        if(self._training): #add gaussian noise
+            new_frame += np.random.normal(0, 0.01, size = new_frame.shape)
+
+        #History length
         new_frame = np.expand_dims(new_frame, 0)#(1, img_size, img_size)
         self._total_frames = np.pad(self._total_frames,((1,0),(0,0),(0,0)), mode='constant')[:-1, :, :]
         self._total_frames[0] = new_frame
         
         self._cur_img_obs = self._total_frames[self._indices]
-
-        # if(self.obs_count == 0): #pos 0 is the most recent one
-        #     zeros = np.zeros((self.history_length-1,self.img_size,self.img_size))
-        #     self._img_obs = np.concatenate((new_frame, zeros), axis=0)
-        # elif(self.obs_count%(self.skip_frames+1)==0):            
-        #     self._img_obs = np.pad(self._img_obs,((1,0),(0,0),(0,0)), mode='constant')[:-1, :, :]
-        #     self._img_obs[0] = new_frame
         return self._cur_img_obs

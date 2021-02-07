@@ -5,14 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Training",
+            "name": "NoArgs",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}",
             "justMyCode": false,
-            "args": ["eval_env.show_gui=false", "env.show_gui=false"]
+            "args": []
         },
         {
             "name": "train VREnv",
@@ -25,7 +25,9 @@
             "args": ["agent=sac_default", 
                     "task=slide", 
                     "model_name=slide_test", 
-                    //"img_obs=True", 
+                    "img_obs=True",
+                    "env_wrapper.use_pos=True",
+                    // "env_wrapper.use_depth=True",
                     "agent.net_cfg.activation=elu"]
         },
         {
@@ -34,7 +36,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}",
             "justMyCode": false,
             "args": ["agent=sac_default", "task=slide", "model_name=slide_img_optim", "img_obs=True", 
                      "optim.nameserver=127.0.0.2"]
@@ -47,7 +49,7 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "justMyCode": false,
-            "args": ["eval_env.show_gui=true",
+            "args": ["eval_env.show_gui=False",
                      "save_dir=../test_runs/${task}"]
         }
     ]

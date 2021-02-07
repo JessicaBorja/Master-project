@@ -22,6 +22,14 @@ defaults:
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
 
+env_wrapper:
+  use_img: ${img_obs}
+  use_depth: False
+  use_pos: False
+  history_length: 1
+  skip_frames: 0
+  img_size: 84
+
 data_collection:
   viz: True
   n_episodes: 5
@@ -29,14 +37,6 @@ data_collection:
   model_name: optim_drawer_rn1_rs1_05-12_03-43_best_eval
   folder_name: ${models_dir}/trained_no_img/drawer/
   save_dir: "C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_affordance"
-
-env_wrapper:
-  use_img: ${img_obs}
-  use_depth: False
-  use_pos: False
-  history_length: 1
-  skip_frames: 0
-  img_size: 80
   
 all_cameras:
   slide_hinge_camera:    

@@ -9,8 +9,6 @@ hyperparameters:
     tau: 0.01569
     batch_size: 64
     buffer_size: 1e6
-    # train_freq: 1 #timesteps collectng data
-    # gradient_steps: 1 #timesteps updating gradients
     learning_starts: 200 #timesteps before starting updates
     
 net_cfg:

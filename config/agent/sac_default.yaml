@@ -9,7 +9,7 @@ hyperparameters:
     tau: 0.005
     batch_size: 256
     buffer_size: 1e6
-    learning_starts: 100 #timesteps before starting updates
+    learning_starts: 1000 #timesteps before starting updates
 
 net_cfg:
     hidden_dim: 256

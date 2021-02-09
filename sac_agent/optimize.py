@@ -1,6 +1,5 @@
 
 import numpy as np
-from sac_agent.sac import SAC
 import os, pickle
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
@@ -8,16 +7,16 @@ from hpbandster.core.worker import Worker
 import hpbandster.core.nameserver as hpns
 import hpbandster.core.result as hpres
 from hpbandster.optimizers import BOHB
-import logging, yaml
+import logging
 log = logging.getLogger(__name__)
 import gym
 import hydra
-import os,sys,inspect
+import os,sys
+
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, parent_dir+"/VREnv/")
-from utils.env_processing_wrapper import EnvWrapper
 from sac_agent.sac import SAC
 from utils.env_processing_wrapper import EnvWrapper
 gym.envs.register(
@@ -67,10 +66,9 @@ class SACWorker(Worker):
         actor_lr = CSH.UniformFloatHyperparameter('actor_lr', lower=1e-6, upper=1e-3, log=True)
         critic_lr = CSH.UniformFloatHyperparameter('critic_lr', lower=1e-6, upper=1e-3, log=True)
         alpha_lr = CSH.UniformFloatHyperparameter('alpha_lr', lower=1e-6, upper=1e-3, log=True)
-        #discount = CSH.UniformFloatHyperparameter('gamma', lower=0.97, upper=0.99)
         tau = CSH.UniformFloatHyperparameter('tau', lower=0.001, upper=0.01)
         batch_size = CSH.UniformIntegerHyperparameter('batch_size', lower=32, upper=128)
-        hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=256, upper=512)
+        hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=128, upper=512)
 
         cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr, hidden_dim, tau, batch_size])
         return cs
@@ -125,7 +123,6 @@ def optim_vrenv(cfg):
     hyperparameters = cfg.optim.hyperparameters
     learn_config = cfg.optim.learn_config
     eval_config =  cfg.optim.eval_config
-    net_cfg = cfg.optim.net_cfg
     hp = {}
     hp["env"] = gym.make("VREnv-v0", **cfg.env).env
     hp["eval_env"] = gym.make("VREnv-v0", **cfg.eval_env).env
@@ -134,7 +131,10 @@ def optim_vrenv(cfg):
     hp["env"] = EnvWrapper(hp["env"], **cfg.env_wrapper)
     hp["eval_env"] = EnvWrapper(hp["eval_env"], **cfg.env_wrapper)
 
-    hp = {**hyperparameters, **hp, 'net_cfg':net_cfg}
+    net_cfg = {}
+    for k,v in cfg.optim.net_cfg.items():
+        net_cfg[k] = v
+    hp = {**hyperparameters, **hp, 'net_cfg': net_cfg }
     worker=False
     if(cfg.optim.n_workers>1):
         worker=True

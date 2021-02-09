@@ -50,14 +50,14 @@ class CNNCommon(nn.Module):
     super(CNNCommon, self).__init__()
     w,h = self.calc_out_size(input_size,input_size,8,0,4)
     w,h = self.calc_out_size(w,h,4,0,2)
-    #w,h = self.calc_out_size(w,h,3,0,1)
+    w,h = self.calc_out_size(w,h,3,0,1)
 
     self.conv1 = nn.Conv2d(in_channels, 16, 8, stride=4)
     self.conv2 = nn.Conv2d(16, 32, 4, stride=2)
-    #self.conv3 = nn.Conv2d(32, 64, 3, stride=1)
+    self.conv3 = nn.Conv2d(32, 64, 3, stride=1)
     #self.fc1 = nn.Linear(w*h*32, out_feat)
     self.spatial_softmax = SpatialSoftmax(h,w)
-    self.fc1 = nn.Linear(2*32, out_feat)#spatial softmax output
+    self.fc1 = nn.Linear(2*64, out_feat)#spatial softmax output
 
     self._activation = activation
 
@@ -71,7 +71,8 @@ class CNNCommon(nn.Module):
     # x = self.fc1(x.view(batch_size,-1)).squeeze() #bs, out_feat
 
     x = self._activation(self.conv1(x))
-    x = self.spatial_softmax(self.conv2(x))
+    x = self._activation(self.conv2(x))
+    x = self.spatial_softmax(self.conv3(x))
     x = self.fc1(x).squeeze() #bs, out_feat
     return x
 

@@ -1,12 +1,30 @@
-import gym
-from numpy import random
-from omegaconf import OmegaConf
-import os
+import os, glob
 import cv2
 import numpy as np
 from PIL import Image
 from datetime import datetime
-## File to get segmentation maks, and save data
+import json
+from affordance_model.utils.utils import *
+
+#######################################################
+#### File to get segmentation maks, and save data #####
+#######################################################
+def create_data_split(root_dir):
+    data = {'train':[],"validation":[]}
+    all_files = glob.glob(root_dir+"/frames/*")
+    #Get a third of the data as validation
+    val_idx = np.random.randint(low=0, high= len(all_files), size= len(all_files)//3 ) 
+
+    for idx, file in enumerate(all_files):
+        _, tail = os.path.split(file)
+        file_name = tail.split('.')[0]
+        if(idx in val_idx): #Validation
+            data['validation'].append(file_name)
+        else:
+            data['train'].append(file_name)
+
+    with open(root_dir+'/data.json', 'w') as outfile:
+        json.dump(data, outfile, indent=2)
 
 def create_dirs(root_dir):
     frames_dir = root_dir + "/frames/"
@@ -31,6 +49,38 @@ def save_data(data, directory):
         with open(mask_filename, 'wb') as f: #Save masks
             np.save(f, mask)
 
+#######################################################
+############### Masks generation ######################
+#######################################################
+def get_elipse_angle(cam_name):
+    if(cam_name == "sideview_left"):
+        return - 40
+    elif(cam_name == "sideview_right"):
+        return 45
+    else:
+        return 0
+
+def delete_oclussion(mask, robot_pose):
+    robot_mask = np.zeros((mask.shape[0], mask.shape[1], 1))
+    robot_mask = cv2.circle(robot_mask, robot_pose, 10, [255,255,255], -1)
+    robot_mask = smoothen(robot_mask, k=7)
+    mask = cv2.subtract(mask, robot_mask, mask)
+    #cv2.imshow("robot_mask", robot_mask)
+    return mask
+
+def create_target_mask(img, xy_coords, task, elipse_angle):
+    mask = np.zeros((img.shape[0], img.shape[1], 1))
+    color = [255,255,255]
+    if(task == "drawer"):
+        axesLength = (25,8)#major, minor axis
+        mask = cv2.ellipse(mask, xy_coords , axesLength, elipse_angle, 0, 360, color, -1) 
+    else: #Vertical handles
+        axesLength = (8,25)#major, minor axis
+        mask = cv2.ellipse(mask, xy_coords , axesLength, 0, 0, 360, color, -1) 
+    # mask dtype = float [0., 255.]
+    mask = smoothen(mask, k=15)
+    return mask
+
 def transform_point(point, cam):
     #https://github.com/bulletphysics/bullet3/issues/1952
     #reshape to get homogeneus transform
@@ -46,58 +96,6 @@ def transform_point(point, cam):
     x, y = np.floor(x).astype(int), np.floor(y).astype(int)
     return (x,y)
 
-def visualize_masks(mask, img):
-    #Overlay mask on top of image and show
-    res = overlay_mask(mask,img, color = (0,255,0))
-    cv2.imshow("mask", np.expand_dims(mask,-1))    
-    cv2.imshow("paste", res)
-    cv2.waitKey(1)
-
-def overlay_mask(mask, img, color):
-    result = Image.fromarray(np.uint8(img))
-    pil_mask = Image.fromarray(np.uint8(mask))
-    color =  Image.new("RGB", result.size , color)
-    result.paste( color , (0, 0), pil_mask)
-    result = np.array(result)
-    return result
-
-def delete_oclussion(mask, robot_pose):
-    robot_mask = np.zeros((mask.shape[0], mask.shape[1], 1))
-    robot_mask = cv2.circle(robot_mask, robot_pose, 10, [255,255,255], -1)
-    robot_mask = cv2.GaussianBlur(robot_mask, (7,7), 0)
-    robot_mask = cv2.normalize(robot_mask, None, 255,0, cv2.NORM_MINMAX, cv2.CV_8UC1)
-    mask = cv2.subtract(mask, robot_mask, mask)
-    #cv2.imshow("robot_mask", robot_mask)
-    return mask
-
-def create_mask(img, xy_coords, task, elipse_angle):
-    mask = np.zeros((img.shape[0], img.shape[1], 1))
-    color = [255,255,255]
-    if(task == "drawer"):
-        axesLength = (25,8)#major, minor axis
-        mask = cv2.ellipse(mask, xy_coords , axesLength, elipse_angle, 0, 360, color, -1) 
-    else: #Vertical handles
-        axesLength = (8,25)#major, minor axis
-        mask = cv2.ellipse(mask, xy_coords , axesLength, 0, 0, 360, color, -1) 
-    
-    mask = cv2.GaussianBlur(mask, (15,15), 0)
-    mask = cv2.normalize(mask, None, 255,0, cv2.NORM_MINMAX, cv2.CV_8UC1)
-    return mask
-
-def simulate_noise(x, y, std):
-    x += np.random.normal(0,std)
-    y += np.random.normal(0,std)
-    x, y = np.floor(x).astype(int), np.floor(y).astype(int)
-    return (x,y)
-
-def get_elipse_angle(cam_name):
-    if(cam_name == "sideview_left"):
-        return - 40
-    elif(cam_name == "sideview_right"):
-        return 45
-    else:
-        return 0
-
 def get_img_mask_pair(env, viz=False):
     cam = env.cameras[0]#assume camera 0 is static
     rgb, _ = cam.render()
@@ -108,9 +106,14 @@ def get_img_mask_pair(env, viz=False):
     point.append(1)
     robot_pose = np.append(robot_pose,1)
 
-    #Transform point to pixel
+    # Simulate gaussian noise in 3D space
+    std = 0.005
+    point[0] += np.random.normal(0,std)
+    point[1] += np.random.normal(0,std)
+    
+    # Project point to camera
+    # x,y <- pixel coords
     x,y = transform_point(point, cam)
-    x,y = simulate_noise(x, y, std = 0.01) #simulate zero-mean gaussian noise
 
     #Euclidian distance on image space
     robot_x, robot_y = transform_point( robot_pose, cam)
@@ -120,7 +123,7 @@ def get_img_mask_pair(env, viz=False):
 
     img = np.array(rgb[:, :, ::-1])
     elipse_angle = get_elipse_angle(cam.name)
-    mask = create_mask(img, (x,y), env.task, elipse_angle)
+    mask = create_target_mask(img, (x,y), env.task, elipse_angle)
     mask = delete_oclussion(mask, (robot_x,robot_y))
     if(viz):
         visualize_masks(mask,img)

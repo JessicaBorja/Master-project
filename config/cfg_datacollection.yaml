@@ -10,8 +10,8 @@ folder_name: ${models_dir}/trained_no_img/drawer/
 #Save dataset
 save_dir: "C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_affordance/"
 
-viz: False
-n_episodes: 3
+viz: True
+n_episodes: 1
 max_timesteps: 150
 
 defaults:

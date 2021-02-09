@@ -73,6 +73,7 @@ def collect_dataset(cfg):
     
     save_dir = cfg.save_dir
     save_data(data, save_dir)
+    create_data_split(save_dir)
     env.close()
 
 if __name__ == "__main__":

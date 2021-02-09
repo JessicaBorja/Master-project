@@ -1,5 +1,5 @@
 data_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
-save_dir: ./hydra_outputs/${task}
+save_dir: ./sac_agent/hydra_outputs/${task}
 task: slide
 model_name: sac_vrenv
 repeat_training: 1

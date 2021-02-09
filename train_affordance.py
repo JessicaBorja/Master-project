@@ -1,30 +1,50 @@
-import gym
-import pybullet as p
+import os, datetime, logging
+from torch.utils.data import DataLoader, random_split
+import pytorch_lightning as pl
 import hydra
 from omegaconf import OmegaConf
-import os,sys
-from affordance_model.segmentator import SegmentatioNetwork
+from affordance_model.datasets import VREnvData
+from affordance_model.segmentator import Segmentator
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 
 @hydra.main(config_path="./config", config_name="cfg_affordance")
-def main(cfg):
-    print("agent configuration")
-    print( OmegaConf.to_yaml(cfg.agent) )
-    print( OmegaConf.to_yaml(cfg.env_wrapper) )
-    print("repeat_training:%d, img_obs:%s"%(cfg.repeat_training, str(cfg.img_obs)))
+def train(cfg):
+    print("Running configuration: ", cfg)
+    logger = logging.getLogger(__name__)
+    logger.info("Running configuration: %s", OmegaConf.to_yaml(cfg) )
 
-    for i in range(cfg.repeat_training):
-        training_env =  gym.make("VREnv-v0", **cfg.env).env
-        eval_env =  gym.make("VREnv-v0", **cfg.eval_env).env
-        training_env = EnvWrapper(training_env, **cfg.env_wrapper)
-        eval_env =  EnvWrapper(eval_env, **cfg.env_wrapper)
-        model_name = cfg.model_name
-        model = SAC(env = training_env, eval_env = eval_env, model_name = model_name,\
-                    save_dir = cfg.agent.save_dir, img_obs = cfg.img_obs, net_cfg=cfg.agent.net_cfg,
-                    **cfg.agent.hyperparameters)
+    #Data split
+    train = VREnvData(split = "train", **cfg.dataset)
+    val = VREnvData(split = "validation", **cfg.dataset)
+    logger.info('train_data {}'.format(train.__len__()))
+    logger.info('val_data {}'.format(val.__len__()))
+    
+    train_loader = DataLoader(train, **cfg.dataloader)
+    val_loader = DataLoader(val, **cfg.dataloader)
+    logger.info('train minibatches {}'.format(len(train_loader)))
+    logger.info('val minibatches {}'.format(len(val_loader)))
 
-        model.learn(**cfg.agent.learn_config)
-        training_env.close()
-        eval_env.close()
+    #Initialize model
+    checkpoint_callback = ModelCheckpoint(
+        monitor ='val_loss',
+        dirpath = "trained_models",
+        filename = 'affordance-{epoch:02d}-{val_loss:.4f}',
+        save_top_k = 3,
+        verbose = True
+        )
+
+    model_name = cfg.model_name#
+    model_name = "{}_{}".format(model_name, datetime.datetime.now().strftime('%d-%m_%I-%M'))
+    tb_logger = TensorBoardLogger("tb_logs", name = model_name)
+
+    aff_model = Segmentator(cfg.model_cfg)
+    trainer = pl.Trainer(
+        callbacks = [checkpoint_callback],
+        logger = tb_logger,
+        **cfg.trainer)
+    trainer.fit(aff_model, train_loader, val_loader)
         
 if __name__ == "__main__":
-    main()
+    train()

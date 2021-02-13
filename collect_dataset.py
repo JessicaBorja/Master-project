@@ -7,7 +7,7 @@ sys.path.insert(0, parent_dir)
 sys.path.insert(0, parent_dir+"/VREnv/")
 gym.envs.register(
      id='VREnv-v0',
-     entry_point='VREnv.src.envs.play_table_env:PlayTableSimEnv',
+     entry_point='VREnv.vr_env.envs.play_table_env:PlayTableSimEnv',
      max_episode_steps=200,
 )
 from utils.env_processing_wrapper import EnvWrapper
@@ -61,7 +61,7 @@ def collect_dataset(cfg):
             a, _ = agent._pi.act(tt(s), deterministic = True)#sample action and scale it to action space
             a = a.cpu().detach().numpy()
             ns, r, done, _ = env.step(a)
-            img, mask = get_img_mask_pair(env, cfg.viz)
+            img, mask = get_img_mask_rl_agent(env, cfg.viz)
             data["frames"].append(img)
             data["masks"].append(mask)
             data["ids"].append("%s_%d_image%04d"%(env.task,episode,episode_length))
@@ -72,7 +72,7 @@ def collect_dataset(cfg):
         stats.episode_lengths.append(episode_length)
     
     save_dir = cfg.save_dir
-    save_data(data, save_dir)
+    save_data(data, save_dir, sub_dir = env.task)
     create_data_split(save_dir)
     env.close()
 

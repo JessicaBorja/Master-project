@@ -27,7 +27,6 @@
                     "model_name=slide_test", 
                     "img_obs=True",
                     "env_wrapper.use_pos=True",
-                    // "env_wrapper.use_depth=True",
                     "agent.net_cfg.activation=elu"]
         },
         {
@@ -38,7 +37,11 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "justMyCode": false,
-            "args": ["agent=sac_default", "task=slide", "model_name=slide_img_optim", "img_obs=True", 
+            "args": ["agent=sac_default", 
+                     "task=slide", 
+                     "model_name=slide_img_optim",
+                     "img_obs=True", 
+                     "optim.net_cfg.activation=elu",
                      "optim.nameserver=127.0.0.2"]
         },
         {

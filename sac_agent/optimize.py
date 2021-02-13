@@ -21,7 +21,7 @@ from sac_agent.sac import SAC
 from utils.env_processing_wrapper import EnvWrapper
 gym.envs.register(
      id='VREnv-v0',
-     entry_point='VREnv.src.envs.play_table_env:PlayTableSimEnv',
+     entry_point='VREnv.vr_env.envs.play_table_env:PlayTableSimEnv',
      max_episode_steps=200,
 )
 

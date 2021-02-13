@@ -5,6 +5,9 @@ model_name: affordance_unet
 n_epochs: 100
 img_size: 128 #32x4, will be subsampled 3 times
 
+dataset:
+  root_dir: ${data_dir}
+
 dataloader:
   num_workers: 2
   batch_size : 4 #28

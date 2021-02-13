@@ -21,12 +21,12 @@ class VREnvData(Dataset):
 
     def __getitem__(self, idx):
         filename = self.data[idx]
-        frame = cv2.imread( os.path.join(self.frames_dir, filename + ".jpg"), cv2.COLOR_BGR2RGB)
+        frame = cv2.imread( self.frames_dir + filename  + ".jpg", cv2.COLOR_BGR2RGB)
         frame = torch.from_numpy(frame).permute(2,0,1) #C, W, H
         frame = self.transforms(frame)
         
         # Segmentation mask
-        mask = np.load( os.path.join(self.masks_dir, filename + ".npy") ) # (H, W)
+        mask = np.load( self.masks_dir + filename + ".npy" ) # (H, W)
         # Resize from torchvision requires mask to have channel dim
         mask = np.expand_dims(mask, 0)
         mask = self.mask_transforms( torch.from_numpy(mask) )

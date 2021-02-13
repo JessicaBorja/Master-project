@@ -7,24 +7,50 @@ models_dir: C:/Users/Jessica/Documents/Proyecto_ssd/SAC/hydra_outputs/
 model_name: drawer_best_eval
 folder_name: ${models_dir}/trained_no_img/drawer/
 
-#Save dataset
-save_dir: "C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_affordance/"
+#play data:
+play_data_dir: "/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/"
 
-viz: True
-n_episodes: 1
+#Save dataset
+save_dir: "/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/"
+
+viz: False
+n_episodes: 10
 max_timesteps: 150
 
 defaults:
   - agent: sac_default
   - env: env
   - scene@env.scene: basic_playtable
-  - camera_conf@env: topview
+  - camera_conf@env: static_and_gripper
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
 
 all_cameras:
+  static: #Side view (slide)
+    _target_: vr_env.camera.static_camera.StaticCamera
+    name: static
+    fov: 75
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 200
+    height: 200
+    look_at: [0.13730333745479584, 0.8428503274917603, 0.5114248394966125]
+    look_from: [0.15928523478833423, 0.055887024125922835, 1.417076897845746]
+
+  gripper:
+    _target_: vr_env.camera.gripper_camera.GripperCamera
+    name: gripper
+    fov: 75
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 200
+    height: 200
+    gripper_cam_link: 12 # TODO do not hardcode this, use robot property? e.g. ${robot.camera_link_id}
+  
   sideview_right: #Side view (slide)
-    _target_: src.camera.static_camera.StaticCamera
+    _target_: vr_env.camera.static_camera.StaticCamera
     name: sideview_right
     fov: 75
     aspect: 1
@@ -34,8 +60,9 @@ all_cameras:
     height: 300
     look_at: [ 0.2, 0.8, 0.6 ]
     look_from: [0.8, 0.2, 1]
+  
   sideview_left: #Side view (drawer)
-    _target_: src.camera.static_camera.StaticCamera
+    _target_: vr_env.camera.static_camera.StaticCamera
     name: sideview_left
     fov: 75
     aspect: 1
@@ -45,8 +72,9 @@ all_cameras:
     height: 300
     look_at: [ 0.05, 0.8, 0.6 ]
     look_from: [-0.5, 0.2, 1]
+  
   topview:    
-    _target_: src.camera.static_camera.StaticCamera
+    _target_: vr_env.camera.static_camera.StaticCamera
     name: topview
     fov: 75
     aspect: 1

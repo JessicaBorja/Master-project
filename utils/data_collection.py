@@ -11,36 +11,37 @@ from affordance_model.utils.utils import *
 #######################################################
 def create_data_split(root_dir):
     data = {'train':[],"validation":[]}
-    all_files = glob.glob(root_dir+"/frames/*")
+    frames_dir = root_dir +"/frames"
+    all_files = glob.glob(frames_dir + "/*/*")
     #Get a third of the data as validation
-    val_idx = np.random.randint(low=0, high= len(all_files), size= len(all_files)//3 ) 
+    val_idx = np.random.choice(len(all_files), len(all_files)//3, replace=False)
 
     for idx, file in enumerate(all_files):
-        _, tail = os.path.split(file)
-        file_name = tail.split('.')[0]
-        if(idx in val_idx): #Validation
-            data['validation'].append(file_name)
+        head, tail = os.path.split(file)
+        file_relative_path = head.replace(frames_dir,"") # Only keep subdirectories of frames
+        file_name = tail.split('.')[0] # Remove extension name
+        relative_path = os.path.join( file_relative_path, file_name)
+        if(idx in val_idx): # Validation
+            data['validation'].append(relative_path)
         else:
-            data['train'].append(file_name)
+            data['train'].append(relative_path)
 
     with open(root_dir+'/data.json', 'w') as outfile:
         json.dump(data, outfile, indent=2)
 
-def create_dirs(root_dir):
-    frames_dir = root_dir + "/frames/"
-    masks_dir = root_dir + "/masks/"
-    if(not os.path.exists(root_dir)):
-        os.mkdir(root_dir)
-    if(not os.path.exists(frames_dir)):
-        os.mkdir(frames_dir)
-    if(not os.path.exists(masks_dir)):
-        os.mkdir(masks_dir)
+def create_dirs(root_dir, sub_dir):
+    frames_dir = root_dir + "/frames/%s/"%sub_dir
+    masks_dir = root_dir + "/masks/%s/"%sub_dir
+    dir_lst = [root_dir, frames_dir, masks_dir]
+    for directory in dir_lst:
+        if(not os.path.exists(directory)):
+            os.makedirs(directory)
     return frames_dir, masks_dir
 
-def save_data(data, directory):
+def save_data(data, directory, sub_dir):
     run_id = datetime.now().strftime('%d-%m_%H-%M')
 
-    frames_dir, masks_dir = create_dirs(directory)
+    frames_dir, masks_dir = create_dirs(directory, sub_dir)
     for img, mask, name in zip(data["frames"], data["masks"], data['ids']):
         filename = "{}_{}".format(run_id, name)
         img_filename = os.path.join(frames_dir,filename) + ".jpg" 
@@ -68,7 +69,7 @@ def delete_oclussion(mask, robot_pose):
     #cv2.imshow("robot_mask", robot_mask)
     return mask
 
-def create_target_mask(img, xy_coords, task, elipse_angle):
+def create_target_mask(img, xy_coords, task, elipse_angle = 0):
     mask = np.zeros((img.shape[0], img.shape[1], 1))
     color = [255,255,255]
     if(task == "drawer"):
@@ -96,8 +97,8 @@ def transform_point(point, cam):
     x, y = np.floor(x).astype(int), np.floor(y).astype(int)
     return (x,y)
 
-def get_img_mask_pair(env, viz=False):
-    cam = env.cameras[0]#assume camera 0 is static
+def get_img_mask_rl_agent(env, viz=False):
+    cam = env.cameras[0] # assume camera 0 is static
     rgb, _ = cam.render()
 
     #append 1 to get homogeneous coord "true" label
@@ -126,5 +127,42 @@ def get_img_mask_pair(env, viz=False):
     mask = create_target_mask(img, (x,y), env.task, elipse_angle)
     mask = delete_oclussion(mask, (robot_x,robot_y))
     if(viz):
-        visualize_masks(mask,img)
+        res = overlay_mask(mask, img, (0,0,255) )
+        cv2.imshow("mask", np.expand_dims(mask,-1))    
+        cv2.imshow("paste", res)
+        cv2.waitKey(1)
     return img, mask
+
+#######################################################
+################## From playdata ######################
+#######################################################
+def create_circle_mask(img, xy_coords, r = 10 ):
+    mask = np.zeros((img.shape[0], img.shape[1], 1))
+    color = [255,255,255]
+    mask = cv2.circle(mask, xy_coords, radius = r, color = color, thickness = -1)
+    mask = smoothen(mask, k=15)
+    return mask
+
+def get_static_mask(static_cam, static_lst, point):
+    # Img history containes previus frames where gripper action was open
+    # Point is the point in which the gripper closed for the 1st time
+    # TCP in homogeneus coord.
+    point = np.append(point, 1)
+
+    # Project point to camera
+    # x,y <- pixel coords
+    tcp_x,tcp_y = transform_point(point, static_cam)
+
+    static_masks = []
+    for static_im in static_lst:
+        static_mask = create_circle_mask(static_im, (tcp_x,tcp_y), r=10)
+        
+        # append masks
+        static_masks.append(static_mask)
+    return static_masks
+
+def get_gripper_mask(gripper_img, radius = 20):
+    w, h  = gripper_img.shape[0]//2, gripper_img.shape[1]//2 - gripper_img.shape[1]//5
+    gripper_mask = create_circle_mask(gripper_img, (w,h), r = radius)
+
+    return gripper_mask

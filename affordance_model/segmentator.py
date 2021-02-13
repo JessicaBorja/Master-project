@@ -9,16 +9,16 @@ class Segmentator(pl.LightningModule):
     super().__init__()
     #https://github.com/qubvel/segmentation_models.pytorch
     self.unet = None
-    self.init_model()    
+    self.init_model(n_classes = 2)    
     self.optimizer_cfg = cfg.optimizer
     self.criterion = nn.CrossEntropyLoss()
 
-  def init_model(self):
+  def init_model(self, n_classes = 2):
     self.unet = smp.Unet(
       encoder_name ="resnet18",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
       encoder_weights ="imagenet",     # use `imagenet` pre-trained weights for encoder initialization
       in_channels = 3,                 # model input channels (1 for gray-scale images, 3 for RGB, etc.)
-      classes = 2,                     # model output channels (number of classes in your dataset)
+      classes = n_classes,                     # model output channels (number of classes in your dataset)
       encoder_depth = 3,               # Should be equal to number of layers in decoder
       decoder_channels = (128, 64, 32),
       activation = 'softmax'

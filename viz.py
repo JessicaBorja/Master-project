@@ -5,6 +5,7 @@ from affordance_model.segmentator import Segmentator
 import glob, os
 import cv2
 import torch
+import torch.nn.functional as F
 import numpy as np
 from affordance_model.utils.utils import *
 from affordance_model.utils.transforms import ScaleImageTensor
@@ -13,17 +14,24 @@ from torchvision.transforms import Resize
 from omegaconf import OmegaConf
 
 def visualize(mask, img):
-    mask = torch.argmax(mask, axis=1).permute(1,2,0)
+    mask = torch.argmax(mask, axis = 1).permute(1,2,0)
+    #mask = F.softmax(mask, dim = 1).squeeze(0)[1]
     mask = mask.detach().cpu().numpy()*255.0
     mask = cv2.resize(mask, dsize = img.shape[:2])
     mask = smoothen(mask, k=15) # [0, 255] int
 
-    res = visualize_masks( mask,img, (0,0,255) )
+    res = overlay_mask(mask, img, (0,0,255) )
+    cv2.imshow("mask", np.expand_dims(mask,-1))    
+    cv2.imshow("paste", res)
+    cv2.waitKey(1)
     return res 
 
 @hydra.main(config_path="./config", config_name="viz_affordances")
 def viz(cfg):
-    #Initialize model
+    # Create output directory if save_images
+    if(not os.path.exists(cfg.output_dir) and cfg.save_images):
+        os.mkdir(cfg.output_dir)
+    # Initialize model
     run_cfg = OmegaConf.load(cfg.folder_name + "/.hydra/config.yaml")
     model_cfg = run_cfg.model_cfg
 
@@ -39,7 +47,6 @@ def viz(cfg):
     #Iterate images
     files = glob.glob(cfg.data_dir + "/*.jpg")
     files += glob.glob(cfg.data_dir + "/*.png")
-    img_lst = []
     for idx, filename in enumerate(files):
         orig_img = cv2.imread(filename, cv2.COLOR_BGR2RGB)
         # Process image as in validation 
@@ -50,7 +57,7 @@ def viz(cfg):
         res = visualize(mask, orig_img)
         if(cfg.save_images):
             _, tail = os.path.split(filename)
-            output_file = os.path.join( cfg.output_dir, tail) + ".jpg"
+            output_file = os.path.join( cfg.output_dir, tail)
             cv2.imwrite(output_file, res)
         
         

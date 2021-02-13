@@ -205,7 +205,6 @@ class SAC():
                             data = np.mean(value[-1])
                         else:
                             data = value[-1]#np.mean(value)
-                        #data = value[-1]
                         writer.add_scalar("train/%s"%key, data, t)
                 
                 plot_data = {"actor_loss": [] , "critic_loss": [], "ent_coef_loss": [], "ent_coef":[]}

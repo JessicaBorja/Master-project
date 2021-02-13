@@ -2,18 +2,6 @@ import numpy as np
 import cv2
 from PIL import Image
 
-#mask = cv2.subtract(mask, robot_mask, mask)
-
-def visualize_masks(mask, img, color = (255,0,0)):
-    # Overlay mask on top of image and show
-    # mask.shape =  W, H
-    # img.shape = W, H, C
-    res = overlay_mask(mask, img, color)
-    cv2.imshow("mask", np.expand_dims(mask,-1))    
-    cv2.imshow("paste", res)
-    cv2.waitKey(1)
-    return res
-
 def overlay_mask(mask, img, color):
     result = Image.fromarray(np.uint8(img))
     pil_mask = Image.fromarray(np.uint8(mask))

@@ -8,7 +8,7 @@ sys.path.insert(0, parent_dir)
 sys.path.insert(0, parent_dir+"/VREnv/")
 gym.envs.register(
      id='VREnv-v0',
-     entry_point='VREnv.src.envs.play_table_env:PlayTableSimEnv',
+     entry_point='VREnv.vr_env.envs.play_table_env:PlayTableSimEnv',
      max_episode_steps=200,
 )
 from utils.env_processing_wrapper import EnvWrapper

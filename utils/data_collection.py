@@ -5,20 +5,31 @@ from PIL import Image
 from datetime import datetime
 import json
 from affordance_model.utils.utils import *
+import tqdm
 
 #######################################################
 #### File to get segmentation maks, and save data #####
 #######################################################
-def create_data_split(root_dir):
+def create_data_split(root_dir, remove_blank_mask_instances = True):
     data = {'train':[],"validation":[]}
-    frames_dir = root_dir +"/frames"
-    all_files = glob.glob(frames_dir + "/*/*")
-    #Get a third of the data as validation
-    val_idx = np.random.choice(len(all_files), len(all_files)//3, replace=False)
+    masks_dir = root_dir +"/masks"
+    all_files = glob.glob(masks_dir + "/*/*")
 
-    for idx, file in enumerate(all_files):
+    valid_frames = []
+    if ( remove_blank_mask_instances ):
+        for file in tqdm.tqdm(all_files):
+            mask = np.load(file) # (H, W)
+            if( mask.max() > 0 ):
+                # at least one pixel is not background
+                valid_frames.append(file)
+    else:
+        valid_frames = all_files
+
+    # Split data
+    val_idx = np.random.choice(len(valid_frames), len(valid_frames)//3, replace=False)
+    for idx, file in tqdm.tqdm(enumerate(valid_frames)):
         head, tail = os.path.split(file)
-        file_relative_path = head.replace(frames_dir,"") # Only keep subdirectories of frames
+        file_relative_path = head.replace(masks_dir,"") # Only keep subdirectories of masks
         file_name = tail.split('.')[0] # Remove extension name
         relative_path = os.path.join( file_relative_path, file_name)
         if(idx in val_idx): # Validation
@@ -29,27 +40,48 @@ def create_data_split(root_dir):
     with open(root_dir+'/data.json', 'w') as outfile:
         json.dump(data, outfile, indent=2)
 
-def create_dirs(root_dir, sub_dir):
-    frames_dir = root_dir + "/frames/%s/"%sub_dir
-    masks_dir = root_dir + "/masks/%s/"%sub_dir
-    dir_lst = [root_dir, frames_dir, masks_dir]
+def create_dirs(root_dir, sub_dir, directory_lst):
+    dir_lst = [root_dir]
+    for d_name in directory_lst:
+        dir_lst.append( root_dir + "/%s/%s/"%(d_name, sub_dir) )
+
     for directory in dir_lst:
         if(not os.path.exists(directory)):
             os.makedirs(directory)
-    return frames_dir, masks_dir
+    dir_lst.pop(0) # Remove root_dir
+    return dir_lst
 
-def save_data(data, directory, sub_dir):
+def save_data(data_dict, directory, sub_dir, save_viz = True):
+    #{ img_id: { "frame": img, "mask": mask } 
     run_id = datetime.now().strftime('%d-%m_%H-%M')
+    if(save_viz):
+        frames_dir, masks_dir, viz_out_dir = create_dirs(directory, sub_dir, ['frames', 'masks', 'viz_out'])
+    else:
+        frames_dir, masks_dir = create_dirs(directory, sub_dir, ['frames', 'masks'])
+    for img_id, img_dict in data_dict.items():
+        filename = "{}_{}".format(run_id, img_id)
+        
+        # Write original image
+        img_filename = os.path.join(frames_dir, filename) + ".jpg" 
+        cv2.imwrite(img_filename, img_dict['frame']) #Save images
+        
+        # Write vizualization output
+        if(save_viz):
+            img_filename = os.path.join(viz_out_dir, filename) + ".jpg" 
+            cv2.imwrite(img_filename, img_dict['viz_out']) #Save images
 
-    frames_dir, masks_dir = create_dirs(directory, sub_dir)
-    for img, mask, name in zip(data["frames"], data["masks"], data['ids']):
-        filename = "{}_{}".format(run_id, name)
-        img_filename = os.path.join(frames_dir,filename) + ".jpg" 
-        cv2.imwrite(img_filename, img) #Save images
         mask_filename = os.path.join(masks_dir, filename) + ".npy"
         with open(mask_filename, 'wb') as f: #Save masks
-            np.save(f, mask)
+            np.save(f, img_dict['mask'])
 
+def get_files(path, extension):
+    if(not os.path.isdir(path)):
+        print("path does not exist: %s"%path)
+    files = glob.glob(path + "/*.%s"%extension)
+    if not files:
+        print( "No *.%s files found in %s"%(extension, path))
+    files.sort()
+    return files
 #######################################################
 ############### Masks generation ######################
 #######################################################
@@ -143,7 +175,7 @@ def create_circle_mask(img, xy_coords, r = 10 ):
     mask = smoothen(mask, k=15)
     return mask
 
-def get_static_mask(static_cam, static_lst, point):
+def get_static_mask(static_cam, static_im, point):
     # Img history containes previus frames where gripper action was open
     # Point is the point in which the gripper closed for the 1st time
     # TCP in homogeneus coord.
@@ -152,17 +184,62 @@ def get_static_mask(static_cam, static_lst, point):
     # Project point to camera
     # x,y <- pixel coords
     tcp_x,tcp_y = transform_point(point, static_cam)
+    static_mask = create_circle_mask(static_im, (tcp_x,tcp_y), r=10)
+    return static_mask
 
-    static_masks = []
-    for static_im in static_lst:
-        static_mask = create_circle_mask(static_im, (tcp_x,tcp_y), r=10)
-        
-        # append masks
-        static_masks.append(static_mask)
-    return static_masks
+def grippercam_watershed():
+    sure_fg = create_circle_mask(gripper_img, (w,h - gripper_img.shape[1]//5), r=2)
+    sure_bg = 255 - create_circle_mask(gripper_img, (w,h), r=w)
 
+    unknown = cv2.subtract(sure_bg,sure_fg)
+    ret, markers = cv2.connectedComponents(sure_fg)
+    markers = markers+1
+    markers[unknown==255] = 0
+    markers = markers.astype('int32')
+
+    sure_fg[sure_fg>128] = 1
+    sure_fg = sure_fg.astype('int32')
+
+    mask = cv2.watershed(gripper_img, sure_fg)
+    new_mask = np.zeros_like(mask, dtype = 'uint8')
+    new_mask[mask == -1] = 255
+
+    overlay = overlay_mask(sure_fg, gripper_img, (0,0,255))
+    cv2.imshow("orig", overlay )
+    cv2.imshow("watershed", new_mask)
+    #cv2.imshow("sure_fg", sure_fg)
+    cv2.imshow("sure_bg", sure_bg)
+    cv2.waitKey(0)
+    
 def get_gripper_mask(gripper_img, radius = 20):
-    w, h  = gripper_img.shape[0]//2, gripper_img.shape[1]//2 - gripper_img.shape[1]//5
-    gripper_mask = create_circle_mask(gripper_img, (w,h), r = radius)
+    w, h  = gripper_img.shape[0]//2, gripper_img.shape[1]//2 #- gripper_img.shape[1]//6
+    inverted_circle_mask = 255 - create_circle_mask(gripper_img, (w, h), r = w)
+    inverted_circle_mask[inverted_circle_mask>50] = 255
+    
+    # Canny
+    canny = cv2.Canny(gripper_img,80,80)
+    canny = cv2.subtract(canny, inverted_circle_mask)
+    
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7,7))
+    close_img = cv2.morphologyEx(canny, cv2.MORPH_CLOSE, kernel)
 
-    return gripper_mask
+    # get bounding box coordinates from the one filled external contour
+    mask = np.zeros_like(gripper_img)
+    contours, hierarchy = cv2.findContours(close_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    #mask = cv2.drawContours(mask, contours, 0, 255, -1)
+    if len(contours) == 0:
+        return create_circle_mask(gripper_img, (w,h), r = 25)
+
+    c = max(contours, key = cv2.contourArea)
+    mask =  cv2.fillConvexPoly(mask, c, (255, 255, 255))
+    mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+    mask = cv2.subtract(mask, inverted_circle_mask)
+
+    # cv2.imshow("Gripper original", gripper_img)
+    # cv2.imshow("Canny", canny)
+    # cv2.imshow("close", close_img)
+    # cv2.imshow("Gripper mask", mask)
+    # cv2.waitKey(0)
+    return mask

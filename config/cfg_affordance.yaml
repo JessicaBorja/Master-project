@@ -1,4 +1,7 @@
-data_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_affordance/
+data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata_close_open/
+#/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/
+project_folder: C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model
+#/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: affordance_unet
@@ -9,8 +12,8 @@ dataset:
   root_dir: ${data_dir}
 
 dataloader:
-  num_workers: 2
-  batch_size : 4 #28
+  num_workers: 4
+  batch_size : 8 #28
   pin_memory: True
 
 model_cfg:
@@ -21,10 +24,8 @@ model_cfg:
 
 trainer:
   gpus: 1
-  max_epochs: 20
+  max_epochs: ${n_epochs}
   num_sanity_val_steps: 1
-
-project_folder: C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model
 
 viz:
   data_dir: ${data_dir}/frames

@@ -2,18 +2,21 @@
 vrenv_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv
 vrenv_data_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
 
-#Load agent
+# For collecting dataset with RL agent
+# Load agent
 models_dir: C:/Users/Jessica/Documents/Proyecto_ssd/SAC/hydra_outputs/
 model_name: drawer_best_eval
 folder_name: ${models_dir}/trained_no_img/drawer/
 
-#play data:
-play_data_dir: "/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/"
+# For collecting dataset with playdata
+play_data_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/
+#"/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/"
 
 #Save dataset
-save_dir: "/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/"
+save_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata_close_open/
+#"/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/"
 
-viz: False
+viz: True
 n_episodes: 10
 max_timesteps: 150
 

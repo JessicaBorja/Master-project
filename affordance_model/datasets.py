@@ -6,13 +6,15 @@ from torchvision import transforms, utils
 import cv2
 import os
 import json
+from PIL import Image
 
 class VREnvData(Dataset):
     def __init__(self, root_dir, transforms, split="train"): #split = "train" or "validation"
         self.masks_dir = "%s/masks/"%root_dir
         self.frames_dir = "%s/frames/"%root_dir
         _ids = self.read_json(os.path.join(root_dir, "data.json"))
-        self.data = _ids[split]
+        #self.data = _ids[split]
+        self.data = [x for x in _ids[split] if "gripper" not in x]
         self.transforms = self.get_transforms(transforms[split])
         self.mask_transforms = self.get_transforms(transforms['masks'])
 
@@ -23,6 +25,7 @@ class VREnvData(Dataset):
         filename = self.data[idx]
         frame = cv2.imread( self.frames_dir + filename  + ".jpg", cv2.COLOR_BGR2RGB)
         frame = torch.from_numpy(frame).permute(2,0,1) #C, W, H
+        #frame = Image.open(self.frames_dir + filename  + ".jpg")
         frame = self.transforms(frame)
         
         # Segmentation mask

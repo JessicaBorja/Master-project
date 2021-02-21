@@ -14,8 +14,7 @@ from torchvision.transforms import Resize
 from omegaconf import OmegaConf
 import pickle as pl
 
-def viz_mask_img_pairs():
-    path = "/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/"
+def viz_mask_img_pairs(path):
     masks_dir = "%s/masks/"%path
     frames_dir = "%s/frames/"%path
 
@@ -33,9 +32,8 @@ def viz_mask_img_pairs():
         cv2.imshow("Gripper", img)
         cv2.waitKey(0)
 
-def viz_rendered_data():
+def viz_rendered_data(path):
     #Iterate images
-    path = "/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/"
     files = glob.glob(path + "/*.npz")
     for idx, filename in enumerate(files):
         try:
@@ -48,5 +46,10 @@ def viz_rendered_data():
             print("cannot load file as numpy compressed: %s"%filename)
         
 if __name__ == "__main__":
-    viz_mask_img_pairs()
-    #viz_rendered_data()
+    path = "C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/"
+    #path = "/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/"
+    viz_mask_img_pairs(path)
+
+    path = " C:/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/"
+    #path = "/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/"
+    #viz_rendered_data(path)

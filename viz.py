@@ -12,7 +12,7 @@ from affordance_model.utils.transforms import ScaleImageTensor
 from torchvision import transforms
 from torchvision.transforms import Resize
 from omegaconf import OmegaConf
-
+import tqdm
 def visualize(mask, img):
     mask = torch.argmax(mask, axis = 1).permute(1,2,0)
     #mask = F.softmax(mask, dim = 1).squeeze(0)[1]
@@ -21,16 +21,16 @@ def visualize(mask, img):
     mask = smoothen(mask, k=15) # [0, 255] int
 
     res = overlay_mask(mask, img, (0,0,255) )
-    cv2.imshow("mask", np.expand_dims(mask,-1))    
-    cv2.imshow("paste", res)
-    cv2.waitKey(1)
+    # cv2.imshow("mask", np.expand_dims(mask,-1))    
+    # cv2.imshow("paste", res)
+    # cv2.waitKey(1)
     return res 
 
 @hydra.main(config_path="./config", config_name="viz_affordances")
 def viz(cfg):
     # Create output directory if save_images
     if(not os.path.exists(cfg.output_dir) and cfg.save_images):
-        os.mkdir(cfg.output_dir)
+        os.makedirs(cfg.output_dir)
     # Initialize model
     run_cfg = OmegaConf.load(cfg.folder_name + "/.hydra/config.yaml")
     model_cfg = run_cfg.model_cfg
@@ -47,7 +47,7 @@ def viz(cfg):
     #Iterate images
     files = glob.glob(cfg.data_dir + "/*.jpg")
     files += glob.glob(cfg.data_dir + "/*.png")
-    for idx, filename in enumerate(files):
+    for idx, filename in tqdm.tqdm(enumerate(files)):
         orig_img = cv2.imread(filename, cv2.COLOR_BGR2RGB)
         # Process image as in validation 
         # i.e. resize to multiple of 32, normalize

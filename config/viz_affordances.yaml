@@ -1,16 +1,19 @@
-project_folder: C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model
+project_folder: ../SAC/affordance_model
 
 # Load data
-data_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_affordance/frames/drawer/
+data_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_test/frames # vrenv_affordance/frames/hinge
+#/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_test/
 
 #Load model
-folder_name: ${project_folder}/hydra_outputs/2021-02-09/00-24-17
-model_name: affordance-epoch=18-val_loss=0.32.ckpt
+# folder_name: ${project_folder}/hydra_outputs/2021-02-15__21-29-16
+# model_name: affordance-epoch=14-val_loss=0.3470.ckpt
+folder_name: ${project_folder}/hydra_outputs/2021-02-16__20-56-36
+model_name: affordance-epoch=21-val_loss=0.4304.ckpt
 
 # Output img size, must be mutiple of 32
 save_images: True
 img_size: 128
-output_dir: ${project_folder}/predictions/drawer
+output_dir: ${project_folder}/predictions/close_open_out
 
 defaults:
   - hydra/job_logging: colorlog

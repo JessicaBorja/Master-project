@@ -1,29 +1,28 @@
 import torch
 from torch import nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 
 class Segmentator(pl.LightningModule):
   def __init__(self, cfg):
     super().__init__()
-    #https://github.com/qubvel/segmentation_models.pytorch
+    # https://github.com/qubvel/segmentation_models.pytorch
     self.unet = None
     self.init_model(n_classes = 2)    
     self.optimizer_cfg = cfg.optimizer
-    self.criterion = nn.CrossEntropyLoss()
+    self.criterion = nn.CrossEntropyLoss(weight=torch.tensor([0.2,0.8]))
 
   def init_model(self, n_classes = 2):
     self.unet = smp.Unet(
-      encoder_name ="resnet18",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
+      encoder_name = "resnet18",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
       encoder_weights ="imagenet",     # use `imagenet` pre-trained weights for encoder initialization
       in_channels = 3,                 # model input channels (1 for gray-scale images, 3 for RGB, etc.)
-      classes = n_classes,                     # model output channels (number of classes in your dataset)
+      classes = n_classes,             # model output channels (number of classes in your dataset)
       encoder_depth = 3,               # Should be equal to number of layers in decoder
       decoder_channels = (128, 64, 32),
       activation = 'softmax'
     )
-  
+
     for name, param in self.unet.named_parameters(): #Fix encoder weights. Only train decoder
       if name.startswith('encoder'):
         param.requires_grad = False
@@ -46,7 +45,7 @@ class Segmentator(pl.LightningModule):
                  "train_mIoU": mIoU}
     self.log_dict(info_dict, on_epoch = True, on_step = False)
     return loss
-  
+
   def validation_step(self, val_batch, batch_idx):
     x, masks = val_batch
     x_hat = self.unet(x)

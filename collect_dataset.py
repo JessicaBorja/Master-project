@@ -50,7 +50,7 @@ def collect_dataset(cfg):
         env.close()
         return
     
-    data = { "frames":[], "masks":[], "ids":[]}
+    data = {}
     stats = EpisodeStats(episode_lengths = [], episode_rewards = [], validation_reward=[])
     for episode in range(cfg.n_episodes):
         s = env.reset()
@@ -62,9 +62,8 @@ def collect_dataset(cfg):
             a = a.cpu().detach().numpy()
             ns, r, done, _ = env.step(a)
             img, mask = get_img_mask_rl_agent(env, cfg.viz)
-            data["frames"].append(img)
-            data["masks"].append(mask)
-            data["ids"].append("%s_%d_image%04d"%(env.task,episode,episode_length))
+            im_id = "%s_%d_image%04d"%(env.task,episode,episode_length)
+            data[im_id] = { "frame": img, "mask": mask }
             s = ns
             episode_reward+=r
             episode_length+=1
@@ -72,7 +71,8 @@ def collect_dataset(cfg):
         stats.episode_lengths.append(episode_length)
     
     save_dir = cfg.save_dir
-    save_data(data, save_dir, sub_dir = env.task)
+    save_data
+    (data, save_dir, sub_dir = env.task, save_viz = False)
     create_data_split(save_dir)
     env.close()
 

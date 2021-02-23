@@ -15,8 +15,10 @@ EpisodeStats = namedtuple(
 
 def get_nets(img_obs, obs_space):
     if(img_obs):
-        policy = "CNNPolicy"
-        critic = "CNNCritic"
+        # policy = "CNNPolicy"
+        # critic = "CNNCritic"
+        policy = "legacy_CNNPolicy"
+        critic = "legacy_CNNCritic"
     else:
         obs_space = obs_space.shape[0]
         policy = "ActorNetwork"
@@ -29,14 +31,17 @@ def get_nets(img_obs, obs_space):
         critic)
     return policy_net, critic_net, obs_space
 
+
 def tt(x):
-  if isinstance(x,dict):
-    dict_of_list = {}
-    for key, val in x.items():
-      dict_of_list[key] = Variable(torch.from_numpy(val).float().cuda(), requires_grad=False)
-    return dict_of_list
-  else:
-    return Variable(torch.from_numpy(x).float().cuda(), requires_grad=False)
+    if isinstance(x, dict):
+        dict_of_list = {}
+        for key, val in x.items():
+            dict_of_list[key] = Variable(torch.from_numpy(val).float().cuda(),
+                                         requires_grad=False)
+        return dict_of_list
+    else:
+        return Variable(torch.from_numpy(x).float().cuda(), 
+                        requires_grad=False)
 
 def soft_update(target, source, tau):
   for target_param, param in zip(target.parameters(), source.parameters()):

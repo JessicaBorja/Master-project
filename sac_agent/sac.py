@@ -55,19 +55,21 @@ class SAC():
         self._pi = policy_net(obs_space, action_dim, action_max=action_max, **net_cfg).cuda()
         self._q1 = critic_net(obs_space, action_dim, **net_cfg).cuda()
         self._q1_target = critic_net(obs_space, action_dim, **net_cfg).cuda()
-        self._q2 = critic_net(obs_space, action_dim,**net_cfg).cuda()
+        self._q2 = critic_net(obs_space, action_dim, **net_cfg).cuda()
         self._q2_target = critic_net(obs_space, action_dim, **net_cfg).cuda()
-        
+
         self._pi_optim = optim.Adam(self._pi.parameters(), lr=actor_lr)
 
         self._q1_target.load_state_dict(self._q1.state_dict())
-        self._q1_optimizer = optim.Adam(self._q1.parameters(), lr = critic_lr)
-        
+        self._q1_optimizer = optim.Adam(self._q1.parameters(), lr=critic_lr)
+
         self._q2_target.load_state_dict(self._q2.state_dict())
-        self._q2_optimizer = optim.Adam(self._q2.parameters(), lr = critic_lr)
-        
-        _q_params =  itertools.chain(self._q1.parameters(), self._q2.parameters())
-        self._q_optim = optim.Adam(_q_params, lr = critic_lr)
+        self._q2_optimizer = optim.Adam(self._q2.parameters(), lr=critic_lr)
+
+        _q_params = itertools.chain(
+                        self._q1.parameters(),
+                        self._q2.parameters())
+        self._q_optim = optim.Adam(_q_params, lr=critic_lr)
         self._loss_function = nn.MSELoss()
         #Summary Writer
         if not os.path.exists("./results"):

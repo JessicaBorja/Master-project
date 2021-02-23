@@ -1,38 +1,36 @@
 from datetime import datetime
-import os, sys
-import json, pickle
+import os
+import sys
+import pickle
 import numpy as np
 import torch
-import torchvision as tv
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
-from torch.distributions import Normal
 import itertools
-
 from sac_agent.sac_utils.replay_buffer import ReplayBuffer
-from sac_agent.sac_utils.utils import EpisodeStats, tt, soft_update
-from sac_agent.networks.actor_network import ActorNetwork, CNNPolicy
-from sac_agent.networks.critic_networks import CriticNetwork, CNNCritic
+from sac_agent.sac_utils.utils import EpisodeStats, tt, soft_update, get_nets
 import logging
 # A logger for this file
 log = logging.getLogger(__name__)
 
+
 class SAC():
-    def __init__(self, env = None, eval_env= None, save_dir = "./trained_models", gamma = 0.99, alpha = "auto" , \
-                 actor_lr = 3e-4, critic_lr = 3e-4, alpha_lr = 3e-4,
-                 tau = 0.005, learning_starts = 1000, img_obs = False,\
-                 batch_size = 256, buffer_size = 1e6, model_name = "sac", net_cfg = None):
+    def __init__(self, env=None, eval_env=None, save_dir="./trained_models",
+                 gamma=0.99, alpha="auto",
+                 actor_lr=3e-4, critic_lr=3e-4, alpha_lr=3e-4,
+                 tau=0.005, learning_starts=1000, img_obs=False,
+                 batch_size=256, buffer_size=1e6,
+                 model_name="sac", net_cfg=None):
         self.save_dir = save_dir
         self.env = env
         self.eval_env = eval_env
-        #Replay buffer
+        # Replay buffer
         self._max_size = buffer_size
-        self._replay_buffer = ReplayBuffer(buffer_size,img_obs)
+        self._replay_buffer = ReplayBuffer(buffer_size, img_obs)
         self.batch_size = batch_size
 
-        #Agent
+        # Agent
         self._gamma = gamma
         self.tau = tau
 
@@ -45,28 +43,22 @@ class SAC():
             self.log_ent_coef = torch.zeros(1, requires_grad=True, device="cuda") #init value
             self.ent_coef_optimizer = optim.Adam([self.log_ent_coef], lr = alpha_lr)
         else:
-            self.ent_coef = alpha #entropy coeficient
+            self.ent_coef = alpha # entropy coeficient
 
         self.learning_starts = learning_starts
 
         obs_space = env.observation_space
         action_dim = env.action_space.shape[0]
         action_max = env.action_space.high[0]
-        if(img_obs):
-            self._pi = CNNPolicy(obs_space, action_dim, action_max=action_max, **net_cfg).cuda()
-            self._q1 = CNNCritic(obs_space, action_dim, **net_cfg).cuda()
-            self._q1_target = CNNCritic(obs_space, action_dim, **net_cfg ).cuda()
-            self._q2 = CNNCritic(obs_space, action_dim,**net_cfg).cuda()
-            self._q2_target = CNNCritic(obs_space, action_dim, **net_cfg).cuda()
-        else:#Original/baseline implementation takes proprio and the door states
-            obs_space = obs_space.shape[0]
-            self._pi = ActorNetwork(obs_space, action_dim, action_max = action_max, hidden_dim = net_cfg.hidden_dim).cuda()     
-            self._q1 = CriticNetwork(obs_space, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
-            self._q1_target = CriticNetwork(obs_space, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
-            self._q2 = CriticNetwork(obs_space, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
-            self._q2_target = CriticNetwork(obs_space, action_dim, hidden_dim = net_cfg.hidden_dim).cuda()
+
+        policy_net, critic_net, obs_space = get_nets(img_obs, obs_space)
+        self._pi = policy_net(obs_space, action_dim, action_max=action_max, **net_cfg).cuda()
+        self._q1 = critic_net(obs_space, action_dim, **net_cfg).cuda()
+        self._q1_target = critic_net(obs_space, action_dim, **net_cfg).cuda()
+        self._q2 = critic_net(obs_space, action_dim,**net_cfg).cuda()
+        self._q2_target = critic_net(obs_space, action_dim, **net_cfg).cuda()
         
-        self._pi_optim = optim.Adam(self._pi.parameters(), lr = actor_lr)
+        self._pi_optim = optim.Adam(self._pi.parameters(), lr=actor_lr)
 
         self._q1_target.load_state_dict(self._q1.state_dict())
         self._q1_optimizer = optim.Adam(self._q1.parameters(), lr = critic_lr)

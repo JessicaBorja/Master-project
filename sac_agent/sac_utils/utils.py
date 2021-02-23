@@ -4,9 +4,30 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
 from collections import namedtuple
-import os, pickle
+import os
+import pickle
+import importlib
 
-EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards", "validation_reward"])
+EpisodeStats = namedtuple(
+                "Stats",
+                ["episode_lengths", "episode_rewards", "validation_reward"])
+
+
+def get_nets(img_obs, obs_space):
+    if(img_obs):
+        policy = "CNNPolicy"
+        critic = "CNNCritic"
+    else:
+        obs_space = obs_space.shape[0]
+        policy = "ActorNetwork"
+        critic = "CriticNetwork"
+    policy_net = getattr(
+        importlib.import_module("sac_agent.networks.actor_network"),
+        policy)
+    critic_net = getattr(
+        importlib.import_module("sac_agent.networks.critic_network"),
+        critic)
+    return policy_net, critic_net, obs_space
 
 def tt(x):
   if isinstance(x,dict):

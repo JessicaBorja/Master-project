@@ -70,18 +70,33 @@ def check_consistency(cfg, run_cfg):
     return net_cfg, img_obs, env_wrapper
 
 
+def load_cfg(cfg_path, cfg):
+    if(not os.path.exists(cfg_path)):
+        run_cfg = OmegaConf.load(cfg_path)
+        net_cfg = run_cfg.agent.net_cfg
+        img_obs = run_cfg.img_obs
+        env_wrapper = run_cfg.env_wrapper
+        agent_cfg = run_cfg.agent.hyperparameters
+    else:
+        run_cfg = cfg
+        net_cfg = cfg.agent.net_cfg
+        img_obs = cfg.img_obs
+        env_wrapper = cfg.env_wrapper
+        agent_cfg = cfg.agent.hyperparameters
+
+    return run_cfg, net_cfg, img_obs, env_wrapper, agent_cfg
+
+
 @hydra.main(config_path="../config", config_name="cfg_sac")
 def hydra_evaluateVRenv(cfg):
     # Get hydra config from tested model and load it
     # important parameters are hidden_dim (defines the network)
     # img_obs and img_wrapper
     test_cfg = cfg.test_sac
-    run_cfg = OmegaConf.load(test_cfg.folder_name + ".hydra/config.yaml")
-    # net_cfg, img_obs, env_wrapper = check_consistency(cfg, run_cfg)
-    net_cfg = run_cfg.agent.net_cfg
-    img_obs = run_cfg.img_obs
-    env_wrapper = run_cfg.env_wrapper
-    agent_cfg = run_cfg.agent.hyperparameters
+
+    # Load saved config
+    run_cfg, net_cfg, img_obs, env_wrapper, agent_cfg =\
+        load_cfg(test_cfg.folder_name + ".hydra/config.yaml", cfg)
 
     # Create evaluation environment and wrapper for the image in case there's
     # an image observation

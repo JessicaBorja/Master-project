@@ -1,11 +1,11 @@
-data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata_close_open/
+data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata_close_open_v2/
 #/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/
 project_folder: C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model
 #/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: affordance_unet
-n_epochs: 100
+n_epochs: 40
 img_size: 128 #32x4, will be subsampled 3 times
 
 dataset:

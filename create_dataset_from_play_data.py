@@ -1,53 +1,63 @@
 import hydra
-import os,sys, glob
-
-from numpy.lib.ufunclike import fix
-from utils.env_processing_wrapper import EnvWrapper
-from utils.data_collection import *
+from utils.data_collection import get_static_mask, \
+     get_gripper_mask, overlay_mask, get_files, save_data, create_data_split
 import cv2
 import numpy as np
 import tqdm
+import os
+import sys
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, parent_dir+"/VREnv/")
 
+
 # Keep points in a distance larger than radius from new_point
 # Do not keep fixed points more than 100 frames
-def update_fixed_points(fixed_points, new_point, current_frame_idx, radius = 0.1): 
+def update_fixed_points(fixed_points, new_point,
+                        current_frame_idx, radius=0.2):
     x = []
     for frame_idx, p in fixed_points:
-        if np.linalg.norm( new_point - p ) > radius\
-            and current_frame_idx - frame_idx < 1500:
-            x.append( (frame_idx, p) )
-    # x = [ p for (frame_idx, p) in fixed_points if ( np.linalg.norm( new_point - p ) > radius)] # and current_frame_idx - frame_idx < 100 )
+        if np.linalg.norm(new_point - p) > radius:
+            # and current_frame_idx - frame_idx < 1500:
+            x.append((frame_idx, p))
+    # x = [ p for (frame_idx, p) in fixed_points if
+    # ( np.linalg.norm(new_point - p) > radius)]
+    # # and current_frame_idx - frame_idx < 100 )
     return x
+
 
 def update_mask(fixed_points, mask, frame_img_tuple, cam):
     # Update masks with fixed_points
     (frame_timestep, img) = frame_img_tuple
     for point_timestep, p in fixed_points:
-        if( frame_timestep >= point_timestep): # Only add point if it was fixed before seing img
-            new_mask = get_static_mask(cam, img , p)
+        # Only add point if it was fixed before seing img
+        if(frame_timestep >= point_timestep):
+            new_mask = get_static_mask(cam, img, p)
             mask = overlay_mask(new_mask, mask, (255, 255, 255))
     return mask
 
-def check_file(filename):
+
+def check_file(filename, allow_pickle=True):
     try:
-        data = np.load(filename, allow_pickle=True)
-        if( len(data['rgb_static'].shape)!=3 or len(data['rgb_gripper'].shape)!=3):
-                raise Exception("Corrupt data")
+        data = np.load(filename, allow_pickle=allow_pickle)
+        if(len(data['rgb_static'].shape) != 3 or
+                len(data['rgb_gripper'].shape) != 3):
+            raise Exception("Corrupt data")
     except Exception as e:
-        #print(e)
+        # print(e)
         data = None
     return data
+
 
 def collect_dataset_close(cfg):
     save_static, save_gripper = {}, {}
     # Instantiate camera to get projection and view matrices
-    static_cam = hydra.utils.instantiate(cfg.env.cameras[0], cid=0, robot_id=None, objects=None)
+    static_cam = hydra.utils.instantiate(
+        cfg.env.cameras[0],
+        cid=0, robot_id=None, objects=None)
 
     # Iterate rendered_data
-    files = get_files( cfg.play_data_dir, "npz")
+    files = get_files(cfg.play_data_dir, "npz")
     static_hist = []
     past_action = 1
     # Will segment 40 frames
@@ -55,70 +65,93 @@ def collect_dataset_close(cfg):
     back_frames_min = 10
     for idx, filename in tqdm.tqdm(enumerate(files)):
         data = check_file(filename)
-        if(data is None): 
-            # Skip file
-            continue
+        if(data is None):
+            continue  # Skip file
 
         # Keep at most 10 elements in list
-        _, tail = os.path.split(filename) 
-        img_id = "static_%s"%(tail[:-4])
-        static_hist.append( (img_id, data['rgb_static'][:, :, ::-1]) )
-        
+        _, tail = os.path.split(filename)
+        img_id = "static_%s" % (tail[:-4])
+        static_hist.append((img_id, data['rgb_static'][:, :, ::-1]))
+
         # Start of interaction
-        if( data['actions'][-1] == 0 ):
+        if(data['actions'][-1] == 0):
             # Get mask for gripper image
-            gripper = data['rgb_gripper'][:, :, ::-1] # Get last image
-            gripper_mask = get_gripper_mask( gripper, radius = 25)
+            gripper = data['rgb_gripper'][:, :, ::-1]  # Get last image
+            point = data['robot_obs'][:3]
+            gripper_mask = get_gripper_mask(gripper, point, radius=25)
             if(cfg.viz):
-                gripper_out = overlay_mask(gripper_mask, gripper, (0,0,255))
+                gripper_out = overlay_mask(gripper_mask, gripper, (0, 0, 255))
                 cv2.imshow("Gripper", gripper_out)
                 cv2.waitKey(1)
-            _, tail = os.path.split(filename) 
-            img_id = "gripper_%s"%(tail[:-4])
-            save_gripper[img_id] = { "frame": gripper, "mask": gripper_mask, "viz_out": gripper_out } 
+            _, tail = os.path.split(filename)
+            img_id = "gripper_%s" % (tail[:-4])
+            save_gripper[img_id] = {
+                "frame": gripper,
+                "mask": gripper_mask,
+                "viz_out": gripper_out}
 
             # Get mask for static cam images
             if(past_action == 1):
                 # Save static cam masks
                 point = data['robot_obs'][:3]
-                for idx, (static_id, static_im) in enumerate( static_hist ):
-                    if(idx <= len(static_hist) - back_frames_min and idx >  len(static_hist) - back_frames_max):
-                        static_mask = get_static_mask(static_cam, static_im, point)
-                        static_out = overlay_mask(static_mask, static_im, (0,0,255))
-                    else: 
+                for idx, (static_id, static_im) in enumerate(static_hist):
+                    if(idx <= len(static_hist) - back_frames_min and
+                            idx > len(static_hist) - back_frames_max):
+                        static_mask = get_static_mask(
+                            static_cam,
+                            static_im,
+                            point)
+                        static_out = overlay_mask(
+                            static_mask,
+                            static_im,
+                            (0, 0, 255))
+                    else:
                         # No segmentation in current image due to oclusion
-                        static_mask = np.zeros( static_im.shape[:2] )
+                        static_mask = np.zeros(static_im.shape[:2])
                         static_out = static_im
 
                     if(cfg.viz):
                         cv2.imshow("Static", static_out)
                         cv2.waitKey(1)
                     # get filename only w/o extension
-                    save_static[static_id] = {"frame": static_im, "mask": static_mask, "viz_out": static_out}
+                    save_static[static_id] = {
+                        "frame": static_im,
+                        "mask": static_mask,
+                        "viz_out": static_out}
                 static_hist = []
-        
+
         # Save data every 150 image-mask pair to avoid filling up RAM memory
-        if ( len(save_gripper.keys()) + len(save_static.keys()) >= 100 ):
-            save_data(save_static, cfg.save_dir, sub_dir = "static_cam")
-            save_data(save_gripper, cfg.save_dir, sub_dir = "gripper_cam")
+        if (len(save_gripper.keys()) + len(save_static.keys()) >= 100):
+            save_data(save_static, cfg.save_dir, sub_dir="static_cam")
+            save_data(save_gripper, cfg.save_dir, sub_dir="gripper_cam")
             save_static, save_gripper = {}, {}
 
         # Update past action
-        past_action = data['actions'][-1]     
+        past_action = data['actions'][-1]
 
-    save_data(save_static, cfg.save_dir, sub_dir = "static_cam")
-    save_data(save_gripper, cfg.save_dir, sub_dir = "gripper_cam")
+    save_data(save_static, cfg.save_dir, sub_dir="static_cam")
+    save_data(save_gripper, cfg.save_dir, sub_dir="gripper_cam")
     create_data_split(cfg.save_dir)
+
 
 def collect_dataset_close_open(cfg):
     save_static, save_gripper = {}, {}
 
     # Instantiate camera to get projection and view matrices
-    static_cam = hydra.utils.instantiate(cfg.env.cameras[0], cid=0, robot_id=None, objects=None)
+    static_cam = hydra.utils.instantiate(
+        cfg.env.cameras[0],
+        cid=0, robot_id=None, objects=None)
+
+    # Episodes info
+    # ep_lens = np.load(os.path.join(cfg.play_data_dir, "ep_lens.npy"))
+    ep_start_end_ids = np.load(os.path.join(
+        cfg.play_data_dir,
+        "ep_start_end_ids.npy"))
+    end_ids = ep_start_end_ids[:, -1]
 
     # Iterate rendered_data
-    files = get_files( cfg.play_data_dir, "npz")
-    static_hist , fixed_points = [], []
+    files = get_files(cfg.play_data_dir, "npz")  # Sorted files
+    static_hist, fixed_points = [], []
     past_action = 1
     frame_idx = 0
     # Will segment 40 frames
@@ -126,80 +159,112 @@ def collect_dataset_close_open(cfg):
     back_frames_min = 10
     for idx, filename in tqdm.tqdm(enumerate(files)):
         data = check_file(filename)
-        if(data is None): 
-            # Skip file
-            continue
-        
+        if(data is None):
+            continue  # Skip file
+
+        _, tail = os.path.split(filename)
+
         # Initialize img, mask, id
-        _, tail = os.path.split(filename) 
-        img_id = "static_%s"%(tail[:-4])
+        img_id = "static_%s" % (tail[:-4])
         img = data['rgb_static'][:, :, ::-1]
-        static_hist.append( (frame_idx, img_id, img) )
+        static_hist.append((frame_idx, img_id, img))
         frame_idx += 1
 
         # Start of interaction
-        if( data['actions'][-1] == 0 ): # closed gripper
+        if(data['actions'][-1] == 0):  # closed gripper
             # Start of interaction
             # Get mask for current image
-            gripper = data['rgb_gripper'][:, :, ::-1] # Get last image
-            gripper_mask = get_gripper_mask( gripper, radius = 25)
-            gripper_out = overlay_mask(gripper_mask, gripper, (0,0,255))
+            gripper = data['rgb_gripper'][:, :, ::-1]  # Get last image
+            point = data['robot_obs'][:3]
+            gripper_mask = get_gripper_mask(gripper, point, radius=25)
+            gripper_out = overlay_mask(gripper_mask, gripper, (0, 0, 255))
             if(cfg.viz):
                 cv2.imshow("Gripper", gripper_out)
                 cv2.waitKey(1)
-            _, tail = os.path.split(filename) 
-            img_id =  "gripper_%s"%(tail[:-4]) 
-            save_gripper[img_id] = { "frame": gripper, "mask": gripper_mask, "viz_out": gripper_out } 
+            _, tail = os.path.split(filename)
+            img_id = "gripper_%s" % (tail[:-4])
+            save_gripper[img_id] = {
+                "frame": gripper,
+                "mask": gripper_mask,
+                "viz_out": gripper_out}
 
             # Get mask for static images
-            #past_action == 1 and current == 0
+            # open -> closed
             if(past_action == 1):
-                # If region was already labeled, delete previous point
-                point = data['robot_obs'][:3]
-                fixed_points = update_fixed_points(fixed_points, point, frame_idx)
-                
                 # Save static cam masks
-                for idx, (fr_idx, im_id, img) in enumerate( static_hist ):
-                    if(idx <= len(static_hist) - back_frames_min and idx >  len(static_hist) - back_frames_max):
-                        mask = get_static_mask(static_cam, img, point) # Get new grip
-                    else: 
+                for idx, (fr_idx, im_id, img) in enumerate(static_hist):
+                    if(idx <= len(static_hist) - back_frames_min and
+                            idx > len(static_hist) - back_frames_max):
+                        # Get new grip
+                        mask = get_static_mask(static_cam, img, point)
+                    else:
                         # No segmentation in current image due to occlusion
-                        mask = np.zeros( img.shape[:2] )
-                    #static_mask = update_mask(fixed_points, static_mask, (fr_idx, img), static_cam) # Add fixed points
-                    fp_mask = update_mask(fixed_points, np.zeros_like(mask), (fr_idx, img), static_cam) 
-                    out_separate = overlay_mask(fp_mask, img, (255,0,0))
-                    out_separate = overlay_mask(mask, out_separate, (0,0,255))
-                    
+                        mask = np.zeros(img.shape[:2])
+                    # static_mask = update_mask(fixed_points, static_mask,
+                    # (fr_idx, img), static_cam)
+                    fp_mask = update_mask(
+                        fixed_points,
+                        np.zeros_like(mask),
+                        (fr_idx, img),
+                        static_cam)
+                    out_separate = overlay_mask(
+                        fp_mask,
+                        img,
+                        (255, 0, 0))
+                    out_separate = overlay_mask(
+                        mask,
+                        out_separate,
+                        (0, 0, 255))
+
                     # Real mask
                     mask = overlay_mask(fp_mask, mask, (255, 255, 255))
-                    out_img = overlay_mask(mask, img, (0,0,255))
-                    
+                    out_img = overlay_mask(mask, img, (0, 0, 255))
+
                     if(cfg.viz):
                         cv2.imshow("Separate", out_separate)
                         cv2.imshow("Real", out_img)
                         cv2.waitKey(1)
-                    save_static[im_id] = {"frame": img, "mask": mask, "viz_out": out_separate}
+                    save_static[im_id] = {
+                        "frame": img,
+                        "mask": mask,
+                        "viz_out": out_separate}
+
+                # If region was already labeled, delete previous point
+                point = data['robot_obs'][:3]
+                fixed_points = update_fixed_points(
+                        fixed_points,
+                        point,
+                        frame_idx)
+
                 static_hist = []
-        elif( past_action == 0):
+        elif(past_action == 0):
             # Closed -> open transition
             curr_point = data['robot_obs'][:3]
-            fixed_points.append( (frame_idx, curr_point) )
+            fixed_points.append((frame_idx, curr_point))
 
-        if ( len(save_gripper.keys()) + len(save_static.keys()) > 150):
-            save_data(save_static, cfg.save_dir, sub_dir = "static_cam")
-            save_data(save_gripper, cfg.save_dir, sub_dir = "gripper_cam")
+        # Check for new episode
+        ep_id = int(tail[:-4].split('_')[-1])
+        if(ep_id >= end_ids[0] + 1 and len(end_ids) > 1):  # Reset fixed_points
+            fixed_points = []
+            end_ids = end_ids[1:]
+
+        if (len(save_gripper.keys()) + len(save_static.keys()) > 150):
+            save_data(save_static, cfg.save_dir, sub_dir="static_cam")
+            save_data(save_gripper, cfg.save_dir, sub_dir="gripper_cam")
             save_static, save_gripper = {}, {}
-        past_action = data['actions'][-1]     
+        past_action = data['actions'][-1]
 
-    save_data(save_static, cfg.save_dir, sub_dir = "static_cam")
-    save_data(save_gripper, cfg.save_dir, sub_dir = "gripper_cam")
+    save_data(save_static, cfg.save_dir, sub_dir="static_cam")
+    save_data(save_gripper, cfg.save_dir, sub_dir="gripper_cam")
     create_data_split(cfg.save_dir)
+
 
 @hydra.main(config_path="./config", config_name="cfg_datacollection")
 def main(cfg):
-    #create_data_split(cfg.save_dir)
-    #collect_dataset_close(cfg)
+    # create_data_split(cfg.save_dir)
+    # collect_dataset_close(cfg)
     collect_dataset_close_open(cfg)
+
 
 if __name__ == "__main__":
     main()

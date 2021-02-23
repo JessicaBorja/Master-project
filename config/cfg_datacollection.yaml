@@ -10,11 +10,11 @@ folder_name: ${models_dir}/trained_no_img/drawer/
 
 # For collecting dataset with playdata
 play_data_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/
-#"/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/"
+# /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/
 
 #Save dataset
-save_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata_close_open/
-#"/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/"
+save_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata_close_open_v2/
+# /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata_v3/
 
 viz: True
 n_episodes: 10

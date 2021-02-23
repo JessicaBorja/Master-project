@@ -13,8 +13,8 @@ defaults:
   - env@eval_env: env
   - scene@env.scene: basic_playtable
   - scene@eval_env.scene: basic_playtable
-  - camera_conf@env: sideview_left
-  - camera_conf@eval_env: sideview_left
+  - camera_conf@env: topview
+  - camera_conf@eval_env: topview
   - optim@optim: config_optim
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog

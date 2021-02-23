@@ -222,14 +222,14 @@ class SAC():
             self.evaluate(self.eval_env, max_episode_length, print_all_episodes = True)
         return stats
         
-    def evaluate(self, env, max_episode_length = 150, n_episodes = 5,\
-                 print_all_episodes = False, render = False):
-        stats = EpisodeStats(episode_lengths = [], episode_rewards = [], validation_reward=[])
+    def evaluate(self, env, max_episode_length=150, n_episodes=5,\
+                 print_all_episodes=False, render=False, save_images=False):
+        stats = EpisodeStats(episode_lengths=[], episode_rewards=[], validation_reward=[])
+        im_lst = []
         for episode in range(n_episodes):
             s = env.reset()
             episode_length, episode_reward = 0,0
             done = False
-            im_lst = []
             while( episode_length < max_episode_length and not done):
                 a, _ = self._pi.act(tt(s), deterministic = True)#sample action and scale it to action space
                 a = a.cpu().detach().numpy()
@@ -244,7 +244,14 @@ class SAC():
             stats.episode_lengths.append(episode_length)
             if(print_all_episodes):
                 print("Episode %d, Return: %.3f"%(episode, episode_reward))
-        #mean and print
+        
+        # Save images
+        if(save_images):
+            import cv2
+            os.makedirs("./frames/")
+            for idx, im in enumerate(im_lst):
+                cv2.imwrite("./frames/image_%04d.jpg"%idx, im)
+        # mean and print
         mean_reward = np.mean(stats.episode_rewards)
         reward_std = np.std(stats.episode_rewards)
         mean_length =  np.mean(stats.episode_lengths)

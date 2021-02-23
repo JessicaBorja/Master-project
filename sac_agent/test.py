@@ -71,7 +71,7 @@ def check_consistency(cfg, run_cfg):
 
 
 def load_cfg(cfg_path, cfg):
-    if(not os.path.exists(cfg_path)):
+    if(os.path.exists(cfg_path)):
         run_cfg = OmegaConf.load(cfg_path)
         net_cfg = run_cfg.agent.net_cfg
         img_obs = run_cfg.img_obs

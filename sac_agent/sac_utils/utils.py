@@ -15,10 +15,10 @@ EpisodeStats = namedtuple(
 
 def get_nets(img_obs, obs_space):
     if(img_obs):
-        # policy = "CNNPolicy"
-        # critic = "CNNCritic"
-        policy = "legacy_CNNPolicy"
-        critic = "legacy_CNNCritic"
+        policy = "CNNPolicy"
+        critic = "CNNCritic"
+        # policy = "legacy_CNNPolicy"
+        # critic = "legacy_CNNCritic"
     else:
         obs_space = obs_space.shape[0]
         policy = "ActorNetwork"
@@ -40,23 +40,29 @@ def tt(x):
                                          requires_grad=False)
         return dict_of_list
     else:
-        return Variable(torch.from_numpy(x).float().cuda(), 
+        return Variable(torch.from_numpy(x).float().cuda(),
                         requires_grad=False)
 
+
 def soft_update(target, source, tau):
-  for target_param, param in zip(target.parameters(), source.parameters()):
-    target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
+    for target_param, param in zip(target.parameters(), source.parameters()):
+        target_param.data.copy_(
+            target_param.data * (1.0 - tau)
+            + param.data * tau)
+
 
 def hard_update(target, source):
-  soft_update(target, source, 1.0)
+    soft_update(target, source, 1.0)
+
 
 def get_activation_fn(non_linearity):
-  if(non_linearity == "elu"):
-    return F.elu
-  elif (non_linearity == "leaky_relu"):
-    return F.leaky_relu
-  else:#relu
-    return F.relu
+    if(non_linearity == "elu"):
+        return F.elu
+    elif (non_linearity == "leaky_relu"):
+        return F.leaky_relu
+    else:  # relu
+        return F.relu
+
 
 def fan_in_uniform_init(tensor, fan_in=None):
     if fan_in is None:
@@ -65,13 +71,13 @@ def fan_in_uniform_init(tensor, fan_in=None):
     w = 1. / np.sqrt(fan_in)
     nn.init.uniform_(tensor, -w, w)
 
-def read_results(file_name, folder_name = "."):
-    with open(os.path.join("%s/optimization_results/"%folder_name, file_name), 'rb') as fh:
+
+def read_results(file_name, folder_name="."):
+    with open(
+            os.path.join("%s/optimization_results/" % folder_name, file_name),
+            'rb') as fh:
         res = pickle.load(fh)
 
     id2config = res.get_id2config_mapping()
     incumbent = res.get_incumbent_id()
     print(id2config[incumbent])
-
-if __name__ == "__main__":
-    read_results(file_name = "optim_hinge_rn1_rs1.pkl", folder_name ="../outputs/hinge/2020-12-04/12-44-23/")

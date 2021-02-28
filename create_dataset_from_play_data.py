@@ -66,16 +66,6 @@ def create_gripper_cam_properties(cam_cfg):
     return cam_cfg
 
 
-def gripper_mask(data, gripper_cam_properties):
-    gripper = data['rgb_gripper'][:, :, ::-1]  # Get last image
-    robot_obs = data['robot_obs'][:6]  # 3 pos, 3 euler angle
-    point = robot_obs[:3]
-    gripper_mask = get_gripper_mask(
-                    gripper, robot_obs,
-                    gripper_cam_properties, radius=25)
-    return gripper_mask
-
-
 def label_gripper(cam_properties, img_hist, point, viz, save_dict):
     for idx, (fr_idx, im_id, robot_obs, img) in enumerate(img_hist):
         # For static mask assume oclusion

@@ -6,7 +6,7 @@ from datetime import datetime
 import json
 from affordance_model.utils.utils import overlay_mask, smoothen
 import tqdm
-
+import pybullet as p
 # File to get segmentation maks, and save data
 
 
@@ -92,7 +92,7 @@ def get_files(path, extension):
     return files
 
 
-# Masks generation ######################
+# Masks generation #
 def get_elipse_angle(cam_name):
     if(cam_name == "sideview_left"):
         return - 40
@@ -204,21 +204,43 @@ def get_static_mask(static_cam, static_im, point):
     return static_mask
 
 
-def get_gripper_mask_proj(img, point, radius=25):
-    # Img history containes previus frames where gripper action was open
-    # Point is the point in which the gripper closed for the 1st time
-    # TCP in homogeneus coord.
-    # point = np.append(point, 1)
+def get_gripper_mask(img, robot_obs, point, cam_properties=None, radius=25):
+    pt, orn = robot_obs[:3], robot_obs[3:]
+    orn = p.getQuaternionFromEuler(orn)
+    cam2tcp_pos = [0.1, 0, -0.1]
+    cam2tcp_orn = [0.430235, 0.4256151, 0.559869, 0.5659467]
+    cam_pos, cam_orn = p.multiplyTransforms(
+                                pt, orn,
+                                cam2tcp_pos, cam2tcp_orn)
 
-    # Project point to camera
-    # x,y <- pixel coords
-    # tcp_x,tcp_y = transform_point(point, gripper_cam)
-    tcp_x, tcp_y = img.shape[0]//2, img.shape[1]//2
+    # tcp_x, tcp_y = img.shape[0]//2, img.shape[1]//2
+    # mask = create_circle_mask(img, (tcp_x, tcp_y), r=radius)
+
+    # Create projection and view matrix
+    cam_rot = p.getMatrixFromQuaternion(cam_orn)
+    cam_rot = np.array(cam_rot).reshape(3, 3)
+    cam_rot_y, cam_rot_z = cam_rot[:, 1], cam_rot[:, 2]
+    # camera: eye position, target position, up vector
+    view_matrix = p.computeViewMatrix(cam_pos, cam_pos + cam_rot_y, -cam_rot_z)
+    projection_matrix = p.computeProjectionMatrixFOV(
+                                **cam_properties["proj_matrix"])
+
+    # Create camera obj since transform_point receives and obj
+    gripper_cam = type('obj', (object,),
+                       {'projectionMatrix': projection_matrix,
+                        'viewMatrix': view_matrix,
+                        "width": cam_properties["width"],
+                        "height": cam_properties["height"]
+                        })()
+
+    # Transform pt to homogeneus cords and project
+    point = np.append(point, 1)
+    tcp_x, tcp_y = transform_point(point, gripper_cam)
     mask = create_circle_mask(img, (tcp_x, tcp_y), r=radius)
     return mask
 
 
-def get_gripper_mask(gripper_img, pt, radius=20):
+def _get_gripper_mask(gripper_img, pt, radius=20):
     w, h = gripper_img.shape[0]//2, gripper_img.shape[1]//2
     inverted_circle_mask = 255 - create_circle_mask(gripper_img, (w, h), r=w)
     inverted_circle_mask[inverted_circle_mask > 50] = 255

@@ -129,7 +129,6 @@ def label_static(static_cam, static_hist, back_min, back_max,
 
 def collect_dataset_close_open(cfg):
     save_static, save_gripper = {}, {}
-
     # Instantiate camera to get projection and view matrices
     static_cam = hydra.utils.instantiate(
         cfg.env.cameras[0],
@@ -177,7 +176,9 @@ def collect_dataset_close_open(cfg):
         point = robot_obs[:3]
 
         # Start of interaction
-        if(data['actions'][-1] == 0):  # closed gripper
+        ep_id = int(tail[:-4].split('_')[-1])
+        end_of_ep = ep_id >= end_ids[0] + 1 and len(end_ids) > 1
+        if(data['actions'][-1] == 0 or end_of_ep):  # closed gripper
             # Get mask for static images
             # open -> closed
             if(past_action == 1):
@@ -191,7 +192,6 @@ def collect_dataset_close_open(cfg):
                                              cfg.viz, save_gripper)
 
                 # If region was already labeled, delete previous point
-                point = data['robot_obs'][:3]
                 fixed_points = update_fixed_points(
                         fixed_points,
                         point,
@@ -212,10 +212,10 @@ def collect_dataset_close_open(cfg):
                 fixed_points.append((frame_idx, curr_point))
 
         # Check for new episode
-        ep_id = int(tail[:-4].split('_')[-1])
-        if(ep_id >= end_ids[0] + 1 and len(end_ids) > 1):  # Reset fixed_points
-            fixed_points = []
+        if(end_of_ep):  # Reset fixed_points
             end_ids = end_ids[1:]
+            fixed_points = []
+            past_action = 1  # Open
 
         if (len(save_gripper.keys()) + len(save_static.keys()) > 150):
             save_data(save_static, cfg.save_dir, sub_dir="static_cam")

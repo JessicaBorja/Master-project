@@ -13,7 +13,7 @@ play_data_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/render
 # /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/
 
 #Save dataset
-save_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata_close_open_v3/
+save_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/
 # /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata_v3/
 
 viz: True

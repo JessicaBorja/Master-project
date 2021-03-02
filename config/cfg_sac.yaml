@@ -5,28 +5,44 @@ model_name: sac_vrenv
 repeat_training: 1
 img_obs: False
 
-#Env 
-defaults:
-  - agent: sac_default
-  - test_sac: test
-  - env: env
-  - env@eval_env: env
-  - scene@env.scene: basic_playtable
-  - scene@eval_env.scene: basic_playtable
-  - camera_conf@env: topview
-  - camera_conf@eval_env: topview
-  - optim@optim: config_optim
-  - hydra/job_logging: colorlog
-  - hydra/hydra_logging: colorlog
+euler_obs: true
+rand_init_state: true
+env:
+  cameras: ${camera_conf.cameras}
+  robot_cfg: ${robot}
+  scene: ${scene}
+  rand_init_state: ${rand_init_state}
+
+eval_env:
+  cameras: ${camera_conf.cameras}
+  robot_cfg: ${robot}
+  scene: ${scene}
+  rand_init_state: ${rand_init_state}
 
 env_wrapper:
   use_img: ${img_obs}
   use_depth: False
   use_pos: False
+  use_gripper_img: False
   history_length: 1
   skip_frames: 0
   img_size: 84
-  
+  transforms: ${transforms}
+
+#Env 
+defaults:
+  - transforms: sac_transforms
+  - robot: panda
+  - scene: basic_playtable
+  - env: env
+  - env@eval_env: env
+  - camera_conf: topview
+  - agent: sac_default
+  - test_sac: test
+  - optim@optim: config_optim
+  - hydra/job_logging: colorlog
+  - hydra/hydra_logging: colorlog
+
 all_cameras:
   sideview_right: #Side view (slide)
     _target_: vr_env.camera.static_camera.StaticCamera

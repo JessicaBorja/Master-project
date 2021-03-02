@@ -3,7 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 from sac_agent.sac_utils.utils import get_activation_fn
-from sac_agent.networks.networks_common import get_pos_shape, get_depth_network, get_concat_features, get_img_network
+from sac_agent.networks.networks_common import \
+     get_pos_shape, get_depth_network, get_img_network, \
+     get_gripper_network, get_concat_features
 
 
 # policy
@@ -64,8 +66,14 @@ class CNNPolicy(nn.Module):
                             obs_space,
                             out_feat=8,
                             activation=activation)
-
-        out_feat = 16 if self.cnn_depth is not None else 8
+        self.cnn_gripper = get_gripper_network(
+                            obs_space,
+                            out_feat=8,
+                            activation=activation)
+        out_feat = 8
+        for net in [self.cnn_depth, self.cnn_gripper]:
+            if(net is not None):
+                out_feat += 8
         out_feat += _position_shape
 
         self.fc1 = nn.Linear(out_feat, hidden_dim)
@@ -73,7 +81,10 @@ class CNNPolicy(nn.Module):
         self.sigma = nn.Linear(hidden_dim, action_dim)
 
     def forward(self, obs):
-        features = get_concat_features(obs, self.cnn_img, self.cnn_depth)
+        features = get_concat_features(obs,
+                                       self.cnn_img,
+                                       self.cnn_depth,
+                                       self.cnn_gripper)
 
         x = F.elu(self.fc1(features))
         mu = self.mu(x)
@@ -103,7 +114,8 @@ class CNNPolicy(nn.Module):
 
 
 class legacy_CNNPolicy(nn.Module):
-    def __init__(self, state_dim, action_dim, action_max, hidden_dim=256, activation=F.relu):
+    def __init__(self, state_dim, action_dim, action_max,
+                 hidden_dim=256, activation=F.relu):
         super(legacy_CNNPolicy, self).__init__()
         self.action_max = action_max
         self.non_linearity = F.relu

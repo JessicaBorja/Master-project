@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from  sac_agent.sac_utils.utils import get_activation_fn
+from sac_agent.sac_utils.utils import get_activation_fn
 import numpy as np
 
 
@@ -26,6 +26,19 @@ def get_depth_network(obs_space, out_feat, activation):
     return None
 
 
+def get_gripper_network(obs_space, out_feat, activation):
+    _obs_space_keys = list(obs_space.spaces.keys())
+    _activation_fn = get_activation_fn(activation)
+    if("gripper_img_obs" in _obs_space_keys):
+        _history_length = obs_space['gripper_img_obs'].shape[0]
+        _img_size = obs_space["gripper_img_obs"].shape[-1]
+        return CNNCommon(
+            _history_length, _img_size,
+            out_feat=out_feat,
+            activation=_activation_fn)
+    return None
+
+
 def get_img_network(obs_space, out_feat, activation):
     _obs_space_keys = list(obs_space.spaces.keys())
     _activation_fn = get_activation_fn(activation)
@@ -39,12 +52,15 @@ def get_img_network(obs_space, out_feat, activation):
     return None
 
 
-def get_concat_features(obs, cnn_img, cnn_depth=None):
+def get_concat_features(obs, cnn_img, cnn_depth=None, cnn_gripper=None):
     img = obs['img_obs']
     features = cnn_img(img)
     if("depth_obs" in obs):
         depth_features = cnn_depth(obs['depth_obs'])
         features = torch.cat((features, depth_features), dim=-1)
+    if("gripper_img_obs" in obs):
+        gripper_features = cnn_gripper(obs['gripper_img_obs'])
+        features = torch.cat((features, gripper_features), dim=-1)
     if("robot_obs" in obs):
         features = torch.cat((features, obs['robot_obs']), dim=-1)
     return features
@@ -58,16 +74,16 @@ class CNNCommon(nn.Module):
         w, h = self.calc_out_size(w, h, 4, 0, 2)
         w, h = self.calc_out_size(w, h, 3, 0, 1)
 
-        self.conv1 = nn.Conv2d(in_channels, 32, 8, stride=4)
-        self.conv2 = nn.Conv2d(32, 64, 4, stride=2)
-        self.conv3 = nn.Conv2d(64, 64, 3, stride=1)
-        self.fc1 = nn.Linear(w*h*64, out_feat)
+        # self.conv1 = nn.Conv2d(in_channels, 32, 8, stride=4)
+        # self.conv2 = nn.Conv2d(32, 64, 4, stride=2)
+        # self.conv3 = nn.Conv2d(64, 64, 3, stride=1)
+        # self.fc1 = nn.Linear(w*h*64, out_feat)
 
-        # self.conv1 = nn.Conv2d(in_channels, 16, 8, stride=4)
-        # self.conv2 = nn.Conv2d(16, 32, 4, stride=2)
-        # self.conv3 = nn.Conv2d(32, 64, 3, stride=1)
-        # self.spatial_softmax = SpatialSoftmax(h, w)
-        # self.fc1 = nn.Linear(2*64, out_feat)  # spatial softmax output
+        self.conv1 = nn.Conv2d(in_channels, 16, 8, stride=4)
+        self.conv2 = nn.Conv2d(16, 32, 4, stride=2)
+        self.conv3 = nn.Conv2d(32, 64, 3, stride=1)
+        self.spatial_softmax = SpatialSoftmax(h, w)
+        self.fc1 = nn.Linear(2*64, out_feat)  # spatial softmax output
 
         self._activation = activation
 
@@ -118,7 +134,8 @@ class SpatialSoftmax(nn.Module):
                                  np.float32)).cuda()  # W*H
 
     def forward(self, x):
-        x = x.view(x.shape[0], x.shape[1], x.shape[2]*x.shape[3])  # batch, C, W*H
+        # batch, C, W*H
+        x = x.view(x.shape[0], x.shape[1], x.shape[2]*x.shape[3])
         x = F.softmax(x, dim=2)  # batch, C, W*H
         fp_x = torch.matmul(x, self.x_map)  # batch, C
         fp_y = torch.matmul(x, self.y_map)  # batch, C

@@ -10,12 +10,12 @@ import json
 
 class VREnvData(Dataset):
     # split = "train" or "validation"
-    def __init__(self, root_dir, transforms, split="train"):
+    def __init__(self, root_dir, transforms, split="train", cam="static"):
         self.masks_dir = "%s/masks/" % root_dir
         self.frames_dir = "%s/frames/" % root_dir
         _ids = self.read_json(os.path.join(root_dir, "data.json"))
         # self.data = _ids[split]
-        self.data = [x for x in _ids[split] if "gripper" not in x]
+        self.data = [x for x in _ids[split] if cam in x]
         self.transforms = self.get_transforms(transforms[split])
         self.mask_transforms = self.get_transforms(transforms['masks'])
 

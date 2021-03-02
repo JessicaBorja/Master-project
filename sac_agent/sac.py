@@ -34,16 +34,20 @@ class SAC():
         self._gamma = gamma
         self.tau = tau
 
-        #networks
+        # networks
         self._auto_entropy = False
-        if isinstance(alpha, str): #auto
+        if isinstance(alpha, str):  # auto
             self._auto_entropy = True
-            self.ent_coef = 1 #entropy coeficient
-            self.target_entropy = -np.prod(env.action_space.shape).item()  # heuristic value
-            self.log_ent_coef = torch.zeros(1, requires_grad=True, device="cuda") #init value
-            self.ent_coef_optimizer = optim.Adam([self.log_ent_coef], lr = alpha_lr)
+            self.ent_coef = 1  # entropy coeficient
+            # heuristic value
+            self.target_entropy = -np.prod(env.action_space.shape).item()
+            self.log_ent_coef = torch.zeros(1, 
+                                            requires_grad=True,
+                                            device="cuda")  # init value
+            self.ent_coef_optimizer = optim.Adam([self.log_ent_coef],
+                                                 lr=alpha_lr)
         else:
-            self.ent_coef = alpha # entropy coeficient
+            self.ent_coef = alpha  # entropy coeficient
 
         self.learning_starts = learning_starts
 
@@ -52,7 +56,9 @@ class SAC():
         action_max = env.action_space.high[0]
 
         policy_net, critic_net, obs_space = get_nets(img_obs, obs_space)
-        self._pi = policy_net(obs_space, action_dim, action_max=action_max, **net_cfg).cuda()
+        self._pi = policy_net(obs_space, action_dim,
+                              action_max=action_max,
+                              **net_cfg).cuda()
         self._q1 = critic_net(obs_space, action_dim, **net_cfg).cuda()
         self._q1_target = critic_net(obs_space, action_dim, **net_cfg).cuda()
         self._q2 = critic_net(obs_space, action_dim, **net_cfg).cuda()
@@ -71,28 +77,29 @@ class SAC():
                         self._q2.parameters())
         self._q_optim = optim.Adam(_q_params, lr=critic_lr)
         self._loss_function = nn.MSELoss()
-        #Summary Writer
+        # Summary Writer
         if not os.path.exists("./results"):
             os.makedirs("./results")
-        #models folder
+        # models folder
         if not os.path.exists(save_dir): 
             os.makedirs(save_dir)
         self.model_name = "{}_{}".format(model_name, datetime.now().strftime('%d-%m_%H-%M'))
         self.writer_name = "./results/{}".format(self.model_name)
-        #self.eval_writer_name = "./results/%s_eval"%self.model_name
+        # self.eval_writer_name = "./results/%s_eval"%self.model_name
         self.trained_path = "{}/{}".format(self.save_dir, self.model_name)
-    
+
     def update_entropy(self, log_probs):
-        if( self._auto_entropy ):
+        if(self._auto_entropy):
             self.ent_coef_optimizer.zero_grad()
-            ent_coef_loss = -(self.log_ent_coef * (log_probs + self.target_entropy).detach()).mean()
+            ent_coef_loss = -(self.log_ent_coef *
+                              (log_probs + self.target_entropy).detach()).mean()
             ent_coef_loss.backward()
             self.ent_coef_optimizer.step()
             self.ent_coef = self.log_ent_coef.exp()
             return ent_coef_loss.item()
         else:
             return 0
-    
+
     def update(self, td_target, batch_states, batch_actions, plot_data):
         #Critic 1
         curr_prediction_c1 = self._q1(batch_states, batch_actions)                

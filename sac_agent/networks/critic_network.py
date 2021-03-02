@@ -1,8 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from sac_agent.networks.networks_common import get_pos_shape, get_depth_network, get_concat_features, get_img_network
 from sac_agent.sac_utils.utils import get_activation_fn
+from sac_agent.networks.networks_common import \
+     get_pos_shape, get_depth_network, get_img_network, \
+     get_gripper_network, get_concat_features
 
 
 # q function
@@ -35,8 +37,14 @@ class CNNCritic(nn.Module):
                         obs_space,
                         out_feat=8,
                         activation=activation)
-
-        out_feat = 16 if self.cnn_depth is not None else 8
+        self.cnn_gripper = get_gripper_network(
+                        obs_space,
+                        out_feat=8,
+                        activation=activation)
+        out_feat = 8
+        for net in [self.cnn_depth, self.cnn_gripper]:
+            if(net is not None):
+                out_feat += 8
         out_feat += _position_shape + action_dim
 
         self._activation = activation
@@ -44,8 +52,10 @@ class CNNCritic(nn.Module):
         self.q = nn.Linear(hidden_dim, 1)
 
     def forward(self, states, actions):
-        features = get_concat_features(states, self.cnn_img, self.cnn_depth)
-
+        features = get_concat_features(states,
+                                       self.cnn_img,
+                                       self.cnn_depth,
+                                       self.cnn_gripper)
         x = torch.cat((features, actions), -1)
         x = F.elu(self.fc1(x))
         x = self.q(x).squeeze()

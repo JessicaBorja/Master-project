@@ -1,5 +1,6 @@
 import torch
 
+
 class ScaleImageTensor(object):
     """Scale tensor of shape (batch, C, H, W) containing images to [0, 255] range
     Args:
@@ -10,6 +11,7 @@ class ScaleImageTensor(object):
     def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         assert isinstance(tensor, torch.Tensor)
         return tensor.float().div(255)
+
 
 class AddGaussianNoise(object):
     def __init__(self, mean=0.0, std=1.0):
@@ -22,6 +24,7 @@ class AddGaussianNoise(object):
 
     def __repr__(self):
         return self.__class__.__name__ + "(mean={0}, std={1})".format(self.mean, self.std)
+
 
 class ThresholdMasks(object):
     def __init__(self, threshold):

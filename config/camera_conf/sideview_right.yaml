@@ -1,3 +1,4 @@
 # @package _group_
 cameras:
   - '${all_cameras.sideview_right}'
+  - '${all_cameras.gripper}'

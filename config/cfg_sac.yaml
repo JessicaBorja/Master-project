@@ -3,11 +3,11 @@ save_dir: ./sac_agent/hydra_outputs/${task}
 task: slide
 model_name: sac_vrenv
 repeat_training: 1
+euler_obs: True
 
 img_obs: False
-euler_obs: true
-rand_init_state: true
-sparse_reward: false
+rand_init_state: False
+sparse_reward: False
 
 env:
   cameras: ${camera_conf.cameras}

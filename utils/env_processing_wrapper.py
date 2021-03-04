@@ -14,7 +14,7 @@ class EnvWrapper(gym.ObservationWrapper):
         self.env = env
         self.img_size = img_size
         self._transforms_cfg =\
-            transforms["train"] if train else transforms["validation"]        # setup to stack images
+            transforms["train"] if train else transforms["validation"]
         self.transforms, shape = self.get_transforms()
 
         # History length

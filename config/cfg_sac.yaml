@@ -3,21 +3,25 @@ save_dir: ./sac_agent/hydra_outputs/${task}
 task: slide
 model_name: sac_vrenv
 repeat_training: 1
-img_obs: False
 
+img_obs: False
 euler_obs: true
 rand_init_state: true
+sparse_reward: false
+
 env:
   cameras: ${camera_conf.cameras}
   robot_cfg: ${robot}
   scene: ${scene}
   rand_init_state: ${rand_init_state}
+  sparse_reward: ${sparse_reward}
 
 eval_env:
   cameras: ${camera_conf.cameras}
   robot_cfg: ${robot}
   scene: ${scene}
   rand_init_state: ${rand_init_state}
+  sparse_reward: ${sparse_reward}
 
 env_wrapper:
   use_img: ${img_obs}
@@ -37,7 +41,7 @@ defaults:
   - env: env
   - env@eval_env: env
   - camera_conf: topview
-  - agent: sac_default
+  - agent: default
   - test_sac: test
   - optim@optim: config_optim
   - hydra/job_logging: colorlog

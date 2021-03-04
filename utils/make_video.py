@@ -30,6 +30,6 @@ def make_video(img_folder, fps=30):
 
 
 if __name__ == "__main__":
-    img_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/trained_agents_viz/img_obs/slide"
+    img_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_test/gripper_frames"
     # img_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/trained_agents_viz/hinge"
     make_video(img_folder, fps=30)

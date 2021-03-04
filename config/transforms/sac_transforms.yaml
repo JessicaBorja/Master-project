@@ -2,6 +2,8 @@
 train:
   - _target_: torchvision.transforms.Resize
     size: ${env_wrapper.img_size}
+  - _target_: torchvision.transforms.Grayscale
+    num_output_channels: 1
   - _target_: affordance_model.utils.transforms.ScaleImageTensor  # Scale 0-255 to 0-1
   - _target_: torchvision.transforms.Normalize
     mean: [0.5,]
@@ -13,6 +15,8 @@ train:
 validation:
   - _target_: torchvision.transforms.Resize
     size: ${env_wrapper.img_size}
+  - _target_: torchvision.transforms.Grayscale
+    num_output_channels: 1
   - _target_: affordance_model.utils.transforms.ScaleImageTensor
   - _target_: torchvision.transforms.Normalize
     mean: [0,]

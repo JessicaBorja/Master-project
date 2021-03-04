@@ -18,7 +18,7 @@ folder_name:  ${project_folder}/hydra_outputs/2021-03-01__22-29-35
 model_name: affordance-epoch=27-val_loss=0.4053.ckpt
 
 # Output img size, must be mutiple of 32
-save_images: False
+save_images: True
 imshow: True
 img_size: 128
 output_dir: ${project_folder}/predictions/affordance_gripper

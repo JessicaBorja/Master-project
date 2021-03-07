@@ -101,7 +101,10 @@ def hydra_evaluateVRenv(cfg):
     # Create evaluation environment and wrapper for the image in case there's
     # an image observation
     cfg.eval_env.task = run_cfg.task
+    cfg.eval_env.rand_init_state = run_cfg.rand_init_state
     print(cfg.eval_env.task)
+    print("Random initial state: %s" % cfg.eval_env.rand_init_state)
+    print(OmegaConf.to_yaml(env_wrapper))
     eval_env = gym.make("VREnv-v0", **cfg.eval_env).env
     eval_env = EnvWrapper(eval_env, **env_wrapper)
 

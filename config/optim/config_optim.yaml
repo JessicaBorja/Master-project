@@ -1,16 +1,16 @@
 # @package _group_
-max_budget: 250000
+max_budget: 500000
 min_budget: 50000
 n_iterations: 4
-n_workers: 2
+n_workers: 1
 run_id: "sac_hpo"
 nameserver: "127.0.0.1"
 
 # Write here configuration that is NOT going to be optimized
 hyperparameters:
-  buffer_size: 1e6
-  learning_starts: 1000 
-  gamma: 0.98
+  buffer_size: ${agent.hyperparameters.buffer_size}
+  learning_starts: ${agent.hyperparameters.learning_starts} 
+  gamma: ${agent.hyperparameters.gamma}
 
 net_cfg:
     activation: relu

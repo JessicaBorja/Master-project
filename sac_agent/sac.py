@@ -224,6 +224,9 @@ class SAC():
                     self.save(self.trained_path+"_best.pth")
                     best_reward = episode_reward
 
+                # Always save last model(last training episode)
+                self.save(self.trained_path+"_last.pth")
+
                 # Reset everything
                 episode += 1
                 episode_reward, episode_length = 0, 0

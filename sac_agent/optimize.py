@@ -69,8 +69,8 @@ class SACWorker(Worker):
         actor_lr = CSH.UniformFloatHyperparameter('actor_lr', lower=1e-6, upper=1e-3, log=True)
         critic_lr = CSH.UniformFloatHyperparameter('critic_lr', lower=1e-6, upper=1e-3, log=True)
         alpha_lr = CSH.UniformFloatHyperparameter('alpha_lr', lower=1e-6, upper=1e-3, log=True)
-        tau = CSH.UniformFloatHyperparameter('tau', lower=0.001, upper=0.01)
-        batch_size = CSH.UniformIntegerHyperparameter('batch_size', lower=32, upper=128)
+        tau = CSH.UniformFloatHyperparameter('tau', lower=0.001, upper=0.02)
+        batch_size = CSH.UniformIntegerHyperparameter('batch_size', lower=64, upper=256)
         hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=128, upper=512)
 
         cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr,

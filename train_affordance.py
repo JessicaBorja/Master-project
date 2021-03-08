@@ -17,8 +17,8 @@ def train(cfg):
     logger.info("Running configuration: %s", OmegaConf.to_yaml(cfg))
 
     # Data split
-    train = VREnvData(split="train", **cfg.dataset)
-    val = VREnvData(split="validation", **cfg.dataset)
+    train = VREnvData(split="train", log=logger, **cfg.dataset)
+    val = VREnvData(split="validation", log=logger, **cfg.dataset)
     logger.info('train_data {}'.format(train.__len__()))
     logger.info('val_data {}'.format(val.__len__()))
 
@@ -42,7 +42,7 @@ def train(cfg):
                         datetime.datetime.now().strftime('%d-%m_%I-%M'))
     tb_logger = TensorBoardLogger("tb_logs", name=model_name)
 
-    aff_model = Segmentator(cfg.model_cfg)
+    aff_model = Segmentator(cfg.model_cfg, cmd_log=logger)
     trainer = pl.Trainer(
         callbacks=[checkpoint_callback],
         logger=tb_logger,

@@ -5,7 +5,7 @@ import tqdm
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, parent_dir)
-from utils.data_collection import get_files
+from utils.file_manipulation import get_files
 
 
 def make_video(img_folder, fps=30):

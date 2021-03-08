@@ -1,6 +1,8 @@
 import hydra
-from utils.data_collection import get_static_mask, \
-     get_gripper_mask, overlay_mask, get_files, save_data, create_data_split
+from utils.img_processing import get_static_mask, \
+     get_gripper_mask, overlay_mask
+from utils.file_manipulation import get_files, save_data, \
+     create_data_split, create_data_ep_split, separate_validation_frames
 import cv2
 import numpy as np
 import tqdm
@@ -70,18 +72,19 @@ def label_gripper(cam_properties, img_hist, point, viz, save_dict):
     for idx, (fr_idx, im_id, robot_obs, img) in enumerate(img_hist):
         # For static mask assume oclusion
         # until back_frames_min before
-        mask = get_gripper_mask(img, robot_obs, point,
-                                cam_properties, radius=25)
+        if(im_id not in save_dict):
+            mask = get_gripper_mask(img, robot_obs, point,
+                                    cam_properties, radius=25)
 
-        out_img = overlay_mask(mask, img, (0, 0, 255))
+            out_img = overlay_mask(mask, img, (0, 0, 255))
 
-        if(viz):
-            cv2.imshow("Gripper", out_img)
-            cv2.waitKey(1)
-        save_dict[im_id] = {
-            "frame": img,
-            "mask": mask,
-            "viz_out": out_img}
+            if(viz):
+                cv2.imshow("Gripper", out_img)
+                cv2.waitKey(1)
+            save_dict[im_id] = {
+                "frame": img,
+                "mask": mask,
+                "viz_out": out_img}
     return save_dict
 
 
@@ -225,15 +228,15 @@ def collect_dataset_close_open(cfg):
 
     save_data(save_static, cfg.save_dir, sub_dir="static_cam")
     save_data(save_gripper, cfg.save_dir, sub_dir="gripper_cam")
-    create_data_split(cfg.save_dir)
+    # create_data_split(cfg.save_dir)
+    create_data_ep_split(cfg.play_data_dir, cfg.save_dir)
 
 
 @hydra.main(config_path="./config", config_name="cfg_datacollection")
 def main(cfg):
-    # create_data_split(cfg.save_dir)
-    # collect_dataset_close(cfg)
-    collect_dataset_close_open(cfg)
-
+    # collect_dataset_close_open(cfg)
+    separate_validation_frames(cfg.play_data_dir,
+                               cfg.save_dir, 1)
 
 if __name__ == "__main__":
     main()

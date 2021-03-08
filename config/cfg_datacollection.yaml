@@ -21,7 +21,7 @@ n_episodes: 10
 max_timesteps: 150
 
 defaults:
-  - agent: sac_default
+  - agent: default
   - env: env
   - scene@env.scene: basic_playtable
   - camera_conf@env: static_and_gripper

@@ -11,6 +11,8 @@ from torchvision import transforms
 from torchvision.transforms import Resize
 from omegaconf import OmegaConf
 import tqdm
+import json
+import shutil
 
 
 def visualize(mask, img, imshow):
@@ -27,7 +29,6 @@ def visualize(mask, img, imshow):
         cv2.imshow("paste", res)
         cv2.waitKey(1)
     return res
-
 
 @hydra.main(config_path="./config", config_name="viz_affordances")
 def viz(cfg):

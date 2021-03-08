@@ -2,7 +2,8 @@ import gym
 import hydra
 from omegaconf import OmegaConf
 from utils.env_processing_wrapper import EnvWrapper
-from utils.data_collection import *
+from utils.img_processing import *
+from utils.file_manipulation import *
 from sac_agent.sac import SAC
 from sac_agent.sac_utils.utils import EpisodeStats, tt
 import os

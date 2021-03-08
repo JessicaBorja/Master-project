@@ -1,7 +1,7 @@
 project_folder: ../SAC/affordance_model
 
 # Load data
-data_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_test/gripper_frames
+data_dir: ../datasets/vrenv_playdata/validation/gripper
 #/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_test/
 
 #Load model
@@ -14,11 +14,11 @@ data_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_test/gripper_fr
 # model_name: affordance-epoch=25-val_loss=0.4181.ckpt
 
 # Gripper
-folder_name:  ${project_folder}/hydra_outputs/2021-03-01__22-29-35
-model_name: affordance-epoch=27-val_loss=0.4053.ckpt
+folder_name:  ${project_folder}/hydra_outputs/2021-03-08/20-00-04
+model_name: affordance-epoch=16-val_loss=0.4349.ckpt
 
 # Output img size, must be mutiple of 32
-save_images: True
+save_images: False
 imshow: True
 img_size: 128
 output_dir: ${project_folder}/predictions/affordance_gripper

@@ -4,13 +4,14 @@ project_folder: C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model
 #/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model
 save_dir: ./affordance_model/hydra_outputs/
 
-model_name: affordance_gripper
-n_epochs: 40
+model_name: affordance_gripper_all_data
+n_epochs: 60
 img_size: 128 #32x4, will be subsampled 3 times
 
 dataset:
   root_dir: ${data_dir}
   cam: gripper
+  n_episodes: 8
 
 dataloader:
   num_workers: 4
@@ -19,20 +20,15 @@ dataloader:
 
 model_cfg:
   model_name: "${model_name}"
-  loss_weight: [0.3, 0.7]
+  loss_weight: [0.2, 0.8]
   optimizer:
-    lr: 0.0005
+    lr: 4e-5
     weight_decay: 1e-3
 
 trainer:
   gpus: 1
   max_epochs: ${n_epochs}
   num_sanity_val_steps: 1
-
-viz:
-  data_dir: ${data_dir}/frames
-  folder_name: ${project_folder}/hydra_outputs/2021-02-09/00-24-17
-  model_name: affordance-epoch=18-val_loss=0.32.ckpt
 
 defaults:
   - transforms@dataset.transforms: affordance_transforms #Load from folder image_transforms, as dataset.transforms
@@ -42,4 +38,4 @@ defaults:
 #-- Hydra config --#
 hydra:
   run:
-    dir: ${save_dir}./${now:%Y-%m-%d}__${now:%H-%M-%S} # Output directory for normal runs
+    dir: ${save_dir}./${now:%Y-%m-%d}/${now:%H-%M-%S} # Output directory for normal runs

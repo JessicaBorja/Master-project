@@ -1,8 +1,7 @@
 import hydra
 from utils.img_processing import get_static_mask, \
      get_gripper_mask, overlay_mask
-from utils.file_manipulation import get_files, save_data, \
-     create_data_split, create_data_ep_split, separate_validation_frames
+from utils.file_manipulation import get_files, save_data, create_data_ep_split
 import cv2
 import numpy as np
 import tqdm
@@ -131,6 +130,13 @@ def label_static(static_cam, static_hist, back_min, back_max,
 
 
 def collect_dataset_close_open(cfg):
+    # Episodes info
+    # ep_lens = np.load(os.path.join(cfg.play_data_dir, "ep_lens.npy"))
+    ep_start_end_ids = np.load(os.path.join(
+        cfg.play_data_dir,
+        "ep_start_end_ids.npy"))
+    end_ids = ep_start_end_ids[:, -1]
+
     save_static, save_gripper = {}, {}
     # Instantiate camera to get projection and view matrices
     static_cam = hydra.utils.instantiate(
@@ -142,18 +148,12 @@ def collect_dataset_close_open(cfg):
     # nearVal=self.nearval, farVal=self.farval
     gripper_cam_properties = create_gripper_cam_properties(cfg.env.cameras[1])
 
-    # Episodes info
-    # ep_lens = np.load(os.path.join(cfg.play_data_dir, "ep_lens.npy"))
-    ep_start_end_ids = np.load(os.path.join(
-        cfg.play_data_dir,
-        "ep_start_end_ids.npy"))
-    end_ids = ep_start_end_ids[:, -1]
-
     # Iterate rendered_data
     files = get_files(cfg.play_data_dir, "npz")  # Sorted files
     static_hist, gripper_hist, fixed_points = [], [], []
     past_action = 1
     frame_idx = 0
+    episode = 0
     # Will segment 40 frames
     back_frames_max = 50
     back_frames_min = 10
@@ -214,29 +214,44 @@ def collect_dataset_close_open(cfg):
                 curr_point = data['robot_obs'][:3]
                 fixed_points.append((frame_idx, curr_point))
 
-        # Check for new episode
-        if(end_of_ep):  # Reset fixed_points
+        # Reset everything
+        if(end_of_ep):
             end_ids = end_ids[1:]
             fixed_points = []
             past_action = 1  # Open
+            save_static, save_gripper = {}, {}
+            save_data(save_static,
+                      cfg.save_dir + "episode_%d" % episode,
+                      sub_dir="static_cam")
+            save_data(save_gripper,
+                      cfg.save_dir + "episode_%d" % episode,
+                      sub_dir="gripper_cam")
+            episode += 1
 
         if (len(save_gripper.keys()) + len(save_static.keys()) > 150):
-            save_data(save_static, cfg.save_dir, sub_dir="static_cam")
-            save_data(save_gripper, cfg.save_dir, sub_dir="gripper_cam")
+            save_data(save_static,
+                      cfg.save_dir + "episode_%d" % episode,
+                      sub_dir="static_cam")
+            save_data(save_gripper,
+                      cfg.save_dir + "episode_%d" % episode,
+                      sub_dir="gripper_cam")
             save_static, save_gripper = {}, {}
         past_action = data['actions'][-1]
 
-    save_data(save_static, cfg.save_dir, sub_dir="static_cam")
-    save_data(save_gripper, cfg.save_dir, sub_dir="gripper_cam")
-    # create_data_split(cfg.save_dir)
-    create_data_ep_split(cfg.play_data_dir, cfg.save_dir)
+    save_data(save_static,
+              cfg.save_dir + "episode_%d" % episode,
+              sub_dir="static_cam")
+    save_data(save_gripper,
+              cfg.save_dir + "episode_%d" % episode,
+              sub_dir="gripper_cam")
+    create_data_ep_split(cfg.save_dir)
 
 
 @hydra.main(config_path="./config", config_name="cfg_datacollection")
 def main(cfg):
     # collect_dataset_close_open(cfg)
-    separate_validation_frames(cfg.play_data_dir,
-                               cfg.save_dir, 1)
+    create_data_ep_split(cfg.save_dir)
+
 
 if __name__ == "__main__":
     main()

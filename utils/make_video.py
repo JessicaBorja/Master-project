@@ -21,7 +21,7 @@ def make_video(img_folder, fps=30):
                 0x7634706d,
                 fps,
                 (w, h))  # 30 fps
-    print("writing video to %s"%video_name)
+    print("writing video to %s" % video_name)
     for f in tqdm.tqdm(files):
         img = cv2.imread(f)
         video.write(img)
@@ -30,6 +30,12 @@ def make_video(img_folder, fps=30):
 
 
 if __name__ == "__main__":
-    img_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_test/gripper_frames"
-    # img_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/trained_agents_viz/hinge"
-    make_video(img_folder, fps=30)
+    # im_lst = ["C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/validation/viz_out/static"]
+    # im_lst.append("C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model/predictions/gripper_7ep")
+    # im_lst.append("C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model/predictions/gripper_5ep")
+    # im_lst.append("C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model/predictions/gripper_3ep")
+    # im_lst.append("C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/validation/viz_out/gripper")
+
+    im_lst = ["C:/Users/Jessica/Documents/Proyecto_ssd/d_simg_gimg_pos_sparse"]
+    for img_folder in im_lst:
+        make_video(img_folder, fps=30)

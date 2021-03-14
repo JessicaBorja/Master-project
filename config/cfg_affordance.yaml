@@ -1,17 +1,14 @@
-data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/
-#/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/
-project_folder: C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model
-#/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model
+data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_play_large_handles/
 save_dir: ./affordance_model/hydra_outputs/
 
-model_name: affordance_gripper_all_data
-n_epochs: 60
+model_name: aff_gripper_nd_4ep
+n_epochs: 40
 img_size: 128 #32x4, will be subsampled 3 times
 
 dataset:
   root_dir: ${data_dir}
   cam: gripper
-  n_episodes: 8
+  n_train_ep: 4 # n-1 training ep, n_episodes in [8,6,4]
 
 dataloader:
   num_workers: 4
@@ -22,7 +19,7 @@ model_cfg:
   model_name: "${model_name}"
   loss_weight: [0.2, 0.8]
   optimizer:
-    lr: 4e-5
+    lr: 5e-6
     weight_decay: 1e-3
 
 trainer:

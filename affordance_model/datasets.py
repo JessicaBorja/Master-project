@@ -10,54 +10,51 @@ import json
 
 class VREnvData(Dataset):
     # split = "train" or "validation"
-    def __init__(self, root_dir, transforms, n_episodes=-1,
+    def __init__(self, root_dir, transforms, n_train_ep=-1,
                  split="train", cam="static", log=None):
         self.log = log
-        self.masks_dir = "%s/masks/" % root_dir
-        self.frames_dir = "%s/frames/" % root_dir
-        _ids = self.read_json(os.path.join(root_dir, "ep_data.json"))
-        self.data = self._create_split(_ids, split, cam, n_episodes)
+        self.root_dir = root_dir
+        _ids = self.read_json(os.path.join(root_dir, "episodes_split.json"))
+        self.data = self._get_split_data(_ids, split, cam, n_train_ep)
         self.transforms = self.get_transforms(transforms[split])
         self.mask_transforms = self.get_transforms(transforms['masks'])
 
-    def _create_split(self, data, split, cam, n_episodes):
-        n_val_ep = 1
-        if(n_episodes > len(data)):
-            n_episodes = len(data)
-
-        if(split == "train"):
-            n_train_ep = n_episodes - n_val_ep
-            valid_train_ep = len(data) - n_val_ep
-            d_episodes = np.random.choice(
-                            valid_train_ep, n_train_ep, replace=False)
-        else:
-            d_episodes = list(range(len(data) - n_val_ep, len(data)))
-
+    def _get_split_data(self, data, split, cam, n_train_ep):
         split_data = []
-        for ep, (_, file_lst) in enumerate(data.items()):
-            for file in file_lst:
-                if(ep in d_episodes and cam in file):
-                    split_data.append(file)
+        split_episodes = list(data[split].keys())
 
-        self.log.info("%s episodes: %s \t[%d] images"
-                      % (split, str(d_episodes), len(split_data)))
+        # Select amount of data to train on
+        if(n_train_ep > 0 and split == "train"):
+            assert len(split_episodes) >= n_train_ep, \
+                "n_train_ep must <= %d" % len(split_episodes)
+            split_episodes = np.random.choice(split_episodes,
+                                              n_train_ep,
+                                              replace=False)
 
+        print("%s episodes: %s" % (split, str(split_episodes)))
+        for ep in split_episodes:
+            for file in data[split][ep]:
+                if(cam in file):
+                    split_data.append("%s/%s" % (ep, file))
+        print("%s images: %d" % (split, len(split_data)))
         return split_data
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        filename = self.data[idx]
-        frame = cv2.imread(
-            self.frames_dir + filename + ".jpg",
-            cv2.COLOR_BGR2RGB)
+        head, filename = os.path.split(self.data[idx])
+        episode, cam_folder = os.path.normpath(head).split(os.path.sep)
+        frame = cv2.imread(self.root_dir +
+                           "/%s/frames/%s/%s.jpg" % (episode, cam_folder, filename),
+                           cv2.COLOR_BGR2RGB)
         frame = torch.from_numpy(frame).permute(2, 0, 1)  # C, W, H
         # frame = Image.open(self.frames_dir + filename  + ".jpg")
         frame = self.transforms(frame)
 
-        # Segmentation mask
-        mask = np.load(self.masks_dir + filename + ".npy")  # (H, W)
+        # Segmentation mask (H, W)
+        mask = np.load(self.root_dir +
+                       "/%s/masks/%s/%s.npy" % (episode, cam_folder, filename))
         # Resize from torchvision requires mask to have channel dim
         mask = np.expand_dims(mask, 0)
         mask = self.mask_transforms(torch.from_numpy(mask))

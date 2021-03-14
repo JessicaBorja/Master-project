@@ -221,7 +221,7 @@ class SAC():
                 if(episode_reward > best_reward):
                     log.info("[%d] New best train ep. return!%.3f" %
                              (episode, episode_reward))
-                    self.save(self.trained_path+"_best.pth")
+                    self.save(self.trained_path+"_best_train.pth")
                     best_reward = episode_reward
 
                 # Always save last model(last training episode)

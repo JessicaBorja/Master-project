@@ -9,14 +9,16 @@ model_name: drawer_best_eval
 folder_name: ${models_dir}/trained_no_img/drawer/
 
 # For collecting dataset with playdata
-play_data_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/
+play_data_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data_large_handles/
 # /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/play_data/rendered_data/
 
 #Save dataset
-save_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata/
+save_dir: C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_play_large_handles/
 # /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_playdata_v3/
 
 viz: True
+
+#RL Agent
 n_episodes: 10
 max_timesteps: 150
 
@@ -38,8 +40,10 @@ all_cameras:
     farval: 2
     width: 200
     height: 200
-    look_at: [0.13730333745479584, 0.8428503274917603, 0.5114248394966125]
-    look_from: [0.15928523478833423, 0.055887024125922835, 1.417076897845746]
+    look_from: [0.11068351051600134, 0.04272614309766709, 1.2610172765078076]
+    look_at: [0.15724238753318787, 0.875490665435791, 0.55617755651474]
+    # look_at: [0.13730333745479584, 0.8428503274917603, 0.5114248394966125]
+    # look_from: [0.15928523478833423, 0.055887024125922835, 1.417076897845746]
 
   gripper:
     _target_: vr_env.camera.gripper_camera.GripperCamera

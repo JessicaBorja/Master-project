@@ -22,7 +22,7 @@ def train(cfg):
     logger.info('train_data {}'.format(train.__len__()))
     logger.info('val_data {}'.format(val.__len__()))
 
-    train_loader = DataLoader(train, **cfg.dataloader)
+    train_loader = DataLoader(train, shuffle=True, **cfg.dataloader)
     val_loader = DataLoader(val, **cfg.dataloader)
     logger.info('train minibatches {}'.format(len(train_loader)))
     logger.info('val minibatches {}'.format(len(val_loader)))

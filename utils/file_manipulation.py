@@ -3,10 +3,11 @@ import glob
 import json
 import tqdm
 import shutil
+import numpy as np
+import cv2
 
 
-def split_episodes(all_files, masks_dir, ep_start_end_ids,
-                   remove_blank_mask_instances, data):
+def add_valid_frames(remove_blank_mask_instances=True):
     all_files.sort()
     end_ids = ep_start_end_ids[:, -1]
     start_ids = ep_start_end_ids[:, 0]
@@ -31,91 +32,41 @@ def split_episodes(all_files, masks_dir, ep_start_end_ids,
     return data
 
 
-# File to get segmentation maks, and save data
-def separate_validation_frames(play_data_dir, save_dir, n_eval_ep):
-    frames_dir = save_dir + "/frames"
-    gripper_cam_files = glob.glob(frames_dir + "/*/*gripper*")
-    static_cam_files = glob.glob(frames_dir + "/*/*static*")
-    data = {"gripper": gripper_cam_files,
-            "static": static_cam_files}
+# Split episodes into train and validation
+def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
+    # Episodes are subdirectories
+    n_episodes = len(glob.glob(root_dir + "/*/"))
     # Split data
-    ep_start_end_ids = np.load(os.path.join(
-        play_data_dir,
-        "ep_start_end_ids.npy"))
+    data = {"train": [], "validation": []}
+    val_ep = np.random.choice(n_episodes, 3, replace=False)
+    train_ep = [ep for ep in range(n_episodes) if ep not in val_ep]
+    data["validation"] = {"episode_%d" % e: [] for e in val_ep}
+    data["train"] = {"episode_%d" % e: [] for e in train_ep}
 
-    # Evaluation episodes always the last
-    start_id = ep_start_end_ids[:, 0][- n_eval_ep]
-    end_id = ep_start_end_ids[:, -1][-1]
-
-    for cam, cam_files in data.items():
-        os.makedirs("%s/validation/%s/" % (save_dir, cam))
-        for file in tqdm.tqdm(cam_files):
+    for ep in tqdm.tqdm(range(n_episodes)):
+        ep_dir = os.path.join(root_dir, "episode_%d" % ep)
+        gripper_cam_files = glob.glob("%s/masks/*/*gripper*" % ep_dir)
+        static_cam_files = glob.glob("%s/masks/*/*static*" % ep_dir)
+        episode_files = gripper_cam_files + static_cam_files
+        split = "validation" if ep in val_ep else "train"
+        for file in tqdm.tqdm(episode_files):
             head, tail = os.path.split(file)
-            frame_id = int(tail.split('_')[-1][:-4])
+            file_name = tail.split('.')[0]  # Remove extension name
+            file_relative_path = os.path.basename(os.path.normpath(head))  # Last folder
+            # /{cam}_cam/filename
+            file_name = os.path.join(file_relative_path, file_name)
+            if(remove_blank_mask_instances):
+                mask = np.load(file)  # (H, W)
+                if(mask.max() > 0):  # at least one pixel is not background
+                    data[split]['episode_%d' % ep].append(file_name)
+            else:
+                data[split]['episode_%d' % ep].append(file_name)
 
-            if(frame_id >= start_id and frame_id <= end_id):
-                shutil.copy(file,
-                            "%s/validation/%s/%s" % (save_dir, cam, tail))
-
-
-# File to get segmentation maks, and save data
-def create_data_ep_split(play_data_dir, root_dir,
-                         remove_blank_mask_instances=True):
-    masks_dir = root_dir + "/masks"
-    gripper_cam_files = glob.glob(masks_dir + "/*/*gripper*")
-    scatic_cam_files = glob.glob(masks_dir + "/*/*static*")
-
-    # Split data
-    ep_start_end_ids = np.load(os.path.join(
-        play_data_dir,
-        "ep_start_end_ids.npy"))
-
-    data = {'episode_%d' % e: [] for e in range(len(ep_start_end_ids))}
-    data = split_episodes(gripper_cam_files, masks_dir, ep_start_end_ids,
-                          remove_blank_mask_instances, data)
-    data = split_episodes(scatic_cam_files, masks_dir, ep_start_end_ids,
-                          remove_blank_mask_instances, data)
-
-    with open(root_dir+'/ep_data.json', 'w') as outfile:
+    with open(root_dir+'/episodes_split.json', 'w') as outfile:
         json.dump(data, outfile, indent=2)
 
 
-def create_data_split(root_dir, remove_blank_mask_instances=True):
-    data = {'train': [], "validation": []}
-    masks_dir = root_dir + "/masks"
-    all_files = glob.glob(masks_dir + "/*/*")
-
-    valid_frames = []
-    if (remove_blank_mask_instances):
-        for file in tqdm.tqdm(all_files):
-            mask = np.load(file)  # (H, W)
-            if(mask.max() > 0):
-                # at least one pixel is not background
-                valid_frames.append(file)
-    else:
-        valid_frames = all_files
-
-    # Split data
-    val_idx = np.random.choice(
-                len(valid_frames),
-                len(valid_frames)//3,
-                replace=False)
-
-    for idx, file in tqdm.tqdm(enumerate(valid_frames)):
-        head, tail = os.path.split(file)
-        # Only keep subdirectories of masks
-        file_relative_path = head.replace(masks_dir, "")
-        file_name = tail.split('.')[0]  # Remove extension name
-        relative_path = os.path.join(file_relative_path, file_name)
-        if(idx in val_idx):  # Validation
-            data['validation'].append(relative_path)
-        else:
-            data['train'].append(relative_path)
-
-    with open(root_dir+'/data.json', 'w') as outfile:
-        json.dump(data, outfile, indent=2)
-
-
+# Create directories if not exist
 def create_dirs(root_dir, sub_dir, directory_lst):
     dir_lst = [root_dir]
     for d_name in directory_lst:
@@ -128,6 +79,7 @@ def create_dirs(root_dir, sub_dir, directory_lst):
     return dir_lst
 
 
+# Save a directory wtih frames, masks, viz_out
 def save_data(data_dict, directory, sub_dir, save_viz=True):
     if(save_viz):
         frames_dir, masks_dir, viz_out_dir = \
@@ -150,6 +102,7 @@ def save_data(data_dict, directory, sub_dir, save_viz=True):
             np.save(f, img_dict['mask'])
 
 
+# Ger valid numpy files with raw data
 def get_files(path, extension):
     if(not os.path.isdir(path)):
         print("path does not exist: %s" % path)
@@ -158,3 +111,18 @@ def get_files(path, extension):
         print("No *.%s files found in %s" % (extension, path))
     files.sort()
     return files
+
+
+def viz_rendered_data(path):
+    #I terate images
+    files = glob.glob(path + "/*.npz")
+    for idx, filename in enumerate(files):
+        try:
+            data = np.load(filename, allow_pickle=True)
+            cv2.imshow("static", data['rgb_static'][:, :, ::-1])  # W, H, C
+            cv2.imshow("gripper", data['rgb_gripper'][:, :, ::-1])  # W, H, C
+            cv2.waitKey(0)
+            # tcp pos(3), euler angles (3), gripper_action(0 close - 1 open)
+            print(data['actions'])
+        except:
+            print("cannot load file as numpy compressed: %s" % filename)

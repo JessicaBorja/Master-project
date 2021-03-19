@@ -15,6 +15,7 @@ EpisodeStats = namedtuple(
 
 def get_nets(img_obs, obs_space):
     if(img_obs):
+        print("Using: %s" % str([k for k in obs_space]))
         policy = "CNNPolicy"
         critic = "CNNCritic"
         # policy = "legacy_CNNPolicy"
@@ -23,12 +24,14 @@ def get_nets(img_obs, obs_space):
         obs_space = obs_space.shape[0]
         policy = "ActorNetwork"
         critic = "CriticNetwork"
+
     policy_net = getattr(
         importlib.import_module("sac_agent.networks.actor_network"),
         policy)
     critic_net = getattr(
         importlib.import_module("sac_agent.networks.critic_network"),
         critic)
+    print("Networks: %s, \t%s" % (policy, critic))
     return policy_net, critic_net, obs_space
 
 

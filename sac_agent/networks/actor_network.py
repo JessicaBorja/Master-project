@@ -70,8 +70,8 @@ class CNNPolicy(nn.Module):
                             obs_space,
                             out_feat=8,
                             activation=activation)
-        out_feat = 8
-        for net in [self.cnn_depth, self.cnn_gripper]:
+        out_feat = 0
+        for net in [self.cnn_img, self.cnn_depth, self.cnn_gripper]:
             if(net is not None):
                 out_feat += 8
         out_feat += _position_shape

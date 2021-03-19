@@ -114,7 +114,7 @@ def get_files(path, extension):
 
 
 def viz_rendered_data(path):
-    #I terate images
+    # Iterate images
     files = glob.glob(path + "/*.npz")
     for idx, filename in enumerate(files):
         try:

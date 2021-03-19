@@ -20,16 +20,17 @@ def set_init_pos(task, init_pos):
         init_pos = [-1.7245799162898525, 1.8325999998998153, 1.0841486101692206, -2.4397926771547223, -0.6158132412445191, 3.8223000000000007, -0.7371749302934671]
     elif(task == "drawer"):
         init_pos = [-0.6674729645820069, 1.7509613833040443, 1.304967922545566, -2.3491822541374074, -1.8854745478807724, 1.6293532800388535, -0.6413070674224167]
+    elif(task == "banana"):
+        init_pos = [-0.9362933014487528, 1.7627833953065635, 1.2982581683461047, -2.155751832748698, -1.9943154775966752, 2.161505259849768, -1.2318332432817771]
     return init_pos
-
 
 @hydra.main(config_path="./config", config_name="cfg_sac")
 def main(cfg):
     print("agent configuration")
     print(OmegaConf.to_yaml(cfg.agent))
-    print(OmegaConf.to_yaml(cfg.env_wrapper))
-    print("repeat_training:%d, img_obs:%s" % (
-            cfg.repeat_training, str(cfg.img_obs)))
+    print("repeat_training:%d" % cfg.repeat_training)
+    for k, v in cfg.env_wrapper.items():
+        print("%s:%s" % (k, str(v)))
 
     init_pos = cfg.env.robot_cfg.initial_joint_positions
     init_pos = set_init_pos(cfg.task, init_pos)
@@ -46,7 +47,6 @@ def main(cfg):
                     eval_env=eval_env,
                     model_name=model_name,
                     save_dir=cfg.agent.save_dir,
-                    img_obs=cfg.img_obs,
                     net_cfg=cfg.agent.net_cfg,
                     **cfg.agent.hyperparameters)
 

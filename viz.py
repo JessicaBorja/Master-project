@@ -10,9 +10,10 @@ from affordance_model.utils.transforms import ScaleImageTensor
 from torchvision import transforms
 from torchvision.transforms import Resize
 from omegaconf import OmegaConf
+from omegaconf.listconfig import ListConfig
 import tqdm
-import json
-import shutil
+from utils.file_manipulation import get_files
+
 
 
 def visualize(mask, img, imshow):
@@ -43,6 +44,7 @@ def viz(cfg):
     checkpoint_path = os.path.join(checkpoint_path, cfg.model_name)
     model = Segmentator.load_from_checkpoint(checkpoint_path, cfg=model_cfg)
     model.eval()
+    print("model loaded")
 
     # Image needs to be multiple of 32 because of skip connections
     # and decoder layers
@@ -51,8 +53,21 @@ def viz(cfg):
         ScaleImageTensor()])
 
     # Iterate images
-    files = glob.glob(cfg.data_dir + "/*.jpg")
-    files += glob.glob(cfg.data_dir + "/*.png")
+    files = []
+    if(isinstance(cfg.data_dir, ListConfig)):
+        for dir_i in cfg.data_dir:
+            if(not os.path.exists(dir_i)):
+                print("Path does not exist: %s" % dir_i)
+                continue
+            files += get_files(dir_i, "jpg")
+            files += get_files(dir_i, "png")
+    else:
+        if(not os.path.exists(cfg.data_dir)):
+            print("Path does not exist: %s" % cfg.data_dir)
+            return
+        files += get_files(cfg.data_dir, "jpg")
+        files += get_files(cfg.data_dir, "png")
+
     for idx, filename in tqdm.tqdm(enumerate(files)):
         orig_img = cv2.imread(filename, cv2.COLOR_BGR2RGB)
         # Process image as in validation

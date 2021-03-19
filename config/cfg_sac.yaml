@@ -1,11 +1,17 @@
 data_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
-save_dir: ./hydra_outputs/${task}
+save_dir: ./sac_agent/hydra_outputs/${task}
 task: slide
 model_name: sac_vrenv
 repeat_training: 1
 euler_obs: True
 
-img_obs: True
+# Observation wrapper
+use_static_cam: True
+use_gripper_cam: False
+use_pos: False
+use_depth: False
+
+# Environment
 rand_init_state: False
 sparse_reward: False
 
@@ -24,10 +30,10 @@ eval_env:
   sparse_reward: ${sparse_reward}
 
 env_wrapper:
-  use_img: ${img_obs}
-  use_depth: False
-  use_pos: False
-  use_gripper_img: False
+  use_depth: ${use_depth}
+  use_pos: ${use_pos}
+  use_static_cam: ${use_static_cam}
+  use_gripper_cam: ${use_gripper_cam}
   history_length: 1
   skip_frames: 0
   img_size: 84

@@ -7,7 +7,7 @@ import hydra
 
 
 class EnvWrapper(gym.ObservationWrapper):
-    def __init__(self, env, use_img, use_depth, use_pos, use_gripper_img,
+    def __init__(self, env, use_static_cam, use_depth, use_pos, use_gripper_cam,
                  transforms, history_length, skip_frames, img_size,
                  train=False):
         super(EnvWrapper, self).__init__(env)
@@ -28,14 +28,24 @@ class EnvWrapper(gym.ObservationWrapper):
                          if i % (skip_frames+1) == 0]
         assert len(self._indices) == history_length
         self._cur_img_obs = None
-
+        # Cameras defaults
+        self.static_id = 0
+        self.gripper_id = 1
+        self.find_cam_ids()
         # parameters to define observation
-        self._use_img_obs = use_img
+        self._use_img_obs = use_static_cam
         self._use_robot_obs = use_pos
         self._use_depth = use_depth
-        self._use_gripper_img = use_gripper_img
+        self._use_gripper_img = use_gripper_cam
         self.observation_space = self.get_obs_space()
         self._training = train
+
+    def find_cam_ids(self):
+        for i, cam in enumerate(self.cameras):
+            if "gripper" in cam.name:
+                self.gripper_id = i
+            else:
+                self.static_id = i
 
     def get_obs_space(self):
         if(self._use_img_obs):
@@ -63,20 +73,21 @@ class EnvWrapper(gym.ObservationWrapper):
             return gym.spaces.Box(low=-0.5, high=0.5, shape=(10,))
 
     def observation(self, obs):
-        if(self._use_img_obs):
-            # "rgb_obs", "depth_obs", "robot_obs","scene_obs"
+        # "rgb_obs", "depth_obs", "robot_obs","scene_obs"
+        if(self._use_img_obs or self._use_gripper_img):
+            obs = {}
             obs_dict = self.get_obs()
-            # from rgb to grayscale
-            img_obs = self.img_preprocessing(
-                        obs_dict['rgb_obs'][0])
-            obs = {"img_obs": img_obs}
             if(self._use_gripper_img):
-                # Gripper_cam is cam 1
+                img_obs = self.img_preprocessing(
+                            obs_dict['rgb_obs'][self.static_id])
+                obs["img_obs"] = img_obs
+            if(self._use_gripper_img):
                 gripper_obs = self.img_preprocessing(
-                                obs_dict['rgb_obs'][1])
+                                obs_dict['rgb_obs'][self.gripper_id])
                 obs["gripper_img_obs"] = gripper_obs
             if(self._use_depth):
-                depth_obs = self.depth_preprocessing(obs_dict['depth_obs'][0])
+                depth_obs = self.depth_preprocessing(
+                                obs_dict['depth_obs'][self.static_id])
                 obs["depth_obs"] = depth_obs
             if(self._use_robot_obs):
                 # *tcp_pos(3), *tcp_euler(3), gripper_opening_width(1),
@@ -127,28 +138,4 @@ class EnvWrapper(gym.ObservationWrapper):
         self._cur_img_obs = [self._total_frames[i * c:(i * c) + c]
                              for i in self._indices]
         self._cur_img_obs = np.concatenate(self._cur_img_obs, 0)
-        return self._cur_img_obs
-
-    def _img_preprocessing(self, frame):
-        # obs is from 0-255, (300, 300, 3)
-        new_frame = cv2.resize(
-            frame,
-            (self.img_size, self.img_size),
-            interpolation=cv2.INTER_AREA)  # (img_size, img_size)
-        new_frame = cv2.cvtColor(new_frame, cv2.COLOR_BGR2GRAY).astype(float)
-
-        # "Transforms"
-        # norm_image = np.copy(new_frame)
-        cv2.normalize(new_frame, new_frame, -1, 1,
-                      norm_type=cv2.NORM_MINMAX)  # (0,255) -> (-1,1)
-        if(self._training):  # add gaussian noise
-            new_frame += np.random.normal(0, 0.01, size=new_frame.shape)
-
-        # History length
-        new_frame = np.expand_dims(new_frame, 0)  # (1, img_size, img_size)
-        self._total_frames = np.pad(self._total_frames, ((
-            1, 0), (0, 0), (0, 0)), mode='constant')[:-1, :, :]
-        self._total_frames[0] = new_frame
-
-        self._cur_img_obs = self._total_frames[self._indices]
         return self._cur_img_obs

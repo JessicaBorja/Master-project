@@ -2,6 +2,7 @@ from datetime import datetime
 import os
 import sys
 import pickle
+from typing import Dict
 import numpy as np
 import torch
 import torch.nn as nn
@@ -11,6 +12,7 @@ import itertools
 from sac_agent.sac_utils.replay_buffer import ReplayBuffer
 from sac_agent.sac_utils.utils import EpisodeStats, tt, soft_update, get_nets
 import logging
+import gym
 # A logger for this file
 log = logging.getLogger(__name__)
 
@@ -19,15 +21,22 @@ class SAC():
     def __init__(self, env=None, eval_env=None, save_dir="./trained_models",
                  gamma=0.99, alpha="auto",
                  actor_lr=3e-4, critic_lr=3e-4, alpha_lr=3e-4,
-                 tau=0.005, learning_starts=1000, img_obs=False,
+                 tau=0.005, learning_starts=1000,
                  batch_size=256, buffer_size=1e6,
                  model_name="sac", net_cfg=None):
         self.save_dir = save_dir
         self.env = env
         self.eval_env = eval_env
         # Replay buffer
+        _cnn_policy_cond = ["depth_obs", "gripper_img_obs", "img_obs"]
+        _img_obs = False
+        obs_space = env.observation_space
+        if(isinstance(obs_space, gym.spaces.Dict) and
+           any([x in _cnn_policy_cond for x in obs_space])):
+            _img_obs = True
+        print("Using images as observation: %s" % _img_obs)
         self._max_size = buffer_size
-        self._replay_buffer = ReplayBuffer(buffer_size, img_obs)
+        self._replay_buffer = ReplayBuffer(buffer_size, _img_obs)
         self.batch_size = batch_size
 
         # Agent
@@ -51,11 +60,10 @@ class SAC():
 
         self.learning_starts = learning_starts
 
-        obs_space = env.observation_space
         action_dim = env.action_space.shape[0]
         action_max = env.action_space.high[0]
 
-        policy_net, critic_net, obs_space = get_nets(img_obs, obs_space)
+        policy_net, critic_net, obs_space = get_nets(_img_obs, obs_space)
         self._pi = policy_net(obs_space, action_dim,
                               action_max=action_max,
                               **net_cfg).cuda()
@@ -178,15 +186,14 @@ class SAC():
                and not done and t > self.learning_starts):
 
                 sample = self._replay_buffer.sample(self.batch_size)
-                batch_states, batch_actions, batch_rewards, batch_next_states, batch_terminal_flags = sample
+                batch_states, batch_actions, batch_rewards,\
+                    batch_next_states, batch_terminal_flags = sample
 
                 with torch.no_grad():
                     next_actions, log_probs = self._pi.act(
                                                     batch_next_states,
                                                     deterministic=False,
                                                     reparametrize=False)
-                    # next_actions *= self.env.action_space.high[0]
-                    # #scale action between high and -high action space
 
                     target_qvalue = torch.min(
                         self._q1_target(batch_next_states, next_actions),
@@ -208,9 +215,9 @@ class SAC():
                 stats.episode_lengths.append(episode_length)
                 stats.episode_rewards.append(episode_reward)
                 log.info(
-                    "Episode %d: %d Steps, Return: %.3f, total timesteps: %d/%d " %
-                    (episode, episode_length,
-                     episode_reward, t, total_timesteps))
+                    "Episode %d: %d Steps," % (episode, episode_length) +
+                    "Return: %.3f, total timesteps: %d/%d" %
+                    (episode_reward, t, total_timesteps))
 
                 # Summary Writer
                 writer.add_scalar('train/episode_return',
@@ -304,11 +311,9 @@ class SAC():
         length_std = np.std(stats.episode_lengths)
 
         log.info(
-            "Mean return: %.3f +/- %.3f , Mean length: %.3f +/- %.3f, over %d episodes" %
-            (mean_reward, reward_std, mean_length, length_std, n_episodes))
-        print(
-            "Mean return: %.3f +/- %.3f , Mean length: %.3f +/- %.3f, over %d episodes" %
-            (mean_reward, reward_std, mean_length, length_std, n_episodes))
+            "Mean return: %.3f +/- %.3f, " % (mean_reward, reward_std) +
+            "Mean length: %.3f +/- %.3f, over %d episodes" %
+            (mean_length, length_std, n_episodes))
         return mean_reward, mean_length
 
     def save(self, path):

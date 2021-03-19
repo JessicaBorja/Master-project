@@ -19,5 +19,5 @@ validation:
     num_output_channels: 1
   - _target_: affordance_model.utils.transforms.ScaleImageTensor
   - _target_: torchvision.transforms.Normalize
-    mean: [0,]
-    std: [1,]
+    mean: [0.5,]
+    std: [0.5,]

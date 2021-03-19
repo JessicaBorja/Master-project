@@ -53,16 +53,16 @@ def get_img_network(obs_space, out_feat, activation):
 
 
 def get_concat_features(obs, cnn_img, cnn_depth=None, cnn_gripper=None):
-    img = obs['img_obs']
-    features = cnn_img(img)
+    features = []
+    if("img_obs" in obs):
+        features.append(cnn_img(obs['img_obs']))
     if("depth_obs" in obs):
-        depth_features = cnn_depth(obs['depth_obs'])
-        features = torch.cat((features, depth_features), dim=-1)
+        features.append(cnn_depth(obs['depth_obs']))
     if("gripper_img_obs" in obs):
-        gripper_features = cnn_gripper(obs['gripper_img_obs'])
-        features = torch.cat((features, gripper_features), dim=-1)
+        features.append(cnn_gripper(obs['gripper_img_obs']))
     if("robot_obs" in obs):
-        features = torch.cat((features, obs['robot_obs']), dim=-1)
+        features.append(obs['robot_obs'])
+    features = torch.cat(features, dim=-1)
     return features
 
 

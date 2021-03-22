@@ -39,7 +39,7 @@ affordance:
       use: False
       model_path: ${models_path}/affordance_gripper_16ep_val_loss=0.4135.ckpt
     gripper_cam:
-      use: True
+      use: False
       model_path: ${models_path}/affordance_gripper_16ep_grayscale_val_loss=0.3706.ckpt
 #Env 
 defaults:

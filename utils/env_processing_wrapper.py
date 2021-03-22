@@ -7,7 +7,7 @@ import hydra
 
 
 class EnvWrapper(gym.ObservationWrapper):
-    def __init__(self, env, history_length, skip_frames, img_size, use_img=False,
+    def __init__(self, env, history_length, skip_frames, img_size,
                  use_static_cam=False, use_depth=False, use_gripper_cam=False,
                  use_pos=False, transforms=None, train=False):
         super(EnvWrapper, self).__init__(env)
@@ -50,13 +50,12 @@ class EnvWrapper(gym.ObservationWrapper):
                 self.static_id = i
 
     def get_obs_space(self):
-        if(self._use_img_obs):
-            obs_space_dict = {
-                'img_obs': gym.spaces.Box(
-                    low=0,
-                    high=255,
+        if(self._use_img_obs or self._use_gripper_img):
+            obs_space_dict = {}
+            if(self._use_img_obs):
+                obs_space_dict["img_obs"] = gym.spaces.Box(
+                    low=0, high=255,
                     shape=(self.history_length, self.img_size, self.img_size))
-                    }
             if(self._use_depth):
                 obs_space_dict['depth_obs'] = gym.spaces.Box(
                     low=0, high=255,

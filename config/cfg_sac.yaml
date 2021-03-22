@@ -5,6 +5,7 @@ task: slide
 model_name: sac_vrenv
 repeat_training: 1
 euler_obs: True
+init_pos_near: False
 
 # Observation wrapper
 img_size: 128

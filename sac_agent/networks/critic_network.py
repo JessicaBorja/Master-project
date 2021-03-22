@@ -10,7 +10,7 @@ from sac_agent.networks.networks_common import \
 # q function
 class CriticNetwork(nn.Module):
     def __init__(self, state_dim, action_dim,
-                 activation="relu", hidden_dim=256):
+                 activation="relu", hidden_dim=256, **kwargs):
         super(CriticNetwork, self).__init__()
         self.fc1 = nn.Linear(state_dim + action_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)

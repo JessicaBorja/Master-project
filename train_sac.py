@@ -37,10 +37,11 @@ def main(cfg):
     print("Affordance model:")
     for k, v in cfg.agent.net_cfg.affordance.items():
         print("%s:%s" % (k, str(v)))
-    init_pos = cfg.env.robot_cfg.initial_joint_positions
-    init_pos = set_init_pos(cfg.task, init_pos)
-    cfg.env.robot_cfg.initial_joint_positions = init_pos
-    cfg.eval_env.robot_cfg.initial_joint_positions = init_pos
+    if(cfg.init_pos_near):
+        init_pos = cfg.env.robot_cfg.initial_joint_positions
+        init_pos = set_init_pos(cfg.task, init_pos)
+        cfg.env.robot_cfg.initial_joint_positions = init_pos
+        cfg.eval_env.robot_cfg.initial_joint_positions = init_pos
 
     for i in range(cfg.repeat_training):
         training_env = gym.make("VREnv-v0", **cfg.env).env

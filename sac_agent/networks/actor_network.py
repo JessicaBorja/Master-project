@@ -11,7 +11,7 @@ from sac_agent.networks.networks_common import \
 # policy
 class ActorNetwork(nn.Module):
     def __init__(self, state_dim, action_dim, action_max,
-                 activation="relu", hidden_dim=256):
+                 activation="relu", hidden_dim=256, **kwargs):
         super(ActorNetwork, self).__init__()
         self.fc1 = nn.Linear(state_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)

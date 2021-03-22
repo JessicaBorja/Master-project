@@ -133,11 +133,11 @@ class CNNCommon(nn.Module):
         if(self._use_affordance):
             # B, 2, W, H in [0-1]
             mask = self.aff_net(x)
-            # B, 1, W, H in [0-1]
-            mask = torch.argmax(mask, axis=1)
             # Add B dim if only one img
             if(len(mask.shape) == 3):  # Only one image
                 mask = mask.unsqueeze(0)
+            # B, 1, W, H in [0-1]
+            mask = torch.argmax(mask, axis=1, keepdim=True)
 
             # Show mask
             # show_mask = mask.permute(0, 2, 3, 1)

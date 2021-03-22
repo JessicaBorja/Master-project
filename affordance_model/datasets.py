@@ -1,8 +1,7 @@
 import numpy as np
 import torch
-import hydra
 from torch.utils.data import Dataset
-from torchvision import transforms
+from affordance_model.utils.utils import get_transforms
 import cv2
 import os
 import json
@@ -16,8 +15,8 @@ class VREnvData(Dataset):
         self.root_dir = root_dir
         _ids = self.read_json(os.path.join(root_dir, "episodes_split.json"))
         self.data = self._get_split_data(_ids, split, cam, n_train_ep)
-        self.transforms = self.get_transforms(transforms[split])
-        self.mask_transforms = self.get_transforms(transforms['masks'])
+        self.transforms = get_transforms(transforms[split])
+        self.mask_transforms = get_transforms(transforms['masks'])
 
     def _get_split_data(self, data, split, cam, n_train_ep):
         split_data = []
@@ -61,12 +60,6 @@ class VREnvData(Dataset):
         # CE Loss requires mask in form (B, H, W), so remove channel dim
         mask = mask.squeeze()
         return frame, mask
-
-    def get_transforms(self, transforms_cfg):
-        transforms_lst = []
-        for cfg in transforms_cfg:
-            transforms_lst.append(hydra.utils.instantiate(cfg))
-        return transforms.Compose(transforms_lst)
 
     def read_json(self, json_file):
         with open(json_file) as f:

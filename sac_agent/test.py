@@ -63,7 +63,7 @@ def hydra_evaluateVRenv(cfg):
             test_cfg.folder_name,
             test_cfg.model_name)
     print(os.path.abspath(path))
-    model = SAC(eval_env, img_obs=img_obs, net_cfg=net_cfg, **agent_cfg)
+    model = SAC(eval_env, net_cfg=net_cfg, **agent_cfg)
     success = model.load(path)
     if(success):
         model.evaluate(eval_env, **cfg.test_sac.eval_cfg)

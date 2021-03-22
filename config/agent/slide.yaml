@@ -14,6 +14,7 @@ hyperparameters:
 net_cfg:
     hidden_dim: 265
     activation: relu
+    affordance: ${affordance}
 
 learn_config:
     total_timesteps: 600000

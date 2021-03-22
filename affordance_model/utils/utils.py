@@ -1,6 +1,15 @@
 import numpy as np
 import cv2
 from PIL import Image
+import hydra
+from torchvision import transforms
+
+
+def get_transforms(transforms_cfg):
+    transforms_lst = []
+    for cfg in transforms_cfg:
+        transforms_lst.append(hydra.utils.instantiate(cfg))
+    return transforms.Compose(transforms_lst)
 
 
 def overlay_mask(mask, img, color):

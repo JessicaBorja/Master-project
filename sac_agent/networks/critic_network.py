@@ -25,7 +25,7 @@ class CriticNetwork(nn.Module):
 
 
 class CNNCritic(nn.Module):
-    def __init__(self, obs_space, action_dim,
+    def __init__(self, obs_space, action_dim, affordance=None,
                  hidden_dim=256, activation="relu"):
         super(CNNCritic, self).__init__()
         _position_shape = get_pos_shape(obs_space)
@@ -34,13 +34,15 @@ class CNNCritic(nn.Module):
                         out_feat=8,
                         activation=activation)
         self.cnn_img = get_img_network(
-                        obs_space,
-                        out_feat=8,
-                        activation=activation)
+                            obs_space,
+                            out_feat=8,
+                            activation=activation,
+                            affordance_cfg=affordance)
         self.cnn_gripper = get_gripper_network(
-                        obs_space,
-                        out_feat=8,
-                        activation=activation)
+                            obs_space,
+                            out_feat=8,
+                            activation=activation,
+                            affordance_cfg=affordance)
         out_feat = 0
         for net in [self.cnn_img, self.cnn_depth, self.cnn_gripper]:
             if(net is not None):

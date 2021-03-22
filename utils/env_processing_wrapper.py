@@ -7,15 +7,17 @@ import hydra
 
 
 class EnvWrapper(gym.ObservationWrapper):
-    def __init__(self, env, use_static_cam, use_depth, use_pos, use_gripper_cam,
-                 transforms, history_length, skip_frames, img_size,
-                 train=False):
+    def __init__(self, env, history_length, skip_frames, img_size, use_img=False,
+                 use_static_cam=False, use_depth=False, use_gripper_cam=False,
+                 use_pos=False, transforms=None, train=False):
         super(EnvWrapper, self).__init__(env)
         self.env = env
         self.img_size = img_size
-        self._transforms_cfg =\
-            transforms["train"] if train else transforms["validation"]
-        self.transforms, shape = self.get_transforms()
+        shape = (1, img_size, img_size)
+        if(transforms):
+            self._transforms_cfg =\
+                transforms["train"] if train else transforms["validation"]
+            self.transforms, shape = self.get_transforms()
 
         # History length
         self.skip_frames = skip_frames
@@ -77,11 +79,13 @@ class EnvWrapper(gym.ObservationWrapper):
         if(self._use_img_obs or self._use_gripper_img):
             obs = {}
             obs_dict = self.get_obs()
-            if(self._use_gripper_img):
+            if(self._use_img_obs):
+                cv2.imshow("static_cam orig", obs_dict['rgb_obs'][self.static_id])
                 img_obs = self.img_preprocessing(
                             obs_dict['rgb_obs'][self.static_id])
                 obs["img_obs"] = img_obs
             if(self._use_gripper_img):
+                cv2.imshow("gripper_cam orig", obs_dict['rgb_obs'][self.gripper_id])
                 gripper_obs = self.img_preprocessing(
                                 obs_dict['rgb_obs'][self.gripper_id])
                 obs["gripper_img_obs"] = gripper_obs

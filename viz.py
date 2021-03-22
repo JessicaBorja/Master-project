@@ -1,19 +1,14 @@
 # from torch.utils.data import DataLoader
 import hydra
 from affordance_model.segmentator import Segmentator
-import glob
 import os
 import cv2
 import torch
-from affordance_model.utils.utils import smoothen, overlay_mask
-from affordance_model.utils.transforms import ScaleImageTensor
-from torchvision import transforms
-from torchvision.transforms import Resize
+from affordance_model.utils.utils import smoothen, overlay_mask, get_transforms
 from omegaconf import OmegaConf
 from omegaconf.listconfig import ListConfig
 import tqdm
 from utils.file_manipulation import get_files
-
 
 
 def visualize(mask, img, imshow):
@@ -48,9 +43,7 @@ def viz(cfg):
 
     # Image needs to be multiple of 32 because of skip connections
     # and decoder layers
-    img_transform = transforms.Compose([
-        Resize(cfg.img_size),
-        ScaleImageTensor()])
+    img_transform = get_transforms(cfg.transforms.validation)
 
     # Iterate images
     files = []

@@ -6,20 +6,21 @@ data_dir: [../datasets/vrenv_play_large_handles/episode_10/frames/gripper_cam/,
            ../datasets/vrenv_play_large_handles/episode_1/frames/gripper_cam/,
            ../datasets/vrenv_play_large_handles/episode_13/frames/gripper_cam/]
 
-folder_name:  ${project_folder}/hydra_outputs/2021-03-12/17-35-36
-model_name: affordance-epoch=23-val_loss=0.4143.ckpt
+folder_name:  ${project_folder}/hydra_outputs/2021-03-21/20-20-52
+model_name: affordance-epoch=35-val_loss=0.3706.ckpt
 
 # Output img size, must be mutiple of 32
 save_images: True
 imshow: False
 img_size: 128
-output_dir: ${project_folder}/predictions/gripper_16ep_large_handles
+output_dir: ${project_folder}/predictions/gripper_16ep_grayscale
 
 defaults:
+  - transforms: img_transforms
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
 
 #-- Hydra config --#
 hydra:
   run:
-    dir: ../temp_viz/ # Output directory for normal runs
+    dir: ../tmp/viz # Output directory for normal runs

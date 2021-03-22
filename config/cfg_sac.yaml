@@ -1,4 +1,5 @@
-data_path: C:/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
+project_path: C:/Users/Jessica/Documents/Proyecto_ssd
+data_path: "${project_path}/VREnv/data/"
 save_dir: ./sac_agent/hydra_outputs/${task}
 task: slide
 model_name: sac_vrenv
@@ -6,7 +7,8 @@ repeat_training: 1
 euler_obs: True
 
 # Observation wrapper
-use_static_cam: True
+img_size: 128
+use_static_cam: False
 use_gripper_cam: False
 use_pos: False
 use_depth: False
@@ -15,20 +17,6 @@ use_depth: False
 rand_init_state: False
 sparse_reward: False
 
-env:
-  cameras: ${camera_conf.cameras}
-  robot_cfg: ${robot}
-  scene: ${scene}
-  rand_init_state: ${rand_init_state}
-  sparse_reward: ${sparse_reward}
-
-eval_env:
-  cameras: ${camera_conf.cameras}
-  robot_cfg: ${robot}
-  scene: ${scene}
-  rand_init_state: ${rand_init_state}
-  sparse_reward: ${sparse_reward}
-
 env_wrapper:
   use_depth: ${use_depth}
   use_pos: ${use_pos}
@@ -36,19 +24,33 @@ env_wrapper:
   use_gripper_cam: ${use_gripper_cam}
   history_length: 1
   skip_frames: 0
-  img_size: 84
+  img_size: ${img_size}
   transforms: ${transforms}
 
+
+models_path: "${project_path}/SAC/trained_models/"
+affordance:
+    hyperparameters:
+      loss_weight: [0.2, 0.8]
+      optimizer:
+        lr: 5e-6
+        weight_decay: 1e-3
+    static_cam:
+      use: False
+      model_path: ${models_path}/affordance_gripper_16ep_val_loss=0.4135.ckpt
+    gripper_cam:
+      use: True
+      model_path: ${models_path}/affordance_gripper_16ep_grayscale_val_loss=0.3706.ckpt
 #Env 
 defaults:
-  - transforms: sac_transforms
+  - transforms: img_transforms
   - robot: panda
   - scene: basic_playtable
   - env: env
   - env@eval_env: env
   - camera_conf: topview
-  - agent: default
   - test_sac: test
+  - agent: default
   - optim@optim: config_optim
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog

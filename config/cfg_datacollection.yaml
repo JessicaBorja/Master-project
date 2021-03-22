@@ -93,4 +93,4 @@ all_cameras:
     look_from: [0.2, 0.05, 1.3]
 hydra:
   run:
-    dir: ../test_runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    dir: ../tmp/datacollection/${now:%Y-%m-%d}_${now:%H-%M-%S}

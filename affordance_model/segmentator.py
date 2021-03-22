@@ -22,7 +22,7 @@ class Segmentator(pl.LightningModule):
         self.unet = smp.Unet(
             encoder_name="resnet18",
             encoder_weights="imagenet",
-            in_channels=3,  # RGB
+            in_channels=1,  # Grayscale
             classes=n_classes,
             encoder_depth=3,  # Should be equal to number of layers in decoder
             decoder_channels=(128, 64, 32),

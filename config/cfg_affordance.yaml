@@ -1,14 +1,14 @@
 data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_play_large_handles/
 save_dir: ./affordance_model/hydra_outputs/
 
-model_name: aff_gripper_nd_4ep
+model_name: aff_gripper_16ep_grayscale
 n_epochs: 40
 img_size: 128 #32x4, will be subsampled 3 times
 
 dataset:
   root_dir: ${data_dir}
   cam: gripper
-  n_train_ep: 4 # n-1 training ep, n_episodes in [8,6,4]
+  n_train_ep: 16 # n-1 training ep, n_episodes in [8,6,4]
 
 dataloader:
   num_workers: 4
@@ -19,7 +19,7 @@ model_cfg:
   model_name: "${model_name}"
   loss_weight: [0.2, 0.8]
   optimizer:
-    lr: 5e-6
+    lr: 1e-6
     weight_decay: 1e-3
 
 trainer:
@@ -28,7 +28,7 @@ trainer:
   num_sanity_val_steps: 1
 
 defaults:
-  - transforms@dataset.transforms: affordance_transforms #Load from folder image_transforms, as dataset.transforms
+  - transforms@dataset.transforms: img_transforms #Load from folder image_transforms, as dataset.transforms
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
 

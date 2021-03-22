@@ -17,11 +17,13 @@ from sac_agent.sac import SAC
 
 def set_init_pos(task, init_pos):
     if(task == "slide"):
-        init_pos = [-1.7245799162898525, 1.8325999998998153, 1.0841486101692206, -2.4397926771547223, -0.6158132412445191, 3.8223000000000007, -0.7371749302934671]
+        init_pos = [-1.1686195081948965, 1.5165126497924815, 1.7042540963745911, -1.6031852712241403, -2.5717679087567484, 2.331416872629473, -1.3006358472301627]
     elif(task == "drawer"):
-        init_pos = [-0.6674729645820069, 1.7509613833040443, 1.304967922545566, -2.3491822541374074, -1.8854745478807724, 1.6293532800388535, -0.6413070674224167]
+        init_pos = [-0.4852725866746207, 1.0618989199760496, 1.3903811172536515, -1.7446581003391255, -1.1359501486104144, 1.8855365146855005, -1.3092771579652827]
     elif(task == "banana"):
-        init_pos = [-0.9362933014487528, 1.7627833953065635, 1.2982581683461047, -2.155751832748698, -1.9943154775966752, 2.161505259849768, -1.2318332432817771]
+        init_pos = [0.03740465833778156, 1.1844912206595481, 1.1330028132229706, -0.6702560563758552, -1.1188250499368455, 1.6153329476732947, -1.7078632665627795]
+    elif(task == "hinge"):
+        init_pos = [-0.3803066514807313, 0.931053115322005, 1.1668869976984892, -0.8602164833917604, -1.4818301463768684, 2.78299286093898, -1.7318962831826747]
     return init_pos
 
 @hydra.main(config_path="./config", config_name="cfg_sac")
@@ -29,9 +31,12 @@ def main(cfg):
     print("agent configuration")
     print(OmegaConf.to_yaml(cfg.agent))
     print("repeat_training:%d" % cfg.repeat_training)
+    print("Image Wrapper:")
     for k, v in cfg.env_wrapper.items():
         print("%s:%s" % (k, str(v)))
-
+    print("Affordance model:")
+    for k, v in cfg.agent.net_cfg.affordance.items():
+        print("%s:%s" % (k, str(v)))
     init_pos = cfg.env.robot_cfg.initial_joint_positions
     init_pos = set_init_pos(cfg.task, init_pos)
     cfg.env.robot_cfg.initial_joint_positions = init_pos

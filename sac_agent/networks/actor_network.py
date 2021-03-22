@@ -53,7 +53,7 @@ class ActorNetwork(nn.Module):
 
 
 class CNNPolicy(nn.Module):
-    def __init__(self, obs_space, action_dim, action_max,
+    def __init__(self, obs_space, action_dim, action_max, affordance=None,
                  activation="relu", hidden_dim=256):
         super(CNNPolicy, self).__init__()
         self.action_max = action_max
@@ -65,11 +65,13 @@ class CNNPolicy(nn.Module):
         self.cnn_img = get_img_network(
                             obs_space,
                             out_feat=8,
-                            activation=activation)
+                            activation=activation,
+                            affordance_cfg=affordance)
         self.cnn_gripper = get_gripper_network(
                             obs_space,
                             out_feat=8,
-                            activation=activation)
+                            activation=activation,
+                            affordance_cfg=affordance)
         out_feat = 0
         for net in [self.cnn_img, self.cnn_depth, self.cnn_gripper]:
             if(net is not None):

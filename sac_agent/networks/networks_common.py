@@ -140,15 +140,15 @@ class CNNCommon(nn.Module):
                 mask = mask.unsqueeze(0)
 
             # Show mask
-            show_mask = mask.permute(0, 2, 3, 1)
-            show_mask = show_mask[0].detach().cpu().numpy()*255.0
-            show_mask = smoothen(show_mask, k=15)  # [0, 255] int
-            img = x.permute(0, 2, 3, 1)[0].detach().cpu().numpy()*255.0
-            img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-            img = cv2.normalize(img, None, 255, 0, cv2.NORM_MINMAX, cv2.CV_8UC1)
-            res = overlay_mask(show_mask, img, (0, 0, 255))
-            cv2.imshow("paste", res)
-            cv2.waitKey(1)
+            # show_mask = mask.permute(0, 2, 3, 1)
+            # show_mask = show_mask[0].detach().cpu().numpy()*255.0
+            # show_mask = smoothen(show_mask, k=15)  # [0, 255] int
+            # img = x.permute(0, 2, 3, 1)[0].detach().cpu().numpy()*255.0
+            # img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+            # img = cv2.normalize(img, None, 255, 0, cv2.NORM_MINMAX, cv2.CV_8UC1)
+            # res = overlay_mask(show_mask, img, (0, 0, 255))
+            # cv2.imshow("paste", res)
+            # cv2.waitKey(1)
 
             # Concat segmentation mask
             x = torch.cat((x, mask), 1)

@@ -80,12 +80,12 @@ class EnvWrapper(gym.ObservationWrapper):
             obs = {}
             obs_dict = self.get_obs()
             if(self._use_img_obs):
-                cv2.imshow("static_cam orig", obs_dict['rgb_obs'][self.static_id])
+                # cv2.imshow("static_cam orig", obs_dict['rgb_obs'][self.static_id])
                 img_obs = self.img_preprocessing(
                             obs_dict['rgb_obs'][self.static_id])
                 obs["img_obs"] = img_obs
             if(self._use_gripper_img):
-                cv2.imshow("gripper_cam orig", obs_dict['rgb_obs'][self.gripper_id])
+                # cv2.imshow("gripper_cam orig", obs_dict['rgb_obs'][self.gripper_id])
                 gripper_obs = self.img_preprocessing(
                                 obs_dict['rgb_obs'][self.gripper_id])
                 obs["gripper_img_obs"] = gripper_obs

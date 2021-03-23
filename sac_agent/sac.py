@@ -60,10 +60,8 @@ class SAC():
 
         self.learning_starts = learning_starts
 
-        action_dim = env.action_space.shape[0]
-        action_max = env.action_space.high[0]
-
-        policy_net, critic_net, obs_space = get_nets(_img_obs, obs_space)
+        policy_net, critic_net, obs_space, action_dim, action_max = \
+            get_nets(_img_obs, obs_space, env.action_space)
         self._pi = policy_net(obs_space, action_dim,
                               action_max=action_max,
                               **net_cfg).cuda()

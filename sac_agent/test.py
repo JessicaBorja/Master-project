@@ -12,6 +12,7 @@ sys.path.insert(0, parent_dir+"/VREnv/")
 from sac_agent.sac import SAC
 from utils.env_processing_wrapper import EnvWrapper
 from omegaconf import OmegaConf
+from sac_agent.sac_utils.utils import set_init_pos
 
 gym.envs.register(
      id='VREnv-v0',
@@ -20,21 +21,47 @@ gym.envs.register(
 )
 
 
+def change_project_path(cfg, run_cfg):
+    net_cfg = run_cfg.agent.net_cfg
+    # Change affordance path to match current system
+    static_cam_aff_path = net_cfg.affordance.static_cam.model_path
+    static_cam_aff_path = static_cam_aff_path.replace(
+        run_cfg.project_path,
+        cfg.project_path)
+    net_cfg.affordance.static_cam.model_path = static_cam_aff_path
+
+    # Gripper cam
+    gripper_cam_aff_path = net_cfg.affordance.gripper_cam.model_path
+    gripper_cam_aff_path = gripper_cam_aff_path.replace(
+        run_cfg.project_path,
+        cfg.project_path)
+    net_cfg.affordance.gripper_cam.model_path = gripper_cam_aff_path
+
+    # VREnv data path
+    run_cfg.data_path = run_cfg.data_path.replace(
+        run_cfg.project_path,
+        cfg.project_path)
+
+
 def load_cfg(cfg_path, cfg, optim_res):
     if(os.path.exists(cfg_path) and not optim_res):
         run_cfg = OmegaConf.load(cfg_path)
         net_cfg = run_cfg.agent.net_cfg
-        img_obs = run_cfg.img_obs
         env_wrapper = run_cfg.env_wrapper
         agent_cfg = run_cfg.agent.hyperparameters
+        change_project_path(cfg, run_cfg)
     else:
         run_cfg = cfg
         net_cfg = cfg.agent.net_cfg
-        img_obs = cfg.img_obs
         env_wrapper = cfg.env_wrapper
         agent_cfg = cfg.agent.hyperparameters
 
-    return run_cfg, net_cfg, img_obs, env_wrapper, agent_cfg
+    if(run_cfg.init_pos_near):
+        init_pos = run_cfg.env.robot_cfg.initial_joint_positions
+        init_pos = set_init_pos(run_cfg.task, init_pos)
+        run_cfg.env.robot_cfg.initial_joint_positions = init_pos
+        run_cfg.eval_env.robot_cfg.initial_joint_positions = init_pos
+    return run_cfg, net_cfg, env_wrapper, agent_cfg
 
 
 @hydra.main(config_path="../config", config_name="cfg_sac")
@@ -45,17 +72,16 @@ def hydra_evaluateVRenv(cfg):
     test_cfg = cfg.test_sac
     optim_res = cfg.test_sac.optim_res
     # Load saved config
-    run_cfg, net_cfg, img_obs, env_wrapper, agent_cfg =\
+    run_cfg, net_cfg, env_wrapper, agent_cfg =\
         load_cfg(test_cfg.folder_name + ".hydra/config.yaml", cfg, optim_res)
 
     # Create evaluation environment and wrapper for the image in case there's
     # an image observation
-    cfg.eval_env.task = run_cfg.task
-    cfg.eval_env.rand_init_state = run_cfg.rand_init_state
-    print(cfg.eval_env.task)
-    print("Random initial state: %s" % cfg.eval_env.rand_init_state)
+    run_cfg.env.show_gui = cfg.eval_env.show_gui
+    print(run_cfg.eval_env.task)
+    print("Random initial state: %s" % run_cfg.env.rand_init_state)
     print(OmegaConf.to_yaml(env_wrapper))
-    eval_env = gym.make("VREnv-v0", **cfg.eval_env).env
+    eval_env = gym.make("VREnv-v0", **run_cfg.env).env
     eval_env = EnvWrapper(eval_env, **env_wrapper)
 
     # Load model

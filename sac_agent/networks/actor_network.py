@@ -10,7 +10,7 @@ from sac_agent.networks.networks_common import \
 
 # policy
 class ActorNetwork(nn.Module):
-    def __init__(self, state_dim, action_dim, action_max,
+    def __init__(self, state_dim, action_dim, action_space,
                  activation="relu", hidden_dim=256, **kwargs):
         super(ActorNetwork, self).__init__()
         self.fc1 = nn.Linear(state_dim, hidden_dim)
@@ -18,7 +18,8 @@ class ActorNetwork(nn.Module):
         self.mu = nn.Linear(hidden_dim, action_dim)
         self.sigma = nn.Linear(hidden_dim, action_dim)
         self._activation = get_activation_fn(activation)
-        self.action_max = action_max
+        self.action_high = action_space.high[0]
+        self.action_max = action_space.low[0]
 
     def forward(self, x):
         x = self._activation(self.fc1(x))
@@ -28,35 +29,41 @@ class ActorNetwork(nn.Module):
         # ensure sigma is between "0" and 1
         return mu, sigma
 
+    def scale_action(self, action):
+        slope = (self.action_high - self.action_low) / 2
+        action = self.action_low + slope * (action + 1)
+        return action
+
     # return action scaled to env
     def act(self, curr_obs, deterministic=False, reparametrize=False):
         mu, sigma = self.forward(curr_obs)  # .squeeze(0)
         log_probs = None
         if(deterministic):
-            action = torch.tanh(mu) * self.action_max
+            action = torch.tanh(mu)
         else:
             dist = Normal(mu, sigma)
             if(reparametrize):
                 sample = dist.rsample()
             else:
                 sample = dist.sample()
-            action = torch.tanh(sample) * self.action_max
+            action = torch.tanh(sample)
             # For updating policy, Apendix of SAC paper
             # unsqueeze because log_probs is of dim (batch_size, action_dim)
             # but the torch.log... is (batch_size)
             log_probs = dist.log_prob(sample) - \
-                torch.log((1 - torch.tanh(sample).pow(2) + 1e-6))
+                torch.log((1 - action.square() + 1e-6))
             # +1e-6 to avoid no log(0)
             log_probs = log_probs.sum(-1)  # , keepdim=True)
-
+        action = self.scale_action(action)
         return action, log_probs
 
 
 class CNNPolicy(nn.Module):
-    def __init__(self, obs_space, action_dim, action_max, affordance=None,
+    def __init__(self, obs_space, action_dim, action_space, affordance=None,
                  activation="relu", hidden_dim=256):
         super(CNNPolicy, self).__init__()
-        self.action_max = action_max
+        self.action_high = torch.tensor(action_space.high).cuda()
+        self.action_low = torch.tensor(action_space.low).cuda()
         _position_shape = get_pos_shape(obs_space)
         self.cnn_depth = get_depth_network(
                             obs_space,
@@ -93,25 +100,32 @@ class CNNPolicy(nn.Module):
         sigma = F.softplus(self.sigma(x))
         return mu, sigma
 
+    def scale_action(self, action):
+        slope = (self.action_high - self.action_low) / 2
+        action = self.action_low + slope * (action + 1)
+        return action
+
     # return action scaled to env
     def act(self, curr_obs, deterministic=False, reparametrize=False):
         mu, sigma = self.forward(curr_obs)  # .squeeze(0)
         log_probs = None
         if(deterministic):
-            action = torch.tanh(mu) * self.action_max
+            action = torch.tanh(mu)
         else:
+            # sigma = log_sigma.exp()
             dist = Normal(mu, sigma)
             if(reparametrize):
                 sample = dist.rsample()
             else:
                 sample = dist.sample()
-            action = torch.tanh(sample) * self.action_max
+            action = torch.tanh(sample)
             # For updating policy, Apendix of SAC paper
             # unsqueeze because log_probs is of dim (batch_size, action_dim)
             # but the torch.log... is (batch_size)
             log_probs = dist.log_prob(sample) -\
-                torch.log((1 - torch.tanh(sample).pow(2) + 1e-6))
+                torch.log((1 - action.square() + 1e-6))
             log_probs = log_probs.sum(-1)  # , keepdim=True)
+        action = self.scale_action(action)
         return action, log_probs
 
 

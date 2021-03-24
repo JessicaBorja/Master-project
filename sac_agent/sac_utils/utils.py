@@ -33,12 +33,10 @@ def get_nets(img_obs, obs_space, action_space):
         critic = "CNNCritic"
         # policy = "legacy_CNNPolicy"
         # critic = "legacy_CNNCritic"
-        action_max = torch.tensor(action_space.high).cuda()
     else:
         obs_space = obs_space.shape[0]
         policy = "ActorNetwork"
         critic = "CriticNetwork"
-        action_max = action_space.high[0]
 
     policy_net = getattr(
         importlib.import_module("sac_agent.networks.actor_network"),
@@ -47,7 +45,7 @@ def get_nets(img_obs, obs_space, action_space):
         importlib.import_module("sac_agent.networks.critic_network"),
         critic)
     print("Networks: %s, \t%s" % (policy, critic))
-    return policy_net, critic_net, obs_space, action_dim, action_max
+    return policy_net, critic_net, obs_space, action_dim
 
 
 def tt(x):

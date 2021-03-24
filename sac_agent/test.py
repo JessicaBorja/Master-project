@@ -80,7 +80,6 @@ def hydra_evaluateVRenv(cfg):
     run_cfg.env.show_gui = cfg.eval_env.show_gui
     print(run_cfg.eval_env.task)
     print("Random initial state: %s" % run_cfg.env.rand_init_state)
-    print(OmegaConf.to_yaml(env_wrapper))
     eval_env = gym.make("VREnv-v0", **run_cfg.env).env
     eval_env = EnvWrapper(eval_env, **env_wrapper)
 

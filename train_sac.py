@@ -15,22 +15,35 @@ from utils.env_processing_wrapper import EnvWrapper
 from sac_agent.sac import SAC
 from sac_agent.sac_utils.utils import set_init_pos
 
-@hydra.main(config_path="./config", config_name="cfg_sac")
-def main(cfg):
-    print("agent configuration")
-    print(OmegaConf.to_yaml(cfg.agent))
-    print("repeat_training:%d" % cfg.repeat_training)
+
+def print_common_cfg(cfg):
+    print("Learn config")
+    print(OmegaConf.to_yaml(cfg.agent.learn_config))
     print("Image Wrapper:")
     for k, v in cfg.env_wrapper.items():
         print("%s:%s" % (k, str(v)))
     print("Affordance model:")
     for k, v in cfg.agent.net_cfg.affordance.items():
         print("%s:%s" % (k, str(v)))
+    print("Train robot init: %s" %
+          cfg.env.robot_cfg.initial_joint_positions)
+    print("Eval robot init: %s" %
+          cfg.eval_env.robot_cfg.initial_joint_positions)
+    print("task: %s" % cfg.task)
+    print("init_pos_near: %s" % cfg.init_pos_near)
+    print("repeat_training:%d" % cfg.repeat_training)
+    print("Sparse reward: %s" % cfg.sparse_reward)
+    print("rand_init_state: %s" % cfg.rand_init_state)
+
+
+@hydra.main(config_path="./config", config_name="cfg_sac")
+def main(cfg):
     if(cfg.init_pos_near):
         init_pos = cfg.env.robot_cfg.initial_joint_positions
         init_pos = set_init_pos(cfg.task, init_pos)
         cfg.env.robot_cfg.initial_joint_positions = init_pos
         cfg.eval_env.robot_cfg.initial_joint_positions = init_pos
+    print_common_cfg(cfg)
 
     for i in range(cfg.repeat_training):
         training_env = gym.make("VREnv-v0", **cfg.env).env

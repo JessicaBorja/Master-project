@@ -15,8 +15,11 @@ models_dir: C:/Users/Jessica/Documents/Proyecto_ssd/SAC/sac_agent/hydra_outputs/
 # model_name: "drawer_best_eval"
 # folder_name: ${test_sac.models_dir}/trained_no_img/drawer/
 
-model_name: "hinge_best_eval"
-folder_name: ${test_sac.models_dir}/trained_no_img/hinge/
+# model_name: "b_simg_gimp-aff_pos_dense_23-03_12-54_best_train"
+# folder_name: ${test_sac.models_dir}/banana/2021-03-23/12-54-00/
+
+model_name: "b_simg_gimp_pos_dense_23-03_20-41_best_train"
+folder_name: ${test_sac.models_dir}/banana/2021-03-23/20-41-30/
 
 # model_name: "slide_best_eval"
 # folder_name: ${test_sac.models_dir}/trained_no_img/slide/
@@ -29,4 +32,4 @@ eval_cfg:
   render: True
   print_all_episodes: True
   max_episode_length: 200
-  save_images: True
+  save_images: False

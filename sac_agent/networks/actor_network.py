@@ -25,8 +25,9 @@ class ActorNetwork(nn.Module):
         x = self._activation(self.fc1(x))
         x = self._activation(self.fc2(x))
         mu = self.mu(x)
-        sigma = F.softplus(self.sigma(x))
-        # ensure sigma is between "0" and 1
+        log_sigma = self.sigma(x)
+        # avoid log_sigma to go to infinity
+        sigma = torch.clamp(log_sigma, -20, 2).exp()
         return mu, sigma
 
     def scale_action(self, action):
@@ -97,7 +98,9 @@ class CNNPolicy(nn.Module):
 
         x = F.elu(self.fc1(features))
         mu = self.mu(x)
-        sigma = F.softplus(self.sigma(x))
+        log_sigma = self.sigma(x)
+        # avoid log_sigma to go to infinity
+        sigma = torch.clamp(log_sigma, -20, 2).exp()
         return mu, sigma
 
     def scale_action(self, action):
@@ -112,7 +115,6 @@ class CNNPolicy(nn.Module):
         if(deterministic):
             action = torch.tanh(mu)
         else:
-            # sigma = log_sigma.exp()
             dist = Normal(mu, sigma)
             if(reparametrize):
                 sample = dist.rsample()

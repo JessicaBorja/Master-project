@@ -132,7 +132,8 @@ class CNNCommon(nn.Module):
         # x = self.fc1(x.view(batch_size,-1)).squeeze() #bs, out_feat
         if(self._use_affordance):
             # B, 2, W, H in [0-1]
-            mask = self.aff_net(x)
+            with torch.no_grad:
+                mask = self.aff_net(x)
             # Add B dim if only one img
             if(len(mask.shape) == 3):  # Only one image
                 mask = mask.unsqueeze(0)

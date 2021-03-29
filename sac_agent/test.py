@@ -77,10 +77,10 @@ def hydra_evaluateVRenv(cfg):
 
     # Create evaluation environment and wrapper for the image in case there's
     # an image observation
-    run_cfg.env.show_gui = cfg.eval_env.show_gui
+    run_cfg.eval_env.show_gui = cfg.eval_env.show_gui
     print(run_cfg.eval_env.task)
-    print("Random initial state: %s" % run_cfg.env.rand_init_state)
-    eval_env = gym.make("VREnv-v0", **run_cfg.env).env
+    print("Random initial state: %s" % run_cfg.eval_env.rand_init_state)
+    eval_env = gym.make("VREnv-v0", **run_cfg.eval_env).env
     eval_env = EnvWrapper(eval_env, **env_wrapper)
 
     # Load model

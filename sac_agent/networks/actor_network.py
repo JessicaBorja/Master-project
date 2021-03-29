@@ -19,7 +19,7 @@ class ActorNetwork(nn.Module):
         self.sigma = nn.Linear(hidden_dim, action_dim)
         self._activation = get_activation_fn(activation)
         self.action_high = action_space.high[0]
-        self.action_max = action_space.low[0]
+        self.action_low = action_space.low[0]
 
     def forward(self, x):
         x = self._activation(self.fc1(x))

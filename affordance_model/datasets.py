@@ -42,7 +42,7 @@ class VREnvData(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        head, filename = os.path.split(self.data[idx])
+        head, filename = os.path.split(self.data[idx].replace("\\", "/"))
         episode, cam_folder = os.path.normpath(head).split(os.path.sep)
         frame = cv2.imread(self.root_dir +
                            "/%s/frames/%s/%s.jpg" % (episode, cam_folder, filename),

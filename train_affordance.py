@@ -28,14 +28,22 @@ def train(cfg):
     logger.info('val minibatches {}'.format(len(val_loader)))
 
     # Initialize model
-    checkpoint_callback = ModelCheckpoint(
+    checkpoint_loss_callback = ModelCheckpoint(
         monitor='val_loss',
         dirpath="trained_models",
         filename='affordance-{epoch:02d}-{val_loss:.4f}',
-        save_top_k=3,
+        save_top_k=2,
         verbose=True
         )
 
+    checkpoint_miou_callback = ModelCheckpoint(
+        monitor='val_mIoU',
+        dirpath="trained_models",
+        filename='affordance-{epoch:02d}-{val_loss:.4f}',
+        save_top_k=2,
+        verbose=True
+        )
+        
     model_name = cfg.model_name
     model_name = "{}_{}".format(
                         model_name,
@@ -44,7 +52,7 @@ def train(cfg):
 
     aff_model = Segmentator(cfg.model_cfg, cmd_log=logger)
     trainer = pl.Trainer(
-        callbacks=[checkpoint_callback],
+        callbacks=[checkpoint_miou_callback, checkpoint_loss_callback],
         logger=tb_logger,
         **cfg.trainer)
     trainer.fit(aff_model, train_loader, val_loader)

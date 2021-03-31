@@ -39,11 +39,11 @@ def train(cfg):
     checkpoint_miou_callback = ModelCheckpoint(
         monitor='val_mIoU',
         dirpath="trained_models",
-        filename='affordance-{epoch:02d}-{val_loss:.4f}',
+        filename='affordance-{epoch:02d}-{val_miou:.4f}',
         save_top_k=2,
         verbose=True
         )
-        
+
     model_name = cfg.model_name
     model_name = "{}_{}".format(
                         model_name,

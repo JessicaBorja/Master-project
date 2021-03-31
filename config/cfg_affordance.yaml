@@ -12,7 +12,7 @@ dataset:
 
 dataloader:
   num_workers: 4
-  batch_size : 8 #28
+  batch_size : 64 #28
   pin_memory: True
 
 model_cfg:
@@ -20,7 +20,7 @@ model_cfg:
   add_dice_loss: True
   loss_weight: [0.2, 0.8]
   optimizer:
-    lr: 1e-6
+    lr: 1e-5
     weight_decay: 1e-3
 
 trainer:

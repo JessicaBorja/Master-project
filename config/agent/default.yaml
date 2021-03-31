@@ -17,7 +17,7 @@ net_cfg:
     affordance: ${affordance}
 
 learn_config:
-    total_timesteps: 1e6 #millon 1e6
+    total_timesteps: 1e4
     log_interval: 1400 #log timestep mean_eval reward every log_interval steps
     max_episode_length: 200 #max episode length
     n_eval_ep: 5

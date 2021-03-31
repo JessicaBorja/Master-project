@@ -47,7 +47,7 @@ def train(cfg):
     model_name = cfg.model_name
     model_name = "{}_{}".format(
                         model_name,
-                        datetime.datetime.now().strftime('%d-%m_%I-%M'))
+                        datetime.datetime.now().strftime('%d-%m_%H-%M')) # 24hr format
     tb_logger = TensorBoardLogger("tb_logs", name=model_name)
 
     aff_model = Segmentator(cfg.model_cfg, cmd_log=logger)

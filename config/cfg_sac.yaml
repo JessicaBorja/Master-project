@@ -32,6 +32,7 @@ env_wrapper:
 models_path: "${project_path}/SAC/trained_models/"
 affordance:
     hyperparameters:
+      add_dice_loss: False
       loss_weight: [0.2, 0.8]
       optimizer:
         lr: 5e-6

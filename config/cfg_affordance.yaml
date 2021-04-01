@@ -19,6 +19,7 @@ model_cfg:
   model_name: "${model_name}"
   add_dice_loss: True
   dice_weight: 5
+  cross_entropy_weight: 1
   loss_weight: [0.2, 0.8]
   optimizer:
     lr: 1e-5

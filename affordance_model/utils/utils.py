@@ -1,15 +1,21 @@
 import numpy as np
 import cv2
 from PIL import Image
-import hydra
-from torchvision import transforms
+from affordance_model.datasets import VREnvData
+from torch.utils.data import DataLoader
 
 
-def get_transforms(transforms_cfg):
-    transforms_lst = []
-    for cfg in transforms_cfg:
-        transforms_lst.append(hydra.utils.instantiate(cfg))
-    return transforms.Compose(transforms_lst)
+def get_loaders(logger, dataset_cfg, dataloader_cfg):
+    train = VREnvData(split="train", log=logger, **dataset_cfg)
+    val = VREnvData(split="validation", log=logger, **dataset_cfg)
+    logger.info('train_data {}'.format(train.__len__()))
+    logger.info('val_data {}'.format(val.__len__()))
+
+    train_loader = DataLoader(train, shuffle=True, **dataloader_cfg)
+    val_loader = DataLoader(val, **dataloader_cfg)
+    logger.info('train minibatches {}'.format(len(train_loader)))
+    logger.info('val minibatches {}'.format(len(val_loader)))
+    return train_loader, val_loader
 
 
 def overlay_mask(mask, img, color):

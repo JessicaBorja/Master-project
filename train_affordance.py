@@ -1,14 +1,13 @@
 import datetime
 import logging
-from torch.utils.data import DataLoader
 import hydra
 from omegaconf import OmegaConf
-from affordance_model.datasets import VREnvData
 from affordance_model.segmentator import Segmentator
+from affordance_model.utils.utils import get_loaders
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
-import wandb
+
 
 @hydra.main(config_path="./config", config_name="cfg_affordance")
 def train(cfg):
@@ -17,15 +16,8 @@ def train(cfg):
     logger.info("Running configuration: %s", OmegaConf.to_yaml(cfg))
 
     # Data split
-    train = VREnvData(split="train", log=logger, **cfg.dataset)
-    val = VREnvData(split="validation", log=logger, **cfg.dataset)
-    logger.info('train_data {}'.format(train.__len__()))
-    logger.info('val_data {}'.format(val.__len__()))
-
-    train_loader = DataLoader(train, shuffle=True, **cfg.dataloader)
-    val_loader = DataLoader(val, **cfg.dataloader)
-    logger.info('train minibatches {}'.format(len(train_loader)))
-    logger.info('val minibatches {}'.format(len(val_loader)))
+    train_loader, val_loader = \
+        get_loaders(logger, cfg.dataset, cfg.dataloader)
 
     # Initialize model
     checkpoint_loss_callback = ModelCheckpoint(

@@ -4,7 +4,8 @@ from affordance_model.segmentator import Segmentator
 import os
 import cv2
 import torch
-from affordance_model.utils.utils import smoothen, overlay_mask, get_transforms
+from affordance_model.utils.utils import smoothen, overlay_mask
+from affordance_model.datasets import get_transforms
 from omegaconf import OmegaConf
 from omegaconf.listconfig import ListConfig
 import tqdm
@@ -25,6 +26,7 @@ def visualize(mask, img, imshow):
         cv2.imshow("paste", res)
         cv2.waitKey(1)
     return res
+
 
 @hydra.main(config_path="./config", config_name="viz_affordances")
 def viz(cfg):

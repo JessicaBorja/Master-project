@@ -42,7 +42,7 @@ class Segmentator(pl.LightningModule):
     def compute_loss(self, preds, labels):
         # Preds = (B, C, W, H)
         loss = self.criterion(preds, labels)
-        info = {"CE_loss":loss}
+        info = {"CE_loss": loss}
         if self._add_dice_loss:
             # Unweighted cross entropy + dice loss
             label_spatial = pixel2spatial(
@@ -64,8 +64,10 @@ class Segmentator(pl.LightningModule):
 
     def log_stats(self, split, max_batch, batch_idx, loss, miou):
         if(batch_idx >= max_batch - 1):
-            e_loss = 0 if len(self._batch_loss) == 0 else np.mean(self._batch_loss)
-            e_miou = 0 if len(self._batch_miou) == 0 else np.mean(self._batch_miou)
+            e_loss = 0 if len(self._batch_loss) == 0 \
+                else np.mean(self._batch_loss)
+            e_miou = 0 if len(self._batch_miou) == 0 \
+                else np.mean(self._batch_miou)
             self.cmd_log.info(
                 "%s [epoch %4d]" % (split, self.current_epoch) +
                 "loss: %.3f, mIou: %.3f" % (e_loss, e_miou))
@@ -102,7 +104,7 @@ class Segmentator(pl.LightningModule):
                        batch_idx, total_loss, mIoU)
         self.log("validation/mIoU", mIoU, on_step=False, on_epoch=True)
         self.log("validation/total_loss", total_loss,
-                    on_step=False, on_epoch=True)
+                 on_step=False, on_epoch=True)
         for k, v in info.items():
             self.log("validation/%s" % k, v, on_step=False, on_epoch=True)
 

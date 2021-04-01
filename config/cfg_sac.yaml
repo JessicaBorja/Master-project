@@ -53,7 +53,7 @@ defaults:
   - camera_conf: topview
   - test_sac: test
   - agent: default
-  - optim@optim: config_optim
+  - optim@optim: sac_optim
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
 

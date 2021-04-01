@@ -1,10 +1,18 @@
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from affordance_model.utils.utils import get_transforms
 import cv2
 import os
 import json
+import hydra
+from torchvision import transforms
+
+
+def get_transforms(transforms_cfg):
+    transforms_lst = []
+    for cfg in transforms_cfg:
+        transforms_lst.append(hydra.utils.instantiate(cfg))
+    return transforms.Compose(transforms_lst)
 
 
 class VREnvData(Dataset):
@@ -45,7 +53,8 @@ class VREnvData(Dataset):
         head, filename = os.path.split(self.data[idx].replace("\\", "/"))
         episode, cam_folder = os.path.normpath(head).split(os.path.sep)
         frame = cv2.imread(self.root_dir +
-                           "/%s/frames/%s/%s.jpg" % (episode, cam_folder, filename),
+                           "/%s/frames/%s/%s.jpg" %
+                           (episode, cam_folder, filename),
                            cv2.COLOR_BGR2RGB)
         frame = torch.from_numpy(frame).permute(2, 0, 1)  # C, W, H
         # frame = Image.open(self.frames_dir + filename  + ".jpg")

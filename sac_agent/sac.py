@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 
 class SAC():
-    def __init__(self, env=None, eval_env=None, save_dir="./trained_models",
+    def __init__(self, env, eval_env=None, save_dir="./trained_models",
                  gamma=0.99, alpha="auto",
                  actor_lr=3e-4, critic_lr=3e-4, alpha_lr=3e-4,
                  tau=0.005, learning_starts=1000,

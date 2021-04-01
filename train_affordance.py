@@ -7,8 +7,8 @@ from affordance_model.datasets import VREnvData
 from affordance_model.segmentator import Segmentator
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
-
+from pytorch_lightning.loggers import WandbLogger
+import wandb
 
 @hydra.main(config_path="./config", config_name="cfg_affordance")
 def train(cfg):
@@ -29,7 +29,7 @@ def train(cfg):
 
     # Initialize model
     checkpoint_loss_callback = ModelCheckpoint(
-        monitor='val_loss',
+        monitor='validation/total_loss',
         dirpath="trained_models",
         filename='affordance-{epoch:02d}-{val_loss:.4f}',
         save_top_k=2,
@@ -37,7 +37,7 @@ def train(cfg):
         )
 
     checkpoint_miou_callback = ModelCheckpoint(
-        monitor='val_mIoU',
+        monitor='validation/mIoU',
         dirpath="trained_models",
         filename='affordance-{epoch:02d}-{val_miou:.4f}',
         save_top_k=2,
@@ -48,12 +48,14 @@ def train(cfg):
     model_name = "{}_{}".format(
                         model_name,
                         datetime.datetime.now().strftime('%d-%m_%H-%M')) # 24hr format
-    tb_logger = TensorBoardLogger("tb_logs", name=model_name)
+
+    wandb_logger = WandbLogger(name=model_name, project="affordance_model")
+    # tb_logger = TensorBoardLogger("tb_logs", name=model_name)
 
     aff_model = Segmentator(cfg.model_cfg, cmd_log=logger)
     trainer = pl.Trainer(
         callbacks=[checkpoint_miou_callback, checkpoint_loss_callback],
-        logger=tb_logger,
+        logger=wandb_logger,
         **cfg.trainer)
     trainer.fit(aff_model, train_loader, val_loader)
 

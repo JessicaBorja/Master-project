@@ -23,6 +23,7 @@ class Segmentator(pl.LightningModule):
         self._batch_loss = []
         self._batch_miou = []
         self._add_dice_loss = cfg.add_dice_loss
+        self._dice_weight = cfg.dice_weight
 
     def init_model(self, n_classes=2):
         self.unet = smp.Unet(
@@ -32,7 +33,7 @@ class Segmentator(pl.LightningModule):
             classes=n_classes,
             encoder_depth=3,  # Should be equal to number of layers in decoder
             decoder_channels=(128, 64, 32),
-            activation='softmax'
+            activation='softmax2d'
         )
         # Fix encoder weights. Only train decoder
         for param in self.unet.encoder.parameters():
@@ -40,8 +41,8 @@ class Segmentator(pl.LightningModule):
 
     def compute_loss(self, preds, labels):
         # Preds = (B, C, W, H)
-        mean_loss = self.criterion(preds, labels)
-
+        loss = self.criterion(preds, labels)
+        info = {"CE_loss":loss}
         if self._add_dice_loss:
             # Unweighted cross entropy + dice loss
             label_spatial = pixel2spatial(
@@ -49,11 +50,9 @@ class Segmentator(pl.LightningModule):
                                     preds.shape[2],
                                     preds.shape[3])
             dice_loss = compute_dice_loss(label_spatial, preds)
-            loss = mean_loss + (5 * dice_loss)
-        else:
-            # Weighted cross entropy
-            loss = mean_loss
-        return loss
+            loss += self._dice_weight * dice_loss
+            info["dice_loss"] = dice_loss
+        return loss, info
 
     def forward(self, x):
         # in lightning, forward defines the prediction/inference actions
@@ -80,28 +79,34 @@ class Segmentator(pl.LightningModule):
         # training_step defined the train loop. It is independent of forward
         x, masks = batch
         x_hat = self.unet(x)  # B, N_classes, img_size, img_size
-        loss = self.compute_loss(x_hat, masks)
+        total_loss, info = self.compute_loss(x_hat, masks)
         mIoU = compute_mIoU(x_hat, masks)
-        info_dict = {"train_loss": loss,
-                     "train_mIoU": mIoU}
 
         self.log_stats("train", self.trainer.num_training_batches,
-                       batch_idx, loss, mIoU)
-        self.log_dict(info_dict, on_epoch=True, on_step=False)
-        return loss
+                       batch_idx, total_loss, mIoU)
+        self.log("train/loss", total_loss, on_step=False, on_epoch=True)
+        self.log("train/mIoU", mIoU, on_step=False, on_epoch=True)
+        for k, v in info.items():
+            self.log("train/%s" % k, v, on_step=False, on_epoch=True)
+
+        return total_loss
 
     def validation_step(self, val_batch, batch_idx):
         x, masks = val_batch
         x_hat = self.unet(x)
-        loss = self.compute_loss(x_hat, masks)
+        total_loss, info = self.compute_loss(x_hat, masks)
         mIoU = compute_mIoU(x_hat, masks)
-        info_dict = {"val_loss": loss,
-                     "val_mIoU": mIoU}
 
+        # Log metrics
         self.log_stats("validation", sum(self.trainer.num_val_batches),
-                       batch_idx, loss, mIoU)
-        self.log_dict(info_dict, on_epoch=True, on_step=False)
-        return loss
+                       batch_idx, total_loss, mIoU)
+        self.log("validation/mIoU", mIoU, on_step=False, on_epoch=True)
+        self.log("validation/total_loss", total_loss,
+                    on_step=False, on_epoch=True)
+        for k, v in info.items():
+            self.log("validation/%s" % k, v, on_step=False, on_epoch=True)
+
+        return total_loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), **self.optimizer_cfg)

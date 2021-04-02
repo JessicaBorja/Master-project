@@ -24,6 +24,7 @@ class Segmentator(pl.LightningModule):
         self._batch_miou = []
         self._add_dice_loss = cfg.add_dice_loss
         self._dice_weight = cfg.dice_weight
+        self._cross_entropy_weight = cfg.cross_entropy_weight
 
     def init_model(self, n_classes=2):
         self.unet = smp.Unet(
@@ -41,8 +42,8 @@ class Segmentator(pl.LightningModule):
 
     def compute_loss(self, preds, labels):
         # Preds = (B, C, W, H)
-        loss = self.criterion(preds, labels)
-        info = {"CE_loss": loss}
+        ce_loss = self.criterion(preds, labels)
+        info = {"CE_loss": ce_loss}
         if self._add_dice_loss:
             # Unweighted cross entropy + dice loss
             label_spatial = pixel2spatial(
@@ -50,8 +51,11 @@ class Segmentator(pl.LightningModule):
                                     preds.shape[2],
                                     preds.shape[3])
             dice_loss = compute_dice_loss(label_spatial, preds)
-            loss += self._dice_weight * dice_loss
+            loss = self._cross_entropy_weight*ce_loss + \
+                self._dice_weight * dice_loss
             info["dice_loss"] = dice_loss
+        else:
+            loss = ce_loss
         return loss, info
 
     def forward(self, x):
@@ -86,7 +90,7 @@ class Segmentator(pl.LightningModule):
 
         self.log_stats("train", self.trainer.num_training_batches,
                        batch_idx, total_loss, mIoU)
-        self.log("train/loss", total_loss, on_step=False, on_epoch=True)
+        self.log("train/total_loss", total_loss, on_step=False, on_epoch=True)
         self.log("train/mIoU", mIoU, on_step=False, on_epoch=True)
         for k, v in info.items():
             self.log("train/%s" % k, v, on_step=False, on_epoch=True)

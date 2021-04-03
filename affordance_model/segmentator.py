@@ -34,7 +34,7 @@ class Segmentator(pl.LightningModule):
             classes=n_classes,
             encoder_depth=3,  # Should be equal to number of layers in decoder
             decoder_channels=(128, 64, 32),
-            activation='softmax2d'
+            activation=None
         )
         # Fix encoder weights. Only train decoder
         for param in self.unet.encoder.parameters():

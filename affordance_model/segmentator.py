@@ -90,10 +90,10 @@ class Segmentator(pl.LightningModule):
 
         self.log_stats("train", self.trainer.num_training_batches,
                        batch_idx, total_loss, mIoU)
-        self.log("train/total_loss", total_loss, on_step=False, on_epoch=True)
-        self.log("train/mIoU", mIoU, on_step=False, on_epoch=True)
+        self.log("train_total_loss", total_loss, on_step=False, on_epoch=True)
+        self.log("train_miou", mIoU, on_step=False, on_epoch=True)
         for k, v in info.items():
-            self.log("train/%s" % k, v, on_step=False, on_epoch=True)
+            self.log("train_%s" % k, v, on_step=False, on_epoch=True)
 
         return total_loss
 
@@ -106,11 +106,11 @@ class Segmentator(pl.LightningModule):
         # Log metrics
         self.log_stats("validation", sum(self.trainer.num_val_batches),
                        batch_idx, total_loss, mIoU)
-        self.log("validation/mIoU", mIoU, on_step=False, on_epoch=True)
-        self.log("validation/total_loss", total_loss,
+        self.log("val_miou", mIoU, on_step=False, on_epoch=True)
+        self.log("val_total_loss", total_loss,
                  on_step=False, on_epoch=True)
         for k, v in info.items():
-            self.log("validation/%s" % k, v, on_step=False, on_epoch=True)
+            self.log("val_%s" % k, v, on_step=False, on_epoch=True)
 
         return total_loss
 

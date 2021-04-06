@@ -21,17 +21,17 @@ def train(cfg):
 
     # Initialize model
     checkpoint_loss_callback = ModelCheckpoint(
-        monitor='validation/total_loss',
+        monitor='val_total_loss',
         dirpath="trained_models",
-        filename='affordance-epoch={epoch:02d}-val_loss={validation/total_loss:.2f}',
+        filename='affordance-{epoch:02d}-{val_total_loss:.2f}',
         save_top_k=2,
         verbose=True
         )
 
     checkpoint_miou_callback = ModelCheckpoint(
-        monitor='validation/mIoU',
+        monitor='val_miou',
         dirpath="trained_models",
-        filename='affordance-epoch={epoch:02d}-val_miou={validation/mIoU:.2f}',
+        filename='affordance-{epoch:02d}-{val_miou:.2f}',
         save_top_k=2,
         verbose=True
         )

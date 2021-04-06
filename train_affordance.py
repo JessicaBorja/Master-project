@@ -23,7 +23,7 @@ def train(cfg):
     checkpoint_loss_callback = ModelCheckpoint(
         monitor='validation/total_loss',
         dirpath="trained_models",
-        filename='affordance-{epoch:02d}-{val_loss:.4f}',
+        filename='affordance-epoch={epoch:02d}-val_loss={validation/total_loss:.2f}',
         save_top_k=2,
         verbose=True
         )
@@ -31,7 +31,7 @@ def train(cfg):
     checkpoint_miou_callback = ModelCheckpoint(
         monitor='validation/mIoU',
         dirpath="trained_models",
-        filename='affordance-{epoch:02d}-{val_miou:.4f}',
+        filename='affordance-epoch={epoch:02d}-val_miou={validation/mIoU:.2f}',
         save_top_k=2,
         verbose=True
         )
@@ -39,7 +39,7 @@ def train(cfg):
     model_name = cfg.model_name
     model_name = "{}_{}".format(
                         model_name,
-                        datetime.datetime.now().strftime('%d-%m_%H-%M')) # 24hr format
+                        datetime.datetime.now().strftime('%d-%m_%H-%M'))  # 24hr format
 
     wandb_logger = WandbLogger(name=model_name, project="affordance_model")
     # tb_logger = TensorBoardLogger("tb_logs", name=model_name)

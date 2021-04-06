@@ -2,7 +2,7 @@ data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_play_large_han
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: aff_gripper_dice
-n_epochs: 40
+n_epochs: 130
 img_size: 128 #32x4, will be subsampled 3 times
 
 dataset:
@@ -22,7 +22,7 @@ model_cfg:
   cross_entropy_weight: 1
   loss_weight: [0.2, 0.8]
   optimizer:
-    lr: 1e-5
+    lr: 5e-6
     weight_decay: 1e-3
 
 trainer:

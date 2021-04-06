@@ -8,7 +8,7 @@ hyperparameters:
     alpha: "auto" #"auto",
     tau: 0.005
     batch_size: 256
-    buffer_size: 5e5
+    buffer_size: 1e5
     learning_starts: 1000 #timesteps before starting updates
 
 net_cfg:

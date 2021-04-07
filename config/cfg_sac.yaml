@@ -32,12 +32,12 @@ env_wrapper:
 models_path: "${project_path}/SAC/trained_models/"
 affordance:
     hyperparameters:
-      add_dice_loss: False
+      add_dice_loss: True
       dice_weight: 5
       cross_entropy_weight: 1
       loss_weight: [0.2, 0.8]
       optimizer:
-        lr: 5e-6
+        lr: 1e-5
         weight_decay: 1e-3
     static_cam:
       use: False

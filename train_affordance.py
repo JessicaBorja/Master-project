@@ -25,7 +25,8 @@ def train(cfg):
         dirpath="trained_models",
         filename='affordance-{epoch:02d}-{val_total_loss:.2f}',
         save_top_k=2,
-        verbose=True
+        verbose=True,
+        mode='min'
         )
 
     checkpoint_miou_callback = ModelCheckpoint(
@@ -33,7 +34,8 @@ def train(cfg):
         dirpath="trained_models",
         filename='affordance-{epoch:02d}-{val_miou:.2f}',
         save_top_k=2,
-        verbose=True
+        verbose=True,
+        mode='max'
         )
 
     model_name = cfg.model_name

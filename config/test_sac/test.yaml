@@ -3,33 +3,16 @@
 optim_res: False
 
 models_dir: C:/Users/Jessica/Documents/Proyecto_ssd/SAC/sac_agent/hydra_outputs/
-# folder_name: ${test_sac.models_dir}/drawer/2021-03-06/16-26-37/
-# model_name: d_simg_gimg_pos_sparse_06-03_16-26_best
 
-# model_name: "d_mg_simg_pos_05-03_01-16_best_eval"
-# model_name: "d_mg_optimized_05-03_01-16_best_eval"
-# folder_name: ${test_sac.models_dir}/drawer/2021-03-05/01-14-36/
+# model_name: "b_gimp_pos_sparse_31-03_15-50_best_eval"
+# folder_name: ${test_sac.models_dir}/banana/2021-03-31/15-50-09
 
-#models_dir: C:/Users/Jessica/Documents/Proyecto_ssd/SAC/hydra_outputs/
-
-# model_name: "drawer_best_eval"
-# folder_name: ${test_sac.models_dir}/trained_no_img/drawer/
-
-# model_name: "b_simg_gimp-aff_pos_dense_23-03_12-54_best_train"
-# folder_name: ${test_sac.models_dir}/banana/2021-03-23/12-54-00/
-
-model_name: "b_simg_gimp_pos_dense_23-03_20-41_best_train"
-folder_name: ${test_sac.models_dir}/banana/2021-03-23/20-41-30/
-
-# model_name: "slide_best_eval"
-# folder_name: ${test_sac.models_dir}/trained_no_img/slide/
-
-# folder_name: ${test_sac.models_dir}/best/2021-01-23/12-00-50/
-# model_name: drawer_x1img_only_r05_23-01_12-00_best_eval
+model_name: "b_gimp-aff_pos_sparse_31-03_15-52_best_eval"
+folder_name: ${test_sac.models_dir}/banana/2021-03-31/15-51-48
 
 eval_cfg:
   n_episodes: 5
-  render: True
+  render: False
   print_all_episodes: True
-  max_episode_length: 200
-  save_images: False
+  max_episode_length: 100
+  save_images: True

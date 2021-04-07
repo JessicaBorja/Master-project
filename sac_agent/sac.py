@@ -2,7 +2,6 @@ from datetime import datetime
 import os
 import sys
 import pickle
-from typing import Dict
 import numpy as np
 import torch
 import torch.nn as nn
@@ -218,10 +217,11 @@ class SAC():
                     (episode_reward, t, total_timesteps))
 
                 # Summary Writer
+                # log everything on timesteps to get the same scale
                 writer.add_scalar('train/episode_return',
-                                  episode_reward, episode)
+                                  episode_reward, t)
                 writer.add_scalar('train/episode_length',
-                                  episode_length, episode)
+                                  episode_length, t)
 
                 if(episode_reward > best_reward):
                     log.info("[%d] New best train ep. return!%.3f" %
@@ -287,6 +287,8 @@ class SAC():
                 ns, r, done, info = env.step(a)
                 if(render):
                     img = env.render()
+                if(save_images):
+                    img = env.render('rgb_array')
                     im_lst.append(img)
                 s = ns
                 episode_reward += r

@@ -73,11 +73,13 @@ def hydra_evaluateVRenv(cfg):
     optim_res = cfg.test_sac.optim_res
     # Load saved config
     run_cfg, net_cfg, env_wrapper, agent_cfg =\
-        load_cfg(test_cfg.folder_name + ".hydra/config.yaml", cfg, optim_res)
+        load_cfg(os.path.join(test_cfg.folder_name, ".hydra/config.yaml"),
+                 cfg, optim_res)
 
     # Create evaluation environment and wrapper for the image in case there's
     # an image observation
     run_cfg.eval_env.show_gui = cfg.eval_env.show_gui
+    run_cfg.eval_env.cameras = cfg.camera_conf.cameras
     print(run_cfg.eval_env.task)
     print("Random initial state: %s" % run_cfg.eval_env.rand_init_state)
     eval_env = gym.make("VREnv-v0", **run_cfg.eval_env).env

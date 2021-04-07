@@ -1,19 +1,32 @@
-project_folder: ../SAC/affordance_model
+project_folder: ../../SAC/affordance_model
 
 # Load data
 # Validation episodes
-data_dir: [../datasets/vrenv_play_large_handles/episode_10/frames/gripper_cam/,
-           ../datasets/vrenv_play_large_handles/episode_1/frames/gripper_cam/,
-           ../datasets/vrenv_play_large_handles/episode_13/frames/gripper_cam/]
+data_dir: [../../datasets/vrenv_play_large_handles/episode_1/frames/gripper_cam/ ]
+          #  ../../datasets/vrenv_play_large_handles/episode_1/frames/gripper_cam/,
+          #  ../../datasets/vrenv_play_large_handles/episode_13/frames/gripper_cam/]
 
-folder_name:  ${project_folder}/hydra_outputs/2021-03-21/20-20-52
-model_name: affordance-epoch=35-val_loss=0.3706.ckpt
+# gripper_1CE_5dice_miou
+# folder_name:  ${project_folder}/hydra_outputs/2021-04-07/09-23-52
+# model_name: affordance-epoch=38-val_miou=0.48.ckpt
+
+# gripper_1CE_1dice_miou
+# folder_name:  ${project_folder}/hydra_outputs/2021-04-07/09-24-04
+# model_name: affordance-epoch=63-val_miou=0.59.ckpt
+
+# gripper_dice_miou
+folder_name:  ${project_folder}/hydra_outputs/2021-04-07/09-24-21
+model_name: affordance-epoch=16-val_total_loss=0.47.ckpt
+
+# gripper_CE_miou
+# folder_name:  ${project_folder}/hydra_outputs/2021-04-07/09-25-36
+# model_name: affordance-epoch=77-val_miou=0.58.ckpt
 
 # Output img size, must be mutiple of 32
 save_images: True
 imshow: False
 img_size: 128
-output_dir: ${project_folder}/predictions/gripper_16ep_grayscale
+output_dir: ${project_folder}/predictions/gripper_dice_miou
 
 defaults:
   - transforms: img_transforms

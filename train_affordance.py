@@ -9,11 +9,20 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 
+def print_cfg(cfg):
+    print_cfg = OmegaConf.to_container(cfg)
+    print_cfg.pop("dataset")
+    print_cfg.pop("trainer")
+    print_cfg.pop("optim")
+    return OmegaConf.create(print_cfg)
+
+
 @hydra.main(config_path="./config", config_name="cfg_affordance")
 def train(cfg):
     print("Running configuration: ", cfg)
     logger = logging.getLogger(__name__)
-    logger.info("Running configuration: %s", OmegaConf.to_yaml(cfg))
+    logger.info("Running configuration: %s",
+                OmegaConf.to_yaml(print_cfg(cfg)))
 
     # Data split
     train_loader, val_loader = \
@@ -23,7 +32,7 @@ def train(cfg):
     checkpoint_loss_callback = ModelCheckpoint(
         monitor='val_total_loss',
         dirpath="trained_models",
-        filename='affordance-{epoch:02d}-{val_total_loss:.2f}',
+        filename='affordance-{epoch:02d}-{val_total_loss:.3f}',
         save_top_k=2,
         verbose=True,
         mode='min'
@@ -32,7 +41,7 @@ def train(cfg):
     checkpoint_miou_callback = ModelCheckpoint(
         monitor='val_miou',
         dirpath="trained_models",
-        filename='affordance-{epoch:02d}-{val_miou:.2f}',
+        filename='affordance-{epoch:02d}-{val_miou:.3f}',
         save_top_k=2,
         verbose=True,
         mode='max'

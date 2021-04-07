@@ -63,7 +63,7 @@ def viz(cfg):
         files += get_files(cfg.data_dir, "jpg")
         files += get_files(cfg.data_dir, "png")
 
-    for idx, filename in tqdm.tqdm(enumerate(files)):
+    for filename in tqdm.tqdm(files):
         orig_img = cv2.imread(filename, cv2.COLOR_BGR2RGB)
         # Process image as in validation
         # i.e. resize to multiple of 32, normalize

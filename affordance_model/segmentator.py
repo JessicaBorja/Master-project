@@ -1,10 +1,9 @@
 import torch
-from torch import nn
 import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 import numpy as np
 from affordance_model.utils.losses import \
-    compute_mIoU, pixel2spatial, compute_dice_loss
+    compute_mIoU, compute_dice_score, pixel2spatial, compute_dice_loss, get_loss
 
 
 class Segmentator(pl.LightningModule):
@@ -12,21 +11,19 @@ class Segmentator(pl.LightningModule):
         super().__init__()
         # https://github.com/qubvel/segmentation_models.pytorch
         self.unet = None
-        self.init_model(n_classes=2)
+        self.init_model(n_classes=cfg.n_classes)
         self.optimizer_cfg = cfg.optimizer
-        if(cfg.add_dice_loss):
-            self.criterion = nn.CrossEntropyLoss()
-        else:
-            self.criterion = nn.CrossEntropyLoss(
-                weight=torch.tensor(cfg.loss_weight))
+        self.criterion = get_loss(cfg.dice_loss.add,
+                                  cfg.n_classes,
+                                  cfg.ce_loss.class_weights)
         self.cmd_log = cmd_log
         self._batch_loss = []
         self._batch_miou = []
-        self._add_dice_loss = cfg.add_dice_loss
-        self._dice_weight = cfg.dice_weight
-        self._cross_entropy_weight = cfg.cross_entropy_weight
+        self._add_dice_loss = cfg.dice_loss.add
+        self._dice_weight = cfg.dice_loss.weight
+        self._ce_weight = cfg.ce_loss.weight
 
-    def init_model(self, n_classes=2):
+    def init_model(self, activation=None, n_classes=2):
         self.unet = smp.Unet(
             encoder_name="resnet18",
             encoder_weights="imagenet",
@@ -42,16 +39,18 @@ class Segmentator(pl.LightningModule):
 
     def compute_loss(self, preds, labels):
         # Preds = (B, C, W, H)
+        B, C, W, H = preds.shape
+        if(C == 1):
+            preds = preds.squeeze(1)
         ce_loss = self.criterion(preds, labels)
         info = {"CE_loss": ce_loss}
-        if self._add_dice_loss:
+        if self._add_dice_loss > 0:
             # Unweighted cross entropy + dice loss
-            label_spatial = pixel2spatial(
-                                    labels,
-                                    preds.shape[2],
-                                    preds.shape[3])
+            if(C == 1):
+                preds = preds.unsqueeze(1)
+            label_spatial = pixel2spatial(labels.long(), H, W)
             dice_loss = compute_dice_loss(label_spatial, preds)
-            loss = self._cross_entropy_weight*ce_loss + \
+            loss = self._ce_weight * ce_loss + \
                 self._dice_weight * dice_loss
             info["dice_loss"] = dice_loss
         else:
@@ -83,14 +82,16 @@ class Segmentator(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         # training_step defined the train loop. It is independent of forward
-        x, masks = batch
-        x_hat = self.unet(x)  # B, N_classes, img_size, img_size
-        total_loss, info = self.compute_loss(x_hat, masks)
-        mIoU = compute_mIoU(x_hat, masks)
+        x, labels = batch
+        logits = self.unet(x)  # B, N_classes, img_size, img_size
+        total_loss, info = self.compute_loss(logits, labels)
+        mIoU = compute_mIoU(logits, labels)
+        dice_score = compute_dice_score(logits, labels)
 
         self.log_stats("train", self.trainer.num_training_batches,
                        batch_idx, total_loss, mIoU)
         self.log("train_total_loss", total_loss, on_step=False, on_epoch=True)
+        self.log("train_dice_score", dice_score, on_step=False, on_epoch=True)
         self.log("train_miou", mIoU, on_step=False, on_epoch=True)
         for k, v in info.items():
             self.log("train_%s" % k, v, on_step=False, on_epoch=True)
@@ -98,17 +99,17 @@ class Segmentator(pl.LightningModule):
         return total_loss
 
     def validation_step(self, val_batch, batch_idx):
-        x, masks = val_batch
-        x_hat = self.unet(x)
-        total_loss, info = self.compute_loss(x_hat, masks)
-        mIoU = compute_mIoU(x_hat, masks)
-
+        x, labels = val_batch
+        logits = self.unet(x)
+        total_loss, info = self.compute_loss(logits, labels)
+        mIoU = compute_mIoU(logits, labels)
+        dice_score = compute_dice_score(logits, labels)
         # Log metrics
         self.log_stats("validation", sum(self.trainer.num_val_batches),
                        batch_idx, total_loss, mIoU)
         self.log("val_miou", mIoU, on_step=False, on_epoch=True)
-        self.log("val_total_loss", total_loss,
-                 on_step=False, on_epoch=True)
+        self.log("val_dice_score", dice_score, on_step=False, on_epoch=True)
+        self.log("val_total_loss", total_loss, on_step=False, on_epoch=True)
         for k, v in info.items():
             self.log("val_%s" % k, v, on_step=False, on_epoch=True)
 

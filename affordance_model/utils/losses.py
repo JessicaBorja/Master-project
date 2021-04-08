@@ -1,8 +1,27 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 
+def compute_dice_score(logits, gt, threshold=0.5):
+    if logits.shape[1] == 1 or len(logits.shape) == 3:
+        if threshold == 0.5:
+            pred = logits.round().byte()
+        else:
+            pred = logits > threshold
+    else:
+        pred = logits.argmax(dim=1).byte()
+    true_positives = ((pred == 1) & (gt == 1)).sum().float()
+    false_positives = ((pred == 1) & (gt == 0)).sum().float()
+    false_negatives = ((pred == 0) & (gt == 1)).sum().float()
+    dice_score = 2 * true_positives
+    dice_score /= dice_score + false_positives + false_negatives
+    return dice_score
+
+
 def compute_mIoU(logits, gt, threshold=0.5):
+    # logits.shape = [BS, 2, img_size, img_size]
+    # gt.shape = [BS, 128, 128]
     if logits.shape[1] == 1 or len(logits.shape) == 3:
         if threshold == 0.5:
             pred = logits.round().byte()
@@ -27,6 +46,24 @@ def pixel2spatial(xs, H, W):
     xs_spatial = torch.cat(xs_spatial, dim=0).long()
     return xs_spatial
 
+
+def get_loss(add_dice, n_classes, class_weights):
+    _criterion = nn.BCEWithLogitsLoss if n_classes == 1 \
+            else nn.CrossEntropyLoss
+
+    # Only CE
+    # -> CE loss w/weight
+    if(not add_dice and n_classes > 1):
+        assert len(class_weights) == n_classes, \
+            "Number of weights [%d] != n_classes [%d]" % \
+            (len(class_weights), n_classes)
+        loss_fnc = _criterion(
+                    weight=torch.tensor(class_weights))
+    else:
+        # either BCE w or w/o dice
+        # or CE w dice
+        loss_fnc = _criterion()
+    return loss_fnc
 
 # https://github.com/kevinzakka/form2fit/blob/099a4ceac0ec60f5fbbad4af591c24f3fff8fa9e/form2fit/code/ml/losses.py#L305
 def compute_dice_loss(true, logits, eps=1e-7):

@@ -3,7 +3,8 @@ import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 import numpy as np
 from affordance_model.utils.losses import \
-    compute_mIoU, compute_dice_score, pixel2spatial, compute_dice_loss, get_loss
+    compute_mIoU, compute_dice_score, pixel2spatial, \
+    compute_dice_loss, get_loss
 
 
 class Segmentator(pl.LightningModule):

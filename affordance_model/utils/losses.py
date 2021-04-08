@@ -65,6 +65,7 @@ def get_loss(add_dice, n_classes, class_weights):
         loss_fnc = _criterion()
     return loss_fnc
 
+
 # https://github.com/kevinzakka/form2fit/blob/099a4ceac0ec60f5fbbad4af591c24f3fff8fa9e/form2fit/code/ml/losses.py#L305
 def compute_dice_loss(true, logits, eps=1e-7):
     """Computes the Sørensen–Dice loss.

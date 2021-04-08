@@ -46,11 +46,12 @@ def train(cfg):
         verbose=True,
         mode='max'
         )
-
+    
+    # 24hr format
     model_name = cfg.model_name
     model_name = "{}_{}".format(
                         model_name,
-                        datetime.datetime.now().strftime('%d-%m_%H-%M'))  # 24hr format
+                        datetime.datetime.now().strftime('%d-%m_%H-%M'))
 
     wandb_logger = WandbLogger(name=model_name, project="affordance_model")
     # tb_logger = TensorBoardLogger("tb_logs", name=model_name)

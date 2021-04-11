@@ -3,7 +3,7 @@ save_dir: ./affordance_model/hydra_outputs/
 
 model_name: gripper_1CE_5dice
 n_epochs: 130
-img_size: 64 #32x4, will be subsampled 3 times
+img_size: 128
 
 dataset:
   root_dir: ${data_dir}

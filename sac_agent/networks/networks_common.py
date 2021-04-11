@@ -2,11 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sac_agent.sac_utils.utils import get_activation_fn
-from affordance_model.segmentator import Segmentator
 import numpy as np
 import os
-from affordance_model.utils.utils import smoothen, overlay_mask
-import cv2
 
 
 def get_pos_shape(obs_space):
@@ -38,15 +35,16 @@ def get_gripper_network(obs_space, out_feat, activation, affordance_cfg):
         _img_size = obs_space["gripper_img_obs"].shape[-1]
 
         # Affordance config
-        aff_cfg = dict(affordance_cfg.gripper_cam)
-        aff_cfg["hyperparameters"] = affordance_cfg.hyperparameters
-
+        use_affordance = \
+            os.path.exists(affordance_cfg.gripper_cam.model_path)\
+            and affordance_cfg.gripper_cam.use
+        print("Using gripper cam affordance: %s" % use_affordance)
         # Build network
         return CNNCommon(
             _history_length, _img_size,
             out_feat=out_feat,
             activation=_activation_fn,
-            affordance=aff_cfg)
+            affordance=use_affordance)
     return None
 
 
@@ -58,26 +56,48 @@ def get_img_network(obs_space, out_feat, activation, affordance_cfg):
         _img_size = obs_space['img_obs'].shape[-1]
 
         # Affordance config
-        aff_cfg = dict(affordance_cfg.static_cam)
-        aff_cfg["hyperparameters"] = affordance_cfg.hyperparameters
+        use_affordance = \
+            os.path.exists(affordance_cfg.static_cam.model_path)\
+            and affordance_cfg.static_cam.use
+        print("Using static cam affordance: %s" % use_affordance)
 
         # Build network
         return CNNCommon(
             _history_length, _img_size,
             out_feat=out_feat,
             activation=_activation_fn,
-            affordance=aff_cfg)
+            affordance=use_affordance)
     return None
 
 
 def get_concat_features(obs, cnn_img, cnn_depth=None, cnn_gripper=None):
     features = []
+
+    # Static image
     if("img_obs" in obs):
-        features.append(cnn_img(obs['img_obs']))
+        img = obs['img_obs']
+        if("static_aff" in obs):
+            mask = obs["static_aff"]
+            if(len(img.shape) == 3):
+                img = img.unsqueeze(0)
+            # Concat segmentation mask
+            obs = torch.cat((img, mask), 1)
+        features.append(cnn_img(img))
+
+    # Gripper
+    if("gripper_img_obs" in obs):
+        img = obs['gripper_img_obs']
+        if("gripper_aff" in obs):
+            mask = obs["gripper_aff"]
+            if(len(img.shape) == 3):
+                img = img.unsqueeze(0)
+            # Concat segmentation mask
+            img = torch.cat((img, mask), 1)
+        features.append(cnn_gripper(img))
+
     if("depth_obs" in obs):
         features.append(cnn_depth(obs['depth_obs']))
-    if("gripper_img_obs" in obs):
-        features.append(cnn_gripper(obs['gripper_img_obs']))
+
     if("robot_obs" in obs):
         features.append(obs['robot_obs'])
     features = torch.cat(features, dim=-1)
@@ -99,20 +119,10 @@ class CNNCommon(nn.Module):
         # self.fc1 = nn.Linear(w*h*64, out_feat)
 
         # Load affordance model
-        self._use_affordance = affordance["use"]
+        self._use_affordance = affordance
         aff_channels = 0
-        if(affordance["use"]):
-            if(os.path.exists(affordance["model_path"])):
-                self.aff_net = Segmentator.load_from_checkpoint(
-                                    affordance["model_path"],
-                                    cfg=affordance["hyperparameters"])
-                self.aff_net.eval()
-                aff_channels = 1  # Concatenate aff mask to inputs
-                print("Affordance model loaded")
-            else:
-                # Do not try to use affordance if model_path does not exist
-                self._use_affordance = False
-                print("Path does not exist: %s" % affordance["model_path"])
+        if(affordance):
+            aff_channels = 1  # Concatenate aff mask to inputs
 
         self.conv1 = nn.Conv2d(in_channels + aff_channels, 16, 8, stride=4)
         self.conv2 = nn.Conv2d(16, 32, 4, stride=2)
@@ -130,31 +140,7 @@ class CNNCommon(nn.Module):
         # x = self._activation(self.conv2(x))
         # x = self._activation(self.conv3(x))
         # x = self.fc1(x.view(batch_size,-1)).squeeze() #bs, out_feat
-        if(self._use_affordance):
-            # B, 2, W, H in [0-1]
-            with torch.no_grad():
-                mask = self.aff_net(x)
-            # Add B dim if only one img
-            if(len(mask.shape) == 3):  # Only one image
-                mask = mask.unsqueeze(0)
-            # B, 1, W, H in [0-1]
-            mask = torch.argmax(mask, axis=1, keepdim=True)
 
-            # Show mask
-            # show_mask = mask.permute(0, 2, 3, 1)
-            # show_mask = show_mask[0].detach().cpu().numpy()*255.0
-            # show_mask = smoothen(show_mask, k=15)  # [0, 255] int
-            # img = x.permute(0, 2, 3, 1)[0].detach().cpu().numpy()*255.0
-            # img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-            # img = cv2.normalize(img, None, 255, 0, cv2.NORM_MINMAX, cv2.CV_8UC1)
-            # res = overlay_mask(show_mask, img, (0, 0, 255))
-            # cv2.imshow("paste", res)
-            # cv2.waitKey(1)
-
-            # Concat segmentation mask
-            x = torch.cat((x, mask), 1)
-
-            # res = visualize(mask, orig_img, cfg.imshow)
         x = self._activation(self.conv1(x))
         x = self._activation(self.conv2(x))
         x = self.spatial_softmax(self.conv3(x))

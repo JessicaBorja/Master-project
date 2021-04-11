@@ -3,13 +3,16 @@ import cv2
 import numpy as np
 import torch
 from torchvision import transforms
+from affordance_model.segmentator import Segmentator
+from sac_agent.sac_utils.utils import show_mask_np
+import os
 import hydra
 
 
 class EnvWrapper(gym.ObservationWrapper):
     def __init__(self, env, history_length, skip_frames, img_size,
                  use_static_cam=False, use_depth=False, use_gripper_cam=False,
-                 use_pos=False, transforms=None, train=False):
+                 use_pos=False, transforms=None, train=False, affordance=None):
         super(EnvWrapper, self).__init__(env)
         self.env = env
         self.img_size = img_size
@@ -34,13 +37,16 @@ class EnvWrapper(gym.ObservationWrapper):
         self.static_id = 0
         self.gripper_id = 1
         self.find_cam_ids()
-        # parameters to define observation
+        # Parameters to define observation
         self._use_img_obs = use_static_cam
         self._use_robot_obs = use_pos
         self._use_depth = use_depth
         self._use_gripper_img = use_gripper_cam
         self.observation_space = self.get_obs_space()
         self._training = train
+        # Parameters to store affordance
+        self.affordance = affordance
+        self.aff_net = self.init_aff_model()
 
     def find_cam_ids(self):
         for i, cam in enumerate(self.cameras):
@@ -73,25 +79,98 @@ class EnvWrapper(gym.ObservationWrapper):
         else:
             return gym.spaces.Box(low=-0.5, high=0.5, shape=(10,))
 
+    def init_aff_model(self):
+        aff_net = None
+        if(self.affordance):
+            if(self.affordance.static_cam.use):
+                path = self.affordance.static_cam.model_path
+                if(os.path.exists(path)):
+                    aff_net = Segmentator.load_from_checkpoint(
+                                        path,
+                                        cfg=self.affordance.hyperparameters)
+                    aff_net.cuda()
+                    aff_net.eval()
+                    print("Affordance model loaded")
+                else:
+                    self.affordance = None
+                    print("Path does not exist: %s" % path)
+            elif(self.affordance.gripper_cam.use):
+                path = self.affordance.gripper_cam.model_path
+                if(os.path.exists(path)):
+                    aff_net = Segmentator.load_from_checkpoint(
+                                        path,
+                                        cfg=self.affordance.hyperparameters)
+                    aff_net.cuda()
+                    aff_net.eval()
+                    print("Affordance model loaded")
+                else:
+                    self.affordance = None
+                    print("Path does not exist: %s" % path)
+        return aff_net
+
+    def get_static_obs(self, obs_dict):
+        obs = {}
+        if(self._use_img_obs):
+            # cv2.imshow("static_cam orig",
+            #            obs_dict['rgb_obs'][self.static_id])
+            img_obs = self.img_preprocessing(
+                        obs_dict['rgb_obs'][self.static_id])
+            obs["img_obs"] = img_obs
+        if(self.aff_net is not None and self.affordance.static_cam.use):
+            img_obs = self.img_preprocessing(
+                        obs_dict['rgb_obs'][self.static_id])
+            with torch.no_grad():
+                # 1, 1, W, H
+                obs_t = torch.tensor(img_obs).unsqueeze(0)
+                obs_t = obs_t.float().cuda()
+                mask = self.aff_net(obs_t)
+                mask = torch.argmax(mask, axis=1, keepdim=True)
+                mask = mask.cpu().detach().numpy()
+                del obs_t
+            del img_obs
+            obs["static_aff"] = mask
+        return obs
+
+    def get_gripper_obs(self, obs_dict):
+        obs = {}
+        if(self._use_gripper_img):
+            # cv2.imshow("gripper_cam orig",
+            #            obs_dict['rgb_obs'][self.gripper_id])
+            gripper_obs = self.img_preprocessing(
+                            obs_dict['rgb_obs'][self.gripper_id])
+            # 1, 1, W, H
+            obs["gripper_img_obs"] = gripper_obs
+        if(self.aff_net is not None and self.affordance.gripper_cam.use):
+            # Np array 1, H, W
+            gripper_obs = self.img_preprocessing(
+                        obs_dict['rgb_obs'][self.gripper_id])
+            with torch.no_grad():
+                # 1, 1, H, W in range [-1, 1]
+                obs_t = torch.tensor(gripper_obs).unsqueeze(0)
+                obs_t = obs_t.float().cuda()
+                # 1, 2, H, W in [0-1]
+                mask = self.aff_net(obs_t)
+                mask = torch.argmax(mask, axis=1, keepdim=True)
+                # 1, 1, H, W
+                mask = mask.cpu().detach().numpy()
+                show_mask_np(gripper_obs, mask[0])
+                del obs_t
+            obs["gripper_aff"] = mask
+            del gripper_obs
+        return obs
+
     def observation(self, obs):
         # "rgb_obs", "depth_obs", "robot_obs","scene_obs"
         if(self._use_img_obs or self._use_gripper_img):
             obs = {}
             obs_dict = self.get_obs()
-            if(self._use_img_obs):
-                # cv2.imshow("static_cam orig", obs_dict['rgb_obs'][self.static_id])
-                img_obs = self.img_preprocessing(
-                            obs_dict['rgb_obs'][self.static_id])
-                obs["img_obs"] = img_obs
-            if(self._use_gripper_img):
-                # cv2.imshow("gripper_cam orig", obs_dict['rgb_obs'][self.gripper_id])
-                gripper_obs = self.img_preprocessing(
-                                obs_dict['rgb_obs'][self.gripper_id])
-                obs["gripper_img_obs"] = gripper_obs
-            if(self._use_depth):
-                depth_obs = self.depth_preprocessing(
-                                obs_dict['depth_obs'][self.static_id])
-                obs["depth_obs"] = depth_obs
+            if(self._use_gripper_img or self._use_img_obs):
+                obs = {**self.get_gripper_obs(obs_dict),
+                       **self.get_static_obs(obs_dict)}
+                if(self._use_depth):
+                    depth_obs = self.depth_preprocessing(
+                                    obs_dict['depth_obs'][self.static_id])
+                    obs["depth_obs"] = depth_obs
             if(self._use_robot_obs):
                 # *tcp_pos(3), *tcp_euler(3), gripper_opening_width(1),
                 obs["robot_obs"] = obs_dict["robot_obs"][:7]

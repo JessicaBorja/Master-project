@@ -1,9 +1,9 @@
 data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_play_large_handles/
 save_dir: ./affordance_model/hydra_outputs/
 
-model_name: aff_gripper_dice
+model_name: gripper_1CE_5dice
 n_epochs: 130
-img_size: 128 #32x4, will be subsampled 3 times
+img_size: 64 #32x4, will be subsampled 3 times
 
 dataset:
   root_dir: ${data_dir}
@@ -17,7 +17,7 @@ dataloader:
 
 model_cfg:
   model_name: "${model_name}"
-  n_classes: 1
+  n_classes: 2
   dice_loss:
     add: True
     weight: 5

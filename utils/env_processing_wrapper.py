@@ -153,7 +153,7 @@ class EnvWrapper(gym.ObservationWrapper):
                 mask = torch.argmax(mask, axis=1, keepdim=True)
                 # 1, 1, H, W
                 mask = mask.cpu().detach().numpy()
-                show_mask_np(gripper_obs, mask[0])
+                # show_mask_np(gripper_obs, mask[0])
                 del obs_t
             obs["gripper_aff"] = mask
             del gripper_obs

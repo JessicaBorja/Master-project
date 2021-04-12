@@ -46,7 +46,7 @@ def train(cfg):
         verbose=True,
         mode='max'
         )
-    
+
     # 24hr format
     model_name = cfg.model_name
     model_name = "{}_{}".format(

@@ -8,7 +8,7 @@ euler_obs: True
 init_pos_near: False
 
 # Observation wrapper
-img_size: 128
+img_size: 64
 use_static_cam: False
 use_gripper_cam: False
 use_pos: False
@@ -46,8 +46,8 @@ affordance:
       use: False
       model_path: ${models_path}/affordance_gripper_16ep_val_loss=0.4135.ckpt
     gripper_cam:
-      use: False
-      model_path: ${models_path}/aff_gripper_1CE_5dice_val_miou=0.54.ckpt
+      use: True
+      model_path: ${models_path}/aff_gripper_1CE_5dice_x64_val_miou=0.629.ckpt
 #Env 
 defaults:
   - transforms: img_transforms

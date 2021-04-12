@@ -125,7 +125,7 @@ class EnvWrapper(gym.ObservationWrapper):
                 obs_t = obs_t.float().cuda()
                 mask = self.aff_net(obs_t)
                 mask = torch.argmax(mask, axis=1, keepdim=True)
-                mask = mask.cpu().detach().numpy()
+                mask = mask[0].cpu().detach().numpy()
                 del obs_t
             del img_obs
             obs["static_aff"] = mask
@@ -138,7 +138,7 @@ class EnvWrapper(gym.ObservationWrapper):
             #            obs_dict['rgb_obs'][self.gripper_id])
             gripper_obs = self.img_preprocessing(
                             obs_dict['rgb_obs'][self.gripper_id])
-            # 1, 1, W, H
+            # 1, W, H
             obs["gripper_img_obs"] = gripper_obs
         if(self.aff_net is not None and self.affordance.gripper_cam.use):
             # Np array 1, H, W
@@ -151,8 +151,8 @@ class EnvWrapper(gym.ObservationWrapper):
                 # 1, 2, H, W in [0-1]
                 mask = self.aff_net(obs_t)
                 mask = torch.argmax(mask, axis=1, keepdim=True)
-                # 1, 1, H, W
-                mask = mask.cpu().detach().numpy()
+                # 1, H, W
+                mask = mask[0].cpu().detach().numpy()
                 # show_mask_np(gripper_obs, mask[0])
                 del obs_t
             obs["gripper_aff"] = mask

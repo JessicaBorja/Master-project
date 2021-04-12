@@ -80,6 +80,8 @@ def get_concat_features(obs, cnn_img, cnn_depth=None, cnn_gripper=None):
             mask = obs["static_aff"]
             if(len(img.shape) == 3):
                 img = img.unsqueeze(0)
+            if(len(mask.shape) == 3):
+                mask = mask.unsqueeze(0)
             # Concat segmentation mask
             obs = torch.cat((img, mask), 1)
         features.append(cnn_img(img))
@@ -91,6 +93,8 @@ def get_concat_features(obs, cnn_img, cnn_depth=None, cnn_gripper=None):
             mask = obs["gripper_aff"]
             if(len(img.shape) == 3):
                 img = img.unsqueeze(0)
+            if(len(mask.shape) == 3):
+                mask = mask.unsqueeze(0)
             # Concat segmentation mask
             img = torch.cat((img, mask), 1)
         features.append(cnn_gripper(img))

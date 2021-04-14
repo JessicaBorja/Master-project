@@ -2,8 +2,8 @@ data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_play_large_han
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: gripper_1CE_5dice
-n_epochs: 130
-img_size: 128
+n_epochs: 100
+img_size: 64
 
 dataset:
   root_dir: ${data_dir}

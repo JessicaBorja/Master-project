@@ -53,9 +53,9 @@ class Segmentator(pl.LightningModule):
             if(C == 1):
                 # Dice needs B, C, H, W
                 preds = preds.unsqueeze(1)
-                label_spatial = labels.unsqueeze(1)
+                labels = labels.unsqueeze(1)
             # label_spatial = pixel2spatial(labels.long(), H, W)
-            dice_loss = compute_dice_loss(label_spatial.long(), preds)
+            dice_loss = compute_dice_loss(labels.long(), preds)
             loss = self._ce_weight * ce_loss + \
                 self._dice_weight * dice_loss
             info["dice_loss"] = dice_loss

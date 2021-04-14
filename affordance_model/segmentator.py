@@ -39,18 +39,23 @@ class Segmentator(pl.LightningModule):
             param.requires_grad = False
 
     def compute_loss(self, preds, labels):
-        # Preds = (B, C, W, H)
-        B, C, W, H = preds.shape
+        # Preds = (B, C, H, W)
+        # labels = (B, H, W)
+        B, C, H, W = preds.shape
         if(C == 1):
+            # BCE needs B, H, W
             preds = preds.squeeze(1)
+            labels = labels.float()
         ce_loss = self.criterion(preds, labels)
         info = {"CE_loss": ce_loss}
-        if self._add_dice_loss > 0:
+        if self._add_dice_loss:
             # Unweighted cross entropy + dice loss
             if(C == 1):
+                # Dice needs B, C, H, W
                 preds = preds.unsqueeze(1)
-            label_spatial = pixel2spatial(labels.long(), H, W)
-            dice_loss = compute_dice_loss(label_spatial, preds)
+                label_spatial = labels.unsqueeze(1)
+            # label_spatial = pixel2spatial(labels.long(), H, W)
+            dice_loss = compute_dice_loss(label_spatial.long(), preds)
             loss = self._ce_weight * ce_loss + \
                 self._dice_weight * dice_loss
             info["dice_loss"] = dice_loss

@@ -3,35 +3,37 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def compute_dice_score(logits, gt, threshold=0.5):
+def tresh_tensor(logits, threshold=0.5):
     if logits.shape[1] == 1 or len(logits.shape) == 3:
+        pred = F.sigmoid(logits)
         if threshold == 0.5:
-            pred = logits.round().byte()
+            pred = pred.round().byte()
         else:
-            pred = logits > threshold
+            pred = pred > threshold
     else:
-        pred = logits.argmax(dim=1).byte()
+        pred = F.softmax(logits, dim=1)
+        pred = pred.argmax(dim=1).byte()
+    return pred
+
+
+def compute_dice_score(logits, gt, threshold=0.5):
+    pred = tresh_tensor(logits, threshold)
     true_positives = ((pred == 1) & (gt == 1)).sum().float()
     false_positives = ((pred == 1) & (gt == 0)).sum().float()
     false_negatives = ((pred == 0) & (gt == 1)).sum().float()
-    dice_score = 2 * true_positives
-    dice_score /= dice_score + false_positives + false_negatives
+    nomin = 2 * true_positives
+    denom = nomin + false_positives + false_negatives
+    dice_score = nomin / max(denom, 1e-6)
     return dice_score
 
 
 def compute_mIoU(logits, gt, threshold=0.5):
     # logits.shape = [BS, 2, img_size, img_size]
     # gt.shape = [BS, 128, 128]
-    if logits.shape[1] == 1 or len(logits.shape) == 3:
-        if threshold == 0.5:
-            pred = logits.round().byte()
-        else:
-            pred = logits > threshold
-    else:
-        pred = logits.argmax(dim=1).byte()
+    pred = tresh_tensor(logits, threshold)
     intersection = ((pred == 1) & (gt == 1)).sum().float()
     union = ((pred == 1) | (gt == 1)).sum().float()
-    return intersection/(union+1.)
+    return intersection / max(union, 1e-6)
 
 
 def pixel2spatial(xs, H, W):
@@ -83,6 +85,7 @@ def compute_dice_loss(true, logits, eps=1e-7):
     num_classes = logits.shape[1]
     if num_classes == 1:
         true_1_hot = torch.eye(num_classes + 1)[true.squeeze(1)]
+        # B, 2, H, W
         true_1_hot = true_1_hot.permute(0, 3, 1, 2).float()
         true_1_hot_f = true_1_hot[:, 0:1, :, :]
         true_1_hot_s = true_1_hot[:, 1:2, :, :]

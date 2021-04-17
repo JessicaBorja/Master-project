@@ -2,7 +2,7 @@ data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_play_large_han
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: gripper_1CE_5dice
-n_epochs: 100
+n_epochs: 40
 img_size: 64
 
 dataset:
@@ -12,7 +12,7 @@ dataset:
 
 dataloader:
   num_workers: 4
-  batch_size : 64 #28
+  batch_size : 128 #28
   pin_memory: True
 
 model_cfg:
@@ -27,6 +27,8 @@ model_cfg:
   optimizer:
     lr: 1e-5
     weight_decay: 1e-3
+  unet_cfg:
+    decoder_channels: [256, 128, 64, 32]
 
 trainer:
   gpus: 1

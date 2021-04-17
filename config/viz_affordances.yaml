@@ -8,25 +8,46 @@ data_dir: [../../datasets/vrenv_play_large_handles/episode_1/frames/gripper_cam/
 
 # gripper_1CE_5dice_miou
 # folder_name:  ${project_folder}/hydra_outputs/2021-04-07/09-23-52
-# model_name: affordance-epoch=38-val_miou=0.48.ckpt
+# model_name: affordance-epoch=121-val_miou=0.55.ckpt
+
+# gripper_1CE_5dice_x64_miou
+# folder_name:  ${project_folder}/hydra_outputs/2021-04-11/23-16-53
+# model_name: affordance-epoch=113-val_miou=0.629.ckpt
 
 # gripper_1CE_1dice_miou
 # folder_name:  ${project_folder}/hydra_outputs/2021-04-07/09-24-04
 # model_name: affordance-epoch=63-val_miou=0.59.ckpt
 
 # gripper_dice_miou
-folder_name:  ${project_folder}/hydra_outputs/2021-04-07/09-24-21
-model_name: affordance-epoch=16-val_total_loss=0.47.ckpt
+# folder_name:  ${project_folder}/hydra_outputs/2021-04-07/09-24-21
+# model_name: affordance-epoch=16-val_total_loss=0.47.ckpt
 
 # gripper_CE_miou
 # folder_name:  ${project_folder}/hydra_outputs/2021-04-07/09-25-36
 # model_name: affordance-epoch=77-val_miou=0.58.ckpt
 
+# gripper dice 64
+folder_name:  ${project_folder}/hydra_outputs/2021-04-16/10-43-20
+model_name: affordance-epoch=13-val_total_loss=0.426.ckpt
+
 # Output img size, must be mutiple of 32
-save_images: True
-imshow: False
-img_size: 128
-output_dir: ${project_folder}/predictions/gripper_dice_miou
+save_images: False
+imshow: True
+img_size: 64
+output_dir: ${project_folder}/predictions/test_1ce_5dice
+
+model_cfg:
+  model_name: "${model_name}"
+  n_classes: 2
+  dice_loss:
+    add: True
+    weight: 5
+  ce_loss:
+    weight: 1
+    class_weights: [0.2, 0.8]
+  optimizer:
+    lr: 1e-5
+    weight_decay: 1e-3
 
 defaults:
   - transforms: img_transforms

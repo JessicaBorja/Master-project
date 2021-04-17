@@ -3,7 +3,7 @@ import logging
 import hydra
 from omegaconf import OmegaConf
 from affordance_model.segmentator import Segmentator
-from affordance_model.utils.utils import get_loaders
+from affordance_model.datasets import get_loaders
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger

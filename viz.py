@@ -4,28 +4,12 @@ from affordance_model.segmentator import Segmentator
 import os
 import cv2
 import torch
-from affordance_model.utils.utils import smoothen, overlay_mask
+from affordance_model.utils.utils import visualize
 from affordance_model.datasets import get_transforms
 from omegaconf import OmegaConf
 from omegaconf.listconfig import ListConfig
 import tqdm
 from utils.file_manipulation import get_files
-
-
-def visualize(mask, img, imshow):
-    mask = torch.argmax(mask, axis=1).permute(1, 2, 0)
-    # mask = F.softmax(mask, dim = 1).squeeze(0)[1]
-    mask = mask.detach().cpu().numpy()*255.0
-    mask = cv2.resize(mask, dsize=img.shape[:2])
-    mask = smoothen(mask, k=15)  # [0, 255] int
-
-    res = overlay_mask(mask, img, (0, 0, 255))
-    if imshow:
-        # cv2.imshow("mask", np.expand_dims(mask, -1))
-        cv2.imshow("img", img)
-        cv2.imshow("paste", res)
-        cv2.waitKey(1)
-    return res
 
 
 @hydra.main(config_path="./config", config_name="viz_affordances")
@@ -36,6 +20,7 @@ def viz(cfg):
     # Initialize model
     run_cfg = OmegaConf.load(cfg.folder_name + "/.hydra/config.yaml")
     model_cfg = run_cfg.model_cfg
+    # model_cfg = cfg.model_cfg
 
     checkpoint_path = os.path.join(cfg.folder_name, "trained_models")
     checkpoint_path = os.path.join(checkpoint_path, cfg.model_name)

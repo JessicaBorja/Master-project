@@ -2,34 +2,8 @@ import os
 import glob
 import json
 import tqdm
-import shutil
 import numpy as np
 import cv2
-
-
-def add_valid_frames(remove_blank_mask_instances=True):
-    all_files.sort()
-    end_ids = ep_start_end_ids[:, -1]
-    start_ids = ep_start_end_ids[:, 0]
-    e = 0
-    for file in tqdm.tqdm(all_files):
-        head, tail = os.path.split(file)
-        frame_id = int(tail.split('_')[-1][:-4])
-
-        # Episode
-        if(frame_id >= start_ids[e] and frame_id <= end_ids[e]):
-            file_relative_path = head.replace(masks_dir, "")
-            file_name = tail.split('.')[0]  # Remove extension name
-            file_name = os.path.join(file_relative_path, file_name)
-            if(remove_blank_mask_instances):
-                mask = np.load(file)  # (H, W)
-                if(mask.max() > 0):  # at least one pixel is not background
-                    data['episode_%d' % e].append(file_name)
-            else:
-                data['episode_%d' % e].append(file_name)
-        else:
-            e += 1
-    return data
 
 
 # Split episodes into train and validation
@@ -51,8 +25,10 @@ def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
         split = "validation" if ep in val_ep else "train"
         for file in tqdm.tqdm(episode_files):
             head, tail = os.path.split(file)
-            file_name = tail.split('.')[0]  # Remove extension name
-            file_relative_path = os.path.basename(os.path.normpath(head))  # Last folder
+            # Remove extension name
+            file_name = tail.split('.')[0]
+            # Last folder
+            file_relative_path = os.path.basename(os.path.normpath(head))
             # /{cam}_cam/filename
             file_name = os.path.join(file_relative_path, file_name)
             if(remove_blank_mask_instances):
@@ -124,5 +100,5 @@ def viz_rendered_data(path):
             cv2.waitKey(0)
             # tcp pos(3), euler angles (3), gripper_action(0 close - 1 open)
             print(data['actions'])
-        except:
-            print("cannot load file as numpy compressed: %s" % filename)
+        except Exception as e:
+            print("[ERROR] %s: %s" % (str(e), filename))

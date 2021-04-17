@@ -55,10 +55,14 @@ def make_videos(path, cam, val_dir=False):
 
 
 if __name__ == "__main__":
-    # path = ["C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model/predictions/gripper_16ep_large_handles"]
-    # path.append("C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model/predictions/gripper_8ep_large_handles")
-    # path.append("C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model/predictions/gripper_4ep_large_handles")
-    # path = ["C:/Users/Jessica/Documents/Proyecto_ssd/d_simg_gimg_pos_sparse"]
-    path = "C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_play_large_handles"
-    val_dir = True
+    pred_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model/predictions"
+    path = [
+        "%s/gripper_1ce_5dice_x64" % pred_folder,]
+        #"%s/gripper_dice_x64" % pred_folder,]
+    #     "%s/gripper_1CE_1dice_miou" % pred_folder,
+    #     "%s/gripper_1CE_5dice_miou" % pred_folder]
+    # vid_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/videos"
+    # path = ["%s/b_gimg-aff_pos_sparse" % vid_folder,
+    #         "%s/b_gimg_pos_sparse" % vid_folder]
+    val_dir = False
     make_videos(path, "gripper", val_dir)

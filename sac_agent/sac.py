@@ -1,7 +1,6 @@
 from datetime import datetime
 import os
 import sys
-import pickle
 import numpy as np
 import torch
 import torch.nn as nn
@@ -12,8 +11,7 @@ from sac_agent.sac_utils.replay_buffer import ReplayBuffer
 from sac_agent.sac_utils.utils import EpisodeStats, tt, soft_update, get_nets
 import logging
 import gym
-# A logger for this file
-log = logging.getLogger(__name__)
+import copy
 
 
 class SAC():
@@ -22,10 +20,18 @@ class SAC():
                  actor_lr=3e-4, critic_lr=3e-4, alpha_lr=3e-4,
                  tau=0.005, learning_starts=1000,
                  batch_size=256, buffer_size=1e6,
-                 model_name="sac", net_cfg=None):
+                 model_name="sac", net_cfg=None, log=None):
+        self.log = log
+        if(not log):
+            self.log = logging.getLogger(__name__)
         self.save_dir = save_dir
         self.env = env
         self.eval_env = eval_env
+        self._log_by_episodes = False
+        if(eval_env is None):
+            self._log_by_episodes = True
+            self.eval_env = env
+
         # Replay buffer
         _cnn_policy_cond = ["depth_obs", "gripper_img_obs", "img_obs"]
         _img_obs = False
@@ -95,7 +101,8 @@ class SAC():
         # self.eval_writer_name = "./results/%s_eval"%self.model_name
         self.trained_path = "{}/{}".format(self.save_dir, self.model_name)
 
-    def update_entropy(self, log_probs):
+    # update alpha(entropy coeficient)
+    def _update_entropy(self, log_probs):
         if(self._auto_entropy):
             self.ent_coef_optimizer.zero_grad()
             ent_coef_loss = -(self.log_ent_coef *
@@ -108,7 +115,9 @@ class SAC():
         else:
             return 0
 
-    def update(self, td_target, batch_states, batch_actions, plot_data):
+    # Update all networks
+    def _update(self, td_target, batch_states, batch_actions):
+        plot_data = {}
         # Critic 1
         curr_prediction_c1 = self._q1(batch_states, batch_actions)
         loss_c1 = self._loss_function(curr_prediction_c1, td_target.detach())
@@ -122,7 +131,7 @@ class SAC():
         loss_critics.backward()
         self._q_optim.step()
 
-        plot_data["critic_loss"] += [loss_c1.item(), loss_c2.item()]
+        plot_data["critic_loss"] = [loss_c1.item(), loss_c2.item()]
         # ---------------- Policy network update -------------#
         predicted_actions, log_probs = self._pi.act(batch_states,
                                                     deterministic=False,
@@ -135,12 +144,12 @@ class SAC():
         policy_loss = (self.ent_coef * log_probs - critic_value).mean()
         policy_loss.backward()
         self._pi_optim.step()
-        plot_data["actor_loss"].append(policy_loss.item())
+        plot_data["actor_loss"] = policy_loss.item()
 
         # ---------------- Entropy network update -------------#
-        ent_coef_loss = self.update_entropy(log_probs)
-        plot_data["ent_coef"].append(self.ent_coef)
-        plot_data["ent_coef_loss"].append(ent_coef_loss)
+        ent_coef_loss = self._update_entropy(log_probs)
+        plot_data["ent_coef"] = self.ent_coef
+        plot_data["ent_coef_loss"] = ent_coef_loss
 
         # ------------------ Target Networks update -------------------#
         soft_update(self._q1_target, self._q1, self.tau)
@@ -148,127 +157,159 @@ class SAC():
 
         return plot_data
 
+    # One single training timestep
+    # Take one step in the environment and update the networks
+    def training_step(self, s, ts, ep_return, ep_length, plot_data):
+        # sample action and scale it to action space
+        a, _ = self._pi.act(tt(s), deterministic=False)
+        a = a.cpu().detach().numpy()
+        ns, r, done, info = self.env.step(a)
+
+        self._replay_buffer.add_transition(s, a, r, ns, done)
+        s = ns
+        ep_return += r
+        ep_length += 1
+
+        # Replay buffer has enough data
+        if(self._replay_buffer.__len__() >= self.batch_size
+           and not done and ts > self.learning_starts):
+
+            sample = self._replay_buffer.sample(self.batch_size)
+            batch_states, batch_actions, batch_rewards,\
+                batch_next_states, batch_terminal_flags = sample
+
+            with torch.no_grad():
+                next_actions, log_probs = self._pi.act(
+                                                batch_next_states,
+                                                deterministic=False,
+                                                reparametrize=False)
+
+                target_qvalue = torch.min(
+                    self._q1_target(batch_next_states, next_actions),
+                    self._q2_target(batch_next_states, next_actions))
+
+                td_target = \
+                    batch_rewards \
+                    + (1 - batch_terminal_flags) * self._gamma * \
+                    (target_qvalue - self.ent_coef * log_probs)
+
+            # ----------------  Networks update -------------#
+            new_data = self._update(td_target,
+                                    batch_states,
+                                    batch_actions)
+            for k, v in plot_data.items():
+                v.append(new_data[k])
+        return s, done, ep_return, ep_length, plot_data, info
+
+    def _on_train_ep_end(self, writer, ts, episode, total_ts,
+                         best_return, episode_length, episode_return):
+        self.log.info(
+            "Episode %d: %d Steps," % (episode, episode_length) +
+            "Return: %.3f, total timesteps: %d/%d" %
+            (episode_return, ts, total_ts))
+
+        # Summary Writer
+        # log everything on timesteps to get the same scale
+        writer.add_scalar('train/episode_return',
+                          episode_return, ts)
+        writer.add_scalar('train/episode_length',
+                          episode_length, ts)
+
+        if(episode_return > best_return):
+            self.log.info("[%d] New best train ep. return!%.3f" %
+                          (episode, episode_return))
+            self.save(self.trained_path + "_best_train.pth")
+            best_return = episode_return
+
+        # Always save last model(last training episode)
+        self.save(self.trained_path + "_last.pth")
+        return best_return
+
+    # Evaluate model and log plot_data to writter
+    # Returns: Reseted plot_data and newest best_eval_reward
+    def _eval_and_log(self, writer, t, episode, plot_data,
+                      best_eval_return, n_eval_ep, max_ep_length):
+        # Log plot_data to writer
+        for key, value in plot_data.items():
+            if value:  # not empty
+                if(key == "critic_loss"):
+                    data = np.mean(value[-1])
+                else:
+                    data = value[-1]  # np.mean(value)
+                writer.add_scalar("train/%s" % key, data, t)
+
+        # Reset plot_data
+        plot_data = {"actor_loss": [],
+                     "critic_loss": [],
+                     "ent_coef_loss": [], "ent_coef": []}
+
+        # Evaluate agent for n_eval_ep with max_ep_length
+        mean_return, mean_length = \
+            self.evaluate(self.eval_env, max_ep_length,
+                          n_episodes=n_eval_ep)
+
+        # Log results to writer
+        if(mean_return > best_eval_return):
+            self.log.info("[%d] New best eval avg. return!%.3f" %
+                          (episode, mean_return))
+            self.save(self.trained_path+"_best_eval.pth")
+            best_eval_return = mean_return
+        writer.add_scalar('eval/mean_return(%dep)' %
+                          (n_eval_ep), mean_return, t)
+        writer.add_scalar('eval/mean_ep_length(%dep)' %
+                          (n_eval_ep), mean_length, t)
+
+        return best_eval_return, plot_data
+
     def learn(self, total_timesteps=10000, log_interval=100,
               max_episode_length=None, n_eval_ep=5):
         if not isinstance(total_timesteps, int):   # auto
             total_timesteps = int(total_timesteps)
-        stats = EpisodeStats(episode_lengths=[],
-                             episode_rewards=[],
-                             validation_reward=[])
         # eval_writer = SummaryWriter(self.eval_writer_name)
         writer = SummaryWriter(self.writer_name)
         episode = 0
         s = self.env.reset()
-        episode_reward, episode_length = 0, 0
-        best_reward, best_eval_reward = -np.inf, -np.inf
+        episode_return, episode_length = 0, 0
+        best_return, best_eval_return = -np.inf, -np.inf
         if(max_episode_length is None):
             max_episode_length = sys.maxsize  # "infinite"
 
         plot_data = {"actor_loss": [],
                      "critic_loss": [],
                      "ent_coef_loss": [], "ent_coef": []}
+        _log_n_ep = log_interval//max_episode_length
+        if(_log_n_ep < 1):
+            _log_n_ep = 1
         for t in range(1, total_timesteps+1):
-            # sample action and scale it to action space
-            a, _ = self._pi.act(tt(s), deterministic=False)
-            a = a.cpu().detach().numpy()
-            ns, r, done, info = self.env.step(a)
+            s, done, episode_return, episode_length, plot_data, info = \
+                    self.training_step(s, t, episode_return, episode_length,
+                                       plot_data)
 
-            self._replay_buffer.add_transition(s, a, r, ns, done)
-            s = ns
-            episode_reward += r
-            episode_length += 1
-
-            # Replay buffer has enough data
-            if(self._replay_buffer.__len__() >= self.batch_size
-               and not done and t > self.learning_starts):
-
-                sample = self._replay_buffer.sample(self.batch_size)
-                batch_states, batch_actions, batch_rewards,\
-                    batch_next_states, batch_terminal_flags = sample
-
-                with torch.no_grad():
-                    next_actions, log_probs = self._pi.act(
-                                                    batch_next_states,
-                                                    deterministic=False,
-                                                    reparametrize=False)
-
-                    target_qvalue = torch.min(
-                        self._q1_target(batch_next_states, next_actions),
-                        self._q2_target(batch_next_states, next_actions))
-
-                    td_target = \
-                        batch_rewards \
-                        + (1 - batch_terminal_flags) * self._gamma * \
-                        (target_qvalue - self.ent_coef * log_probs)
-
-                # ----------------  Networks update -------------#
-                plot_data = self.update(td_target,
-                                        batch_states,
-                                        batch_actions,
-                                        plot_data)
             # End episode
             if(done or (max_episode_length and
                         (episode_length >= max_episode_length))):
-                stats.episode_lengths.append(episode_length)
-                stats.episode_rewards.append(episode_reward)
-                log.info(
-                    "Episode %d: %d Steps," % (episode, episode_length) +
-                    "Return: %.3f, total timesteps: %d/%d" %
-                    (episode_reward, t, total_timesteps))
-
-                # Summary Writer
-                # log everything on timesteps to get the same scale
-                writer.add_scalar('train/episode_return',
-                                  episode_reward, t)
-                writer.add_scalar('train/episode_length',
-                                  episode_length, t)
-
-                if(episode_reward > best_reward):
-                    log.info("[%d] New best train ep. return!%.3f" %
-                             (episode, episode_reward))
-                    self.save(self.trained_path+"_best_train.pth")
-                    best_reward = episode_reward
-
-                # Always save last model(last training episode)
-                self.save(self.trained_path+"_last.pth")
+                best_return = \
+                    self._on_train_ep_end(writer, t, episode,
+                                          total_timesteps, best_return,
+                                          episode_length, episode_return)
 
                 # Reset everything
                 episode += 1
-                episode_reward, episode_length = 0, 0
+                episode_return, episode_length = 0, 0
                 s = self.env.reset()
 
-            if(t % log_interval == 0):
-                for key, value in plot_data.items():
-                    if value:  # not empty
-                        if(key == "critic_loss"):
-                            data = np.mean(value[-1])
-                        else:
-                            data = value[-1]  # np.mean(value)
-                        writer.add_scalar("train/%s" % key, data, t)
+            if((t % log_interval == 0 and not self._log_by_episodes)
+               or (self._log_by_episodes and episode % _log_n_ep)):
+                best_eval_return, plot_data = \
+                     self._eval_and_log(writer, t, episode,
+                                        plot_data, best_eval_return,
+                                        n_eval_ep, max_episode_length)
 
-                plot_data = {"actor_loss": [],
-                             "critic_loss": [],
-                             "ent_coef_loss": [], "ent_coef": []}
-                if(self.eval_env is not None):
-                    mean_reward, mean_length = \
-                        self.evaluate(self.eval_env, max_episode_length,
-                                      n_episodes=n_eval_ep)
-                    stats.validation_reward.append(mean_reward)
-                    if(mean_reward > best_eval_reward):
-                        log.info("[%d] New best eval avg. return!%.3f" %
-                                 (episode, mean_reward))
-                        self.save(self.trained_path+"_best_eval.pth")
-                        best_eval_reward = mean_reward
-                    writer.add_scalar('eval/mean_return(%dep)' %
-                                      (n_eval_ep), mean_reward, t)
-                    writer.add_scalar('eval/mean_ep_length(%dep)' %
-                                      (n_eval_ep), mean_length, t)
-        if(self.eval_env is not None):
-            log.info("End of training evaluation:")
-            self.evaluate(self.eval_env,
-                          max_episode_length,
-                          print_all_episodes=True)
-        return stats
+        # Evaluate at end of training
+        self.log.info("End of training evaluation:")
+        self.evaluate(self.eval_env,
+                      max_episode_length,
+                      print_all_episodes=True)
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
                  print_all_episodes=False, render=False, save_images=False):
@@ -278,7 +319,7 @@ class SAC():
         im_lst = []
         for episode in range(n_episodes):
             s = env.reset()
-            episode_length, episode_reward = 0, 0
+            episode_length, episode_return = 0, 0
             done = False
             while(episode_length < max_episode_length and not done):
                 # sample action and scale it to action space
@@ -291,12 +332,12 @@ class SAC():
                     img = env.render('rgb_array')
                     im_lst.append(img)
                 s = ns
-                episode_reward += r
+                episode_return += r
                 episode_length += 1
-            stats.episode_rewards.append(episode_reward)
+            stats.episode_rewards.append(episode_return)
             stats.episode_lengths.append(episode_length)
             if(print_all_episodes):
-                print("Episode %d, Return: %.3f" % (episode, episode_reward))
+                print("Episode %d, Return: %.3f" % (episode, episode_return))
 
         # Save images
         if(save_images):
@@ -310,7 +351,7 @@ class SAC():
         mean_length = np.mean(stats.episode_lengths)
         length_std = np.std(stats.episode_lengths)
 
-        log.info(
+        self.log.info(
             "Mean return: %.3f +/- %.3f, " % (mean_reward, reward_std) +
             "Mean length: %.3f +/- %.3f, over %d episodes" %
             (mean_length, length_std, n_episodes))
@@ -361,12 +402,3 @@ class SAC():
         else:
             print("no path " + path)
             return False
-
-    def save_stats(self, stats, path):
-        rewards_path = path + "_rewards.txt"
-        with open(rewards_path, 'wb') as fp:
-            pickle.dump(stats.episode_rewards, fp)
-
-        lengths_path = path + "_ep_lengths.txt"
-        with open(lengths_path, 'wb') as fp:
-            pickle.dump(stats.episode_lengths, fp)

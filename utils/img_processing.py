@@ -72,7 +72,7 @@ def get_img_mask_rl_agent(env, viz=False):
     point[1] += np.random.normal(0, std)
 
     # Project point to camera
-    # x,y <- pixel coords
+    # x, y <- pixel coords
     x, y = transform_point(point, cam)
 
     # Euclidian distance on image space

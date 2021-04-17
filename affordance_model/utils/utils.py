@@ -1,21 +1,27 @@
 import numpy as np
 import cv2
 from PIL import Image
-from affordance_model.datasets import VREnvData
-from torch.utils.data import DataLoader
+import torch
 
 
-def get_loaders(logger, dataset_cfg, dataloader_cfg):
-    train = VREnvData(split="train", log=logger, **dataset_cfg)
-    val = VREnvData(split="validation", log=logger, **dataset_cfg)
-    logger.info('train_data {}'.format(train.__len__()))
-    logger.info('val_data {}'.format(val.__len__()))
+def visualize(mask, img, imshow):
+    # mask = Torch.tensor(), shape[1, 2, H, W]
+    # img = numpy, shape[1, 1, H, W]
+    if(mask.shape[1] == 1):
+        mask = mask[:, 0].permute(1, 2, 0).detach().cpu().numpy()
+    else:
+        mask = torch.argmax(mask, axis=1).permute(1, 2, 0)
+        mask = mask.detach().cpu().numpy()*255.0
+    mask = cv2.resize(mask, dsize=img.shape[:2])
+    mask = smoothen(mask, k=15)  # [0, 255] int
 
-    train_loader = DataLoader(train, shuffle=True, **dataloader_cfg)
-    val_loader = DataLoader(val, **dataloader_cfg)
-    logger.info('train minibatches {}'.format(len(train_loader)))
-    logger.info('val minibatches {}'.format(len(val_loader)))
-    return train_loader, val_loader
+    res = overlay_mask(mask, img, (0, 0, 255))
+    if imshow:
+        # cv2.imshow("mask", np.expand_dims(mask, -1))
+        # cv2.imshow("img", img)
+        cv2.imshow("paste", res)
+        cv2.waitKey(1)
+    return res
 
 
 def overlay_mask(mask, img, color):

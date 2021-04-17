@@ -21,7 +21,7 @@ parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, os.getcwd())
 from affordance_model.utils.losses import compute_mIoU
 from affordance_model.segmentator import Segmentator
-from affordance_model.utils.utils import get_loaders
+from affordance_model.datasets import get_loaders
 log = logging.getLogger(__name__)
 
 

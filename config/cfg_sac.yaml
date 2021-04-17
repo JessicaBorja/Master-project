@@ -48,7 +48,7 @@ affordance:
     gripper_cam:
       use: False
       model_path: ${models_path}/gripper_1CE_5dice_64px_miou=0.629.ckpt
-#Env 
+
 defaults:
   - transforms: img_transforms
   - robot: panda
@@ -65,7 +65,7 @@ defaults:
 all_cameras:
   sideview_right: #Side view (slide)
     _target_: vr_env.camera.static_camera.StaticCamera
-    name: sideview_right
+    name: static_right
     fov: 75
     aspect: 1
     nearval: 0.01
@@ -76,7 +76,7 @@ all_cameras:
     look_from: [0.8, 0.2, 1]
   sideview_left: #Side view (drawer)
     _target_: vr_env.camera.static_camera.StaticCamera
-    name: sideview_left
+    name: static_left
     fov: 75
     aspect: 1
     nearval: 0.01
@@ -87,7 +87,7 @@ all_cameras:
     look_from: [-0.5, 0.2, 1]
   topview:    
     _target_: vr_env.camera.static_camera.StaticCamera
-    name: topview
+    name: static_topview
     fov: 75
     aspect: 1
     nearval: 0.01
@@ -117,7 +117,6 @@ all_cameras:
     width: 300
     height: 300
     gripper_cam_link: 12 # TODO do not hardcode this, use robot property? e.g. ${robot.camera_link_id}
-
   opposing:
     _target_: vr_env.camera.static_camera.StaticCamera
     name: opposing

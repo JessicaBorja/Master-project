@@ -1,19 +1,11 @@
 import gym
 import hydra
 from omegaconf import OmegaConf
-import os
-import sys
-parent_dir = os.path.dirname(os.getcwd())
-sys.path.insert(0, parent_dir)
-sys.path.insert(0, parent_dir+"/VREnv/")
-gym.envs.register(
-     id='VREnv-v0',
-     entry_point='VREnv.vr_env.envs.play_table_env:PlayTableSimEnv',
-     max_episode_steps=200,
-)
+from utils.utils import register_env
 from utils.env_processing_wrapper import EnvWrapper
 from sac_agent.sac import SAC
 from sac_agent.sac_utils.utils import set_init_pos
+register_env()
 
 
 def print_common_cfg(cfg):

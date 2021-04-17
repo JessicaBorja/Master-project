@@ -12,7 +12,8 @@ class Segmentator(pl.LightningModule):
         super().__init__()
         # https://github.com/qubvel/segmentation_models.pytorch
         self.unet = None
-        self.init_model(n_classes=cfg.n_classes)
+        self.init_model(decoder_channels = cfg.unet_cfg.decoder_channels,
+                        n_classes=cfg.n_classes)
         self.optimizer_cfg = cfg.optimizer
         self.criterion = get_loss(cfg.dice_loss.add,
                                   cfg.n_classes,
@@ -24,14 +25,16 @@ class Segmentator(pl.LightningModule):
         self._dice_weight = cfg.dice_loss.weight
         self._ce_weight = cfg.ce_loss.weight
 
-    def init_model(self, activation=None, n_classes=2):
+    def init_model(self, decoder_channels=None, activation=None, n_classes=2):
+        if(decoder_channels is None):
+            decoder_channels = [128, 64, 32]
         self.unet = smp.Unet(
             encoder_name="resnet18",
             encoder_weights="imagenet",
             in_channels=1,  # Grayscale
             classes=n_classes,
-            encoder_depth=3,  # Should be equal to number of layers in decoder
-            decoder_channels=(128, 64, 32),
+            encoder_depth=len(decoder_channels),  # Should be equal to number of layers in decoder
+            decoder_channels = tuple(decoder_channels),
             activation=None
         )
         # Fix encoder weights. Only train decoder

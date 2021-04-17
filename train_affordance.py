@@ -44,7 +44,8 @@ def train(cfg):
         filename='affordance-{epoch:02d}-{val_miou:.3f}',
         save_top_k=2,
         verbose=True,
-        mode='max'
+        mode='max',
+        save_last=True,
         )
 
     # 24hr format

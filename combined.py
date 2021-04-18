@@ -15,6 +15,7 @@ from sklearn.cluster import DBSCAN
 import matplotlib.pyplot as plt
 import pybullet as p
 from utils.env_processing_wrapper import EnvWrapper
+from sac_agent.sac_utils.utils import EpisodeStats, tt
 import glm
 register_env()
 
@@ -162,7 +163,7 @@ class Combined(SAC):
             s = s["robot_obs"]
             dict_obs = True
         tcp_pos, gripper = s[:3], s[-1]
-        
+
         # Compute target in case it moved
         self.area_center = self.compute_target()
         _envts = 0  # to set a timeout
@@ -195,6 +196,54 @@ class Combined(SAC):
             env.p.stepSimulation()
             env.fps_controller.step()
             _envts += 1
+
+    def evaluate(self, env, max_episode_length=150, n_episodes=5,
+                 print_all_episodes=False, render=False, save_images=False):
+        stats = EpisodeStats(episode_lengths=[],
+                             episode_rewards=[],
+                             validation_reward=[])
+        im_lst = []
+        for episode in range(n_episodes):
+            s = env.reset()
+            episode_length, episode_return = 0, 0
+            done = False
+            while(episode_length < max_episode_length and not done):
+                # Correct Position
+                self.correct_position(env, s)
+                # sample action and scale it to action space
+                a, _ = self._pi.act(tt(s), deterministic=True)
+                a = a.cpu().detach().numpy()
+                ns, r, done, info = env.step(a)
+                if(render):
+                    img = env.render()
+                if(save_images):
+                    img = env.render('rgb_array')
+                    im_lst.append(img)
+                s = ns
+                episode_return += r
+                episode_length += 1
+            stats.episode_rewards.append(episode_return)
+            stats.episode_lengths.append(episode_length)
+            if(print_all_episodes):
+                print("Episode %d, Return: %.3f" % (episode, episode_return))
+
+        # Save images
+        if(save_images):
+            import cv2
+            os.makedirs("./frames/")
+            for idx, im in enumerate(im_lst):
+                cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
+        # mean and print
+        mean_reward = np.mean(stats.episode_rewards)
+        reward_std = np.std(stats.episode_rewards)
+        mean_length = np.mean(stats.episode_lengths)
+        length_std = np.std(stats.episode_lengths)
+
+        self.log.info(
+            "Mean return: %.3f +/- %.3f, " % (mean_reward, reward_std) +
+            "Mean length: %.3f +/- %.3f, over %d episodes" %
+            (mean_length, length_std, n_episodes))
+        return mean_reward, mean_length
 
     def learn(self, total_timesteps=10000, log_interval=100,
               max_episode_length=None, n_eval_ep=5):

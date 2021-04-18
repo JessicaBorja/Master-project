@@ -12,7 +12,7 @@ class Segmentator(pl.LightningModule):
         super().__init__()
         # https://github.com/qubvel/segmentation_models.pytorch
         self.unet = None
-        self.init_model(decoder_channels = cfg.unet_cfg.decoder_channels,
+        self.init_model(decoder_channels=cfg.unet_cfg.decoder_channels,
                         n_classes=cfg.n_classes)
         self.optimizer_cfg = cfg.optimizer
         self.criterion = get_loss(cfg.dice_loss.add,

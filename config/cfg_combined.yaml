@@ -1,15 +1,26 @@
 project_path: C:/Users/Jessica/Documents/Proyecto_ssd
 data_path: ${project_path}/VREnv/data/
 save_dir: ./hydra_outputs/
-model_name: "full_test"
+model_name: "full_b_gripper_aff"
 task: banana
 euler_obs: true
 img_size: 64
 
-models_path: "${project_path}/SAC/trained_models/"
+env_wrapper:
+  use_depth: False
+  use_pos: True
+  use_static_cam: False
+  use_gripper_cam: True
+  history_length: 1
+  skip_frames: 0
+  img_size: ${img_size}
+  transforms: ${transforms}
 
+models_path: "${project_path}/SAC/trained_models/"
 affordance:
     hyperparameters:
+      unet_cfg:
+        decoder_channels: [128, 64, 32]
       n_classes: 2
       dice_loss:
         add: True
@@ -24,13 +35,14 @@ affordance:
       use: False
       model_path: ${models_path}/static_dice_total_loss=0.427.ckpt
     gripper_cam:
-      use: False
+      use: True
       model_path: ${models_path}/gripper_1CE_5dice_64px_miou=0.629.ckpt
 
 defaults:
   - robot: panda
   - scene: basic_playtable
   - env: env_combined
+  - env@eval_env: env_combined
   - camera_conf: topview
   - test_sac: test
   - agent: default

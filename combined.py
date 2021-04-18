@@ -14,7 +14,8 @@ import torch
 from sklearn.cluster import DBSCAN
 import matplotlib.pyplot as plt
 import pybullet as p
-import math
+from utils.env_processing_wrapper import EnvWrapper
+import glm
 register_env()
 
 
@@ -23,8 +24,12 @@ class Combined(SAC):
         super(Combined, self).__init__(**sac_cfg)
         self.affordance = cfg.affordance
         self.writer = SummaryWriter(self.writer_name)
-        self.area_center = [0, 0, 0]
-        self.radius = 10
+        self.target_orn = \
+            self.env.get_obs()["robot_obs"][3:6]
+
+        # Make target slightly(5cm) above actual target
+        self.area_center = self.compute_target()
+        self.radius = 0.10  # Distance in meters
         self.aff_net = self._init_aff_net()
         self.cam_id = self._find_cam_id()
         self.transforms = get_transforms(cfg.transforms.validation)
@@ -43,7 +48,7 @@ class Combined(SAC):
                                 cfg=self.affordance.hyperparameters)
             aff_net.cuda()
             aff_net.eval()
-            print("Static cam affordance model loaded")
+            print("Static cam affordance model loaded (to find targets)")
         else:
             self.affordance = None
             print("Path does not exist: %s" % path)
@@ -52,7 +57,7 @@ class Combined(SAC):
     def find_target_center(self):
         rgb, depth = self.env.get_camera_obs()
         # Values from static camera
-        static_img = rgb[self.cam_id][:, :, ::-1].copy() # H, W, C
+        static_img = rgb[self.cam_id][:, :, ::-1].copy()  # H, W, C
         static_depth = depth[self.cam_id]
         x = torch.from_numpy(static_img).permute(2, 0, 1).unsqueeze(0)
         x = self.transforms(x).cuda()
@@ -106,69 +111,90 @@ class Combined(SAC):
         cv2.imshow("depth", static_depth)
         cv2.waitKey(1)
 
-    def getRayFromTo(mouseX, mouseY):
-        width, height, viewMat, projMat, cameraUp, camForward, horizon, vertical, _, _, dist, camTarget = p.getDebugVisualizerCamera()
-        camPos = [
-            camTarget[0] - dist * camForward[0], camTarget[1] - dist * camForward[1],
-            camTarget[2] - dist * camForward[2]
-        ]
-        farPlane = 10000
-        rayForward = [(camTarget[0] - camPos[0]), (camTarget[1] - camPos[1]), (camTarget[2] - camPos[2])]
-        lenFwd = math.sqrt(rayForward[0] * rayForward[0] + rayForward[1] * rayForward[1] +
-                            rayForward[2] * rayForward[2])
-        invLen = farPlane * 1. / lenFwd
-        rayForward = [invLen * rayForward[0], invLen * rayForward[1], invLen * rayForward[2]]
-        rayFrom = camPos
-        oneOverWidth = float(1) / float(width)
-        oneOverHeight = float(1) / float(height)
-
-        dHor = [horizon[0] * oneOverWidth, horizon[1] * oneOverWidth, horizon[2] * oneOverWidth]
-        dVer = [vertical[0] * oneOverHeight, vertical[1] * oneOverHeight, vertical[2] * oneOverHeight]
-        ortho = [
-            -0.5 * horizon[0] + 0.5 * vertical[0] + float(mouseX) * dHor[0] - float(mouseY) * dVer[0],
-            -0.5 * horizon[1] + 0.5 * vertical[1] + float(mouseX) * dHor[1] - float(mouseY) * dVer[1],
-            -0.5 * horizon[2] + 0.5 * vertical[2] + float(mouseX) * dHor[2] - float(mouseY) * dVer[2]
-        ]
-
-        rayTo = [
-            rayFrom[0] + rayForward[0] + ortho[0], rayFrom[1] + rayForward[1] + ortho[1],
-            rayFrom[2] + rayForward[2] + ortho[2]
-        ]
-        lenOrtho = math.sqrt(ortho[0] * ortho[0] + ortho[1] * ortho[1] + ortho[2] * ortho[2])
-        alpha = math.atan(lenOrtho / farPlane)
-        return rayFrom, rayTo, alpha
-
-    def pixel2world(self, u, v, depth, debug_str):
-        cam = self.env.cameras[self.cam_id]
+    def world2pixel(self, point, cam):
+        # https://github.com/bulletphysics/bullet3/issues/1952
+        # reshape to get homogeneus transform
         persp_m = np.array(cam.projectionMatrix).reshape((4, 4)).T
         view_m = np.array(cam.viewMatrix).reshape((4, 4)).T
 
         # Perspective proj matrix
-        d = depth * cam.farval
-        u, v = depth*(u / cam.width), depth*(1 - (v / cam.height))
-        px_pt = np.array([u, v, d, 1])
-        px_pt[:3] = (px_pt[:3] * 2) - 1
-        pix_world_tran = np.linalg.inv(persp_m @ view_m) @ px_pt
-        pix_world_tran = pix_world_tran / pix_world_tran[-1]
-        # world_pix_tran = persp_m @ view_m @ point
-        # world_pix_tran = world_pix_tran / world_pix_tran[-1]  # divide by w
-        # world_pix_tran[:3] = (world_pix_tran[:3] + 1)/2
-        world_pos = pix_world_tran[:3]
+        world_pix_tran = persp_m @ view_m @ point
+        world_pix_tran = world_pix_tran / world_pix_tran[-1]  # divide by w
+        world_pix_tran[:3] = (world_pix_tran[:3] + 1)/2
+        x, y = world_pix_tran[0]*cam.width, (1-world_pix_tran[1])*cam.height
+        x, y = np.floor(x).astype(int), np.floor(y).astype(int)
+        return (x, y)
 
+    def pixel2world(self, u, v, depth, debug_str, cam):
+        persp_m = np.array(cam.projectionMatrix).reshape((4, 4), order='F')
+        view_m = np.array(cam.viewMatrix).reshape((4, 4), order='F')
+
+        # Perspective proj matrix
+        # d = depth * cam.farval
+        # u, v = u / cam.width, 1 - (v / cam.height)
+        # px_pt = np.array([u, v, depth * cam.farval, 1])
+        # px_pt[:3] = (px_pt[:3] * 2) - 1
+        # pix_world_tran = np.linalg.inv(persp_m @ view_m) @ px_pt
+        # pix_world_tran = pix_world_tran / pix_world_tran[-1]
+        # world_pos = pix_world_tran[:3]
+
+        far = cam.farval
+        win = glm.vec3(float(u), float(v), depth*far)
+        viewport = glm.vec4(0, 0, cam.width, cam.height)
+        view_m, persp_m = glm.mat4(view_m), glm.mat4(persp_m)
+        world_pos = glm.unProject(win, view_m, persp_m, viewport)
+        world_pos = np.array([world_pos[0], world_pos[1], world_pos[2]])
         p.addUserDebugText(debug_str,
-                           textPosition=world_pos,
-                           textColorRGB=[1, 0, 0])
-        # x, y = world_pix_tran[0]*cam.width, (1-world_pix_tran[1])*cam.height
+                            textPosition=world_pos,
+                            textColorRGB=[1, 0, 0])
         return world_pos
 
-    def correct_position(self, s):
+    def compute_target(self):
+        target_pos, _ = self.env.get_target_pos()
+        area_center = np.array(target_pos) \
+            + np.array([0, 0, 0.05])
+        return area_center
+
+    def correct_position(self, env, s):
+        dict_obs = False
+        # Take current robot state
         if(isinstance(s, dict)):
-            tcp_pos = s["robot_pos"][:3]
-        else:
-            tcp_pos = s[:3]
+            s = s["robot_obs"]
+            dict_obs = True
+        tcp_pos, gripper = s[:3], s[-1]
+        
+        # Compute target in case it moved
+        self.area_center = self.compute_target()
+        _envts = 0  # to set a timeout
+        up = False
         # If outside the area
-        if(np.linalg.norm(tcp_pos - self.area_center) > self.radius):
-            self.env.robot.apply_action(self.area_center)
+        while(np.linalg.norm(tcp_pos - self.area_center) > self.radius
+              and _envts < 120):
+            # Update position
+            if(dict_obs):
+                tcp_pos = env.get_obs()["robot_obs"][:3]
+            else:
+                tcp_pos = env.get_obs()[:3]
+
+            # First move up
+            if(np.abs(tcp_pos[2] - (self.area_center[2] + 0.1)) > 0.1
+               and not up):
+                target_pos = [tcp_pos[0],
+                              tcp_pos[1],
+                              self.area_center[2] + 0.2]
+                a = [target_pos, self.target_orn, gripper]
+            else:
+                up = True
+
+            # Once we've gone up, always move to target
+            if(up):
+                a = [self.area_center, self.target_orn, gripper]
+
+            # Apply corrective action
+            env.robot.apply_action(a)
+            env.p.stepSimulation()
+            env.fps_controller.step()
+            _envts += 1
 
     def learn(self, total_timesteps=10000, log_interval=100,
               max_episode_length=None, n_eval_ep=5):
@@ -184,8 +210,9 @@ class Combined(SAC):
         plot_data = {"actor_loss": [],
                      "critic_loss": [],
                      "ent_coef_loss": [], "ent_coef": []}
+        # correct_every_ts = 20
         for t in range(1, total_timesteps+1):
-            self.correct_position(s)
+            self.correct_position(self.env, s)
             s, done, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, t, episode_return, episode_length,
                                    plot_data)
@@ -213,21 +240,25 @@ class Combined(SAC):
 @hydra.main(config_path="./config", config_name="cfg_combined")
 def main(cfg):
 
-    env = gym.make("VREnv-v0", **cfg.env).env
-    model_name = cfg.model_name
-    sac_cfg = {"env": env,
-               "model_name": model_name,
+    training_env = gym.make("VREnv-v0", **cfg.env).env
+    eval_env = gym.make("VREnv-v0", **cfg.eval_env).env
+    training_env = EnvWrapper(training_env, train=True,
+                              affordance=cfg.affordance,
+                              **cfg.env_wrapper)
+    eval_env = EnvWrapper(eval_env,
+                          affordance=cfg.affordance,
+                          **cfg.env_wrapper)
+    sac_cfg = {"env": training_env,
+               "eval_env": eval_env,
+               "model_name": cfg.model_name,
                "save_dir": cfg.agent.save_dir,
                "net_cfg": cfg.agent.net_cfg,
                **cfg.agent.hyperparameters}
 
     model = Combined(cfg, sac_cfg=sac_cfg)
-    for i in range(10000):
-        action = env.action_space.sample()
-        ns, r, d, info = env.step(action)
-        model.find_target_center()
-
-    env.close()
+    model.learn(**cfg.agent.learn_config)
+    training_env.close()
+    eval_env.close()
 
 
 if __name__ == "__main__":

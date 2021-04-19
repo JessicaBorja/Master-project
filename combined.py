@@ -43,6 +43,7 @@ class Combined(SAC):
 
     def _init_aff_net(self):
         path = self.affordance.static_cam.model_path
+        aff_net = None
         if(os.path.exists(path)):
             aff_net = Segmentator.load_from_checkpoint(
                                 path,

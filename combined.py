@@ -43,6 +43,7 @@ class Combined(SAC):
 
     def _init_aff_net(self):
         path = self.affordance.static_cam.model_path
+        aff_net = None
         if(os.path.exists(path)):
             aff_net = Segmentator.load_from_checkpoint(
                                 path,
@@ -281,9 +282,9 @@ class Combined(SAC):
             # Log interval (sac)
             if(t % log_interval == 0):
                 best_eval_return, plot_data = \
-                     self._log_eval_stats(self.writer, t, episode,
-                                          plot_data, best_eval_return,
-                                          n_eval_ep, max_episode_length)
+                     self._eval_and_log(self.writer, t, episode,
+                                        plot_data, best_eval_return,
+                                        n_eval_ep, max_episode_length)
 
 
 @hydra.main(config_path="./config", config_name="cfg_combined")

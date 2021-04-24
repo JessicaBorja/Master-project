@@ -2,7 +2,7 @@ project_path: C:/Users/Jessica/Documents/Proyecto_ssd
 data_path: ${project_path}/VREnv/data/
 save_dir: ./hydra_outputs/
 model_name: "full_b_gripper_aff"
-task: banana
+task: banana_combined
 euler_obs: true
 img_size: 64
 
@@ -26,14 +26,14 @@ affordance:
         add: True
         weight: 5
       ce_loss:
-        weight: 0
+        weight: 1
         class_weights: [0.2, 0.8]
       optimizer:
         lr: 1e-5
         weight_decay: 1e-3
     static_cam:
       use: False
-      model_path: ${models_path}/static_dice_total_loss=0.427.ckpt
+      model_path: ${models_path}/static_cam_1ce_5dice.ckpt
     gripper_cam:
       use: True
       model_path: ${models_path}/gripper_1CE_5dice_64px_miou=0.629.ckpt
@@ -44,8 +44,8 @@ defaults:
   - env: env_combined
   - env@eval_env: env_combined
   - camera_conf: topview
-  - test_sac: test
   - agent: default
+  - test: test_combined
   - transforms: img_transforms
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog

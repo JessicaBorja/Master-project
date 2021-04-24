@@ -56,7 +56,7 @@ defaults:
   - env: env
   - env@eval_env: env
   - camera_conf: topview
-  - test_sac: test
+  - test: test
   - agent: default
   - optim@optim: sac_optim
   - hydra/job_logging: colorlog

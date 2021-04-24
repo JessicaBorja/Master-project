@@ -90,7 +90,7 @@ class EnvWrapper(gym.ObservationWrapper):
                                         cfg=self.affordance.hyperparameters)
                     aff_net.cuda()
                     aff_net.eval()
-                    print("Affordance model loaded")
+                    print("ENV: Static cam affordance model loaded")
                 else:
                     self.affordance = None
                     print("Path does not exist: %s" % path)
@@ -102,7 +102,7 @@ class EnvWrapper(gym.ObservationWrapper):
                                         cfg=self.affordance.hyperparameters)
                     aff_net.cuda()
                     aff_net.eval()
-                    print("Affordance model loaded")
+                    print("ENV: gripper affordance model loaded")
                 else:
                     self.affordance = None
                     print("Path does not exist: %s" % path)
@@ -153,7 +153,7 @@ class EnvWrapper(gym.ObservationWrapper):
                 mask = torch.argmax(mask, axis=1, keepdim=True)
                 # 1, H, W
                 mask = mask[0].cpu().detach().numpy()
-                # show_mask_np(gripper_obs, mask[0])
+                # show_mask_np(gripper_obs, mask)
                 del obs_t
             obs["gripper_aff"] = mask
             del gripper_obs

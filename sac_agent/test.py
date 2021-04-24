@@ -69,8 +69,8 @@ def hydra_evaluateVRenv(cfg):
     # Get hydra config from tested model and load it
     # important parameters are hidden_dim (defines the network)
     # img_obs and img_wrapper
-    test_cfg = cfg.test_sac
-    optim_res = cfg.test_sac.optim_res
+    test_cfg = cfg.test
+    optim_res = cfg.test.optim_res
     # Load saved config
     run_cfg, net_cfg, env_wrapper, agent_cfg =\
         load_cfg(os.path.join(test_cfg.folder_name, ".hydra/config.yaml"),
@@ -93,7 +93,7 @@ def hydra_evaluateVRenv(cfg):
     model = SAC(eval_env, net_cfg=net_cfg, **agent_cfg)
     success = model.load(path)
     if(success):
-        model.evaluate(eval_env, **cfg.test_sac.eval_cfg)
+        model.evaluate(eval_env, **cfg.test.eval_cfg)
 
 
 if __name__ == "__main__":

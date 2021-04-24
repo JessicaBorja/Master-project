@@ -27,14 +27,14 @@ data_dir: [../../datasets/vrenv_play_large_handles/episode_1/frames/gripper_cam/
 # model_name: affordance-epoch=77-val_miou=0.58.ckpt
 
 # gripper dice 64
-folder_name:  ${project_folder}/hydra_outputs/2021-04-16/10-43-20
-model_name: affordance-epoch=13-val_total_loss=0.426.ckpt
+folder_name:  ${project_folder}/hydra_outputs/2021-04-14/16-00-41/
+model_name: affordance-epoch=92-val_miou=0.629.ckpt
 
 # Output img size, must be mutiple of 32
-save_images: False
+save_images: True
 imshow: True
 img_size: 64
-output_dir: ${project_folder}/predictions/test_1ce_5dice
+output_dir: ${project_folder}/predictions/gripper_1ce_5dice_64px
 
 model_cfg:
   model_name: "${model_name}"
@@ -48,6 +48,8 @@ model_cfg:
   optimizer:
     lr: 1e-5
     weight_decay: 1e-3
+  unet_cfg:
+    decoder_channels: [128, 64, 32]
 
 defaults:
   - transforms: img_transforms

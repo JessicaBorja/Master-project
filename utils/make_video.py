@@ -6,7 +6,7 @@ import json
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, parent_dir)
-from utils.file_manipulation import get_files
+from file_manipulation import get_files
 
 
 def make_video(files, fps=30, video_name="v"):
@@ -57,8 +57,8 @@ def make_videos(path, cam, val_dir=False):
 if __name__ == "__main__":
     pred_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model/predictions"
     path = [
-        "%s/gripper_1ce_5dice_x64" % pred_folder,]
-        #"%s/gripper_dice_x64" % pred_folder,]
+        "%s/gripper_1ce_5dice_64px" % pred_folder,]
+        # "%s/gripper_dice_x64" % pred_folder,]
     #     "%s/gripper_1CE_1dice_miou" % pred_folder,
     #     "%s/gripper_1CE_5dice_miou" % pred_folder]
     # vid_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/videos"

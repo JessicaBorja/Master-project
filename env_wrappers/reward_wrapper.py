@@ -81,7 +81,7 @@ class RewardWrapper(gym.RewardWrapper):
         # modify rew
         if(self.task == "banana_combined"
            and self.affordance.gripper_cam.use
-           and self.affordance.gripper_can.densify_reward):
+           and self.affordance.gripper_cam.densify_reward):
             obs_dict = self.get_obs()
             gripper_depth = obs_dict["depth_obs"][self.gripper_id]
 

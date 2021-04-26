@@ -2,15 +2,12 @@ import gym
 import hydra
 import os
 import sys
-# current_dir = os.path.dirname(
-# os.path.abspath(inspect.getfile(inspect.currentframe())))
-# parent_dir = os.path.dirname(current_dir)
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, parent_dir+"/VREnv/")
 from sac_agent.sac import SAC
-from utils.env_processing_wrapper import EnvWrapper
+from env_wrappers.env_wrapper import ObservationWrapper
 from omegaconf import OmegaConf
 from sac_agent.sac_utils.utils import set_init_pos
 
@@ -83,7 +80,7 @@ def hydra_evaluateVRenv(cfg):
     print(run_cfg.eval_env.task)
     print("Random initial state: %s" % run_cfg.eval_env.rand_init_state)
     eval_env = gym.make("VREnv-v0", **run_cfg.eval_env).env
-    eval_env = EnvWrapper(eval_env, **env_wrapper)
+    eval_env = ObservationWrapper(eval_env, **env_wrapper)
 
     # Load model
     path = "%s/trained_models/%s.pth" % (

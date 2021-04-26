@@ -1,9 +1,9 @@
 import gym
 import hydra
 from omegaconf import OmegaConf
-from utils.env_processing_wrapper import EnvWrapper
-from utils.img_processing import *
-from utils.file_manipulation import *
+from env_wrappers.env_wrapper import ObservationWrapper
+from utils.label_segmentation import get_img_mask_rl_agent
+from utils.file_manipulation import create_data_ep_split, save_data
 from sac_agent.sac import SAC
 from sac_agent.sac_utils.utils import EpisodeStats, tt
 import os
@@ -32,7 +32,7 @@ def init_env_and_agent(cfg):
     cfg.env.data_path = cfg.vrenv_data_path
     print(cfg.env.task)
     env = gym.make("VREnv-v0", **cfg.env).env
-    env = EnvWrapper(env, **env_wrapper)
+    env = ObservationWrapper(env, **env_wrapper)
 
     # Load model
     path = "%s/trained_models/%s.pth" % (cfg.folder_name, cfg.model_name)
@@ -75,7 +75,7 @@ def collect_dataset(cfg):
 
     save_dir = cfg.save_dir
     save_data(data, save_dir, sub_dir=env.task, save_viz=False)
-    create_data_split(save_dir)
+    create_data_ep_split(save_dir)
     env.close()
 
 

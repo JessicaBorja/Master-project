@@ -1,6 +1,6 @@
 project_path: C:/Users/Jessica/Documents/Proyecto_ssd
 data_path: ${project_path}/VREnv/data/
-save_dir: ./hydra_outputs/
+save_dir: ./combined/hydra_outputs/
 model_name: "full_b_gripper_aff"
 task: banana_combined
 euler_obs: true
@@ -35,7 +35,8 @@ affordance:
       use: False
       model_path: ${models_path}/static_cam_1ce_5dice.ckpt
     gripper_cam:
-      use: True
+      use: True  # Use affordance in observation
+      densify_reward: False  # Use affordance to shape the reward function
       model_path: ${models_path}/gripper_1CE_5dice_64px_miou=0.629.ckpt
 
 defaults:

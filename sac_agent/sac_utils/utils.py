@@ -7,7 +7,7 @@ from collections import namedtuple
 import os
 import pickle
 import importlib
-from affordance_model.utils.utils import smoothen, overlay_mask
+from utils.img_utils import smoothen, overlay_mask
 import cv2
 
 EpisodeStats = namedtuple(

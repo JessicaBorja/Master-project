@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
-from affordance_model.utils.utils import overlay_mask, smoothen
+from utils.img_utils import overlay_mask, smoothen
 import pybullet as p
+from .cam_projections import world2pixel
 
 
 # Masks generation #
@@ -41,21 +42,6 @@ def create_target_mask(img, xy_coords, task, elipse_angle=0):
     return mask
 
 
-def transform_point(point, cam):
-    # https://github.com/bulletphysics/bullet3/issues/1952
-    # reshape to get homogeneus transform
-    persp_m = np.array(cam.projectionMatrix).reshape((4, 4)).T
-    view_m = np.array(cam.viewMatrix).reshape((4, 4)).T
-
-    # Perspective proj matrix
-    world_pix_tran = persp_m @ view_m @ point
-    world_pix_tran = world_pix_tran / world_pix_tran[-1]  # divide by w
-    world_pix_tran[:3] = (world_pix_tran[:3] + 1)/2
-    x, y = world_pix_tran[0]*cam.width, (1-world_pix_tran[1])*cam.height
-    x, y = np.floor(x).astype(int), np.floor(y).astype(int)
-    return (x, y)
-
-
 def get_img_mask_rl_agent(env, viz=False):
     cam = env.cameras[0]  # assume camera 0 is static
     rgb, _ = cam.render()
@@ -73,10 +59,10 @@ def get_img_mask_rl_agent(env, viz=False):
 
     # Project point to camera
     # x, y <- pixel coords
-    x, y = transform_point(point, cam)
+    x, y = world2pixel(point, cam)
 
     # Euclidian distance on image space
-    robot_x, robot_y = transform_point(robot_pose, cam)
+    robot_x, robot_y = world2pixel(robot_pose, cam)
     # euclidian_dist = np.linalg.norm(
     #   np.array([x,y])-np.array([robot_x,robot_y]))
     # if( euclidian_dist < 20.0 ):
@@ -111,7 +97,7 @@ def get_static_mask(static_cam, static_im, point):
 
     # Project point to camera
     # x,y <- pixel coords
-    tcp_x, tcp_y = transform_point(point, static_cam)
+    tcp_x, tcp_y = world2pixel(point, static_cam)
     static_mask = create_circle_mask(static_im, (tcp_x, tcp_y), r=10)
     return static_mask
 
@@ -147,6 +133,6 @@ def get_gripper_mask(img, robot_obs, point, cam_properties=None, radius=25):
 
     # Transform pt to homogeneus cords and project
     point = np.append(point, 1)
-    tcp_x, tcp_y = transform_point(point, gripper_cam)
+    tcp_x, tcp_y = world2pixel(point, gripper_cam)
     mask = create_circle_mask(img, (tcp_x, tcp_y), r=radius)
     return mask

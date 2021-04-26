@@ -36,19 +36,6 @@ def compute_mIoU(logits, gt, threshold=0.5):
     return intersection / max(union, 1e-6)
 
 
-def pixel2spatial(xs, H, W):
-    """Converts a tensor of coordinates to a boolean spatial map. 
-    """
-    xs_spatial = []
-    for x in xs:
-        pos = x[x[:, 2] == 1][:, :2]
-        pos_label = torch.zeros(1, 1, H, W)
-        pos_label[:, :, pos[:, 0], pos[:, 1]] = 1
-        xs_spatial.append(pos_label)
-    xs_spatial = torch.cat(xs_spatial, dim=0).long()
-    return xs_spatial
-
-
 def get_loss(add_dice, n_classes, class_weights):
     _criterion = nn.BCEWithLogitsLoss if n_classes == 1 \
             else nn.CrossEntropyLoss

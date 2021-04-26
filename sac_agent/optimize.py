@@ -18,7 +18,7 @@ sys.path.insert(0, os.getcwd())
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, parent_dir+"/VREnv/")
 from sac_agent.sac import SAC
-from utils.env_processing_wrapper import EnvWrapper
+from env_wrappers.env_wrapper import ObservationWrapper
 gym.envs.register(
      id='VREnv-v0',
      entry_point='VREnv.vr_env.envs.play_table_env:PlayTableSimEnv',
@@ -66,12 +66,18 @@ class SACWorker(Worker):
         :return: ConfigurationsSpace-Object
         """
         cs = CS.ConfigurationSpace()
-        actor_lr = CSH.UniformFloatHyperparameter('actor_lr', lower=1e-6, upper=1e-3, log=True)
-        critic_lr = CSH.UniformFloatHyperparameter('critic_lr', lower=1e-6, upper=1e-3, log=True)
-        alpha_lr = CSH.UniformFloatHyperparameter('alpha_lr', lower=1e-6, upper=1e-3, log=True)
-        tau = CSH.UniformFloatHyperparameter('tau', lower=0.001, upper=0.02)
-        batch_size = CSH.UniformIntegerHyperparameter('batch_size', lower=64, upper=256)
-        hidden_dim = CSH.UniformIntegerHyperparameter('hidden_dim', lower=128, upper=512)
+        actor_lr = CSH.UniformFloatHyperparameter(
+                        'actor_lr', lower=1e-6, upper=1e-3, log=True)
+        critic_lr = CSH.UniformFloatHyperparameter(
+                        'critic_lr', lower=1e-6, upper=1e-3, log=True)
+        alpha_lr = CSH.UniformFloatHyperparameter(
+                        'alpha_lr', lower=1e-6, upper=1e-3, log=True)
+        tau = CSH.UniformFloatHyperparameter(
+                        'tau', lower=0.001, upper=0.02)
+        batch_size = CSH.UniformIntegerHyperparameter(
+                        'batch_size', lower=64, upper=256)
+        hidden_dim = CSH.UniformIntegerHyperparameter(
+                        'hidden_dim', lower=128, upper=512)
 
         cs.add_hyperparameters([actor_lr, critic_lr, alpha_lr,
                                 hidden_dim, tau, batch_size])
@@ -134,9 +140,9 @@ def optim_vrenv(cfg):
 
     hp = {}
     hp["env"] = gym.make("VREnv-v0", **cfg.env).env
-    hp["env"] = EnvWrapper(hp["env"], **cfg.env_wrapper)
+    hp["env"] = ObservationWrapper(hp["env"], **cfg.env_wrapper)
     hp["eval_env"] = gym.make("VREnv-v0", **cfg.eval_env).env
-    hp["eval_env"] = EnvWrapper(hp["eval_env"], **cfg.env_wrapper)
+    hp["eval_env"] = ObservationWrapper(hp["eval_env"], **cfg.env_wrapper)
     hp["model_name"] = model_name
     hp["img_obs"] = cfg.img_obs
 

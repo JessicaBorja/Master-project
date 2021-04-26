@@ -1,26 +1,32 @@
 # from torch.utils.data import DataLoader
 import hydra
-from affordance_model.segmentator import Segmentator
 import os
 import cv2
 import torch
-from affordance_model.utils.utils import visualize
-from affordance_model.datasets import get_transforms
+import os
+import sys
 from omegaconf import OmegaConf
 from omegaconf.listconfig import ListConfig
 import tqdm
+
+parent_dir = os.path.dirname(os.getcwd())
+sys.path.insert(0, os.getcwd())
+sys.path.insert(0, parent_dir)
+from utils.img_utils import visualize
 from utils.file_manipulation import get_files
+from affordance_model.segmentator import Segmentator
+from affordance_model.datasets import get_transforms
 
 
-@hydra.main(config_path="./config", config_name="viz_affordances")
+@hydra.main(config_path="../config", config_name="viz_affordances")
 def viz(cfg):
     # Create output directory if save_images
     if(not os.path.exists(cfg.output_dir) and cfg.save_images):
         os.makedirs(cfg.output_dir)
     # Initialize model
     run_cfg = OmegaConf.load(cfg.folder_name + "/.hydra/config.yaml")
-    model_cfg = run_cfg.model_cfg
-    # model_cfg = cfg.model_cfg
+    # model_cfg = run_cfg.model_cfg
+    model_cfg = cfg.model_cfg
 
     checkpoint_path = os.path.join(cfg.folder_name, "trained_models")
     checkpoint_path = os.path.join(checkpoint_path, cfg.model_name)
@@ -36,14 +42,16 @@ def viz(cfg):
     files = []
     if(isinstance(cfg.data_dir, ListConfig)):
         for dir_i in cfg.data_dir:
-            if(not os.path.exists(dir_i)):
-                print("Path does not exist: %s" % dir_i)
+            path = os.path.abspath(dir_i)
+            if(not os.path.exists(path)):
+                print("Path does not exist: %s" % path)
                 continue
             files += get_files(dir_i, "jpg")
             files += get_files(dir_i, "png")
     else:
-        if(not os.path.exists(cfg.data_dir)):
-            print("Path does not exist: %s" % cfg.data_dir)
+        path = os.path.abspath(cfg.data_dir)
+        if(not os.path.exists(path)):
+            print("Path does not exist: %s" % path)
             return
         files += get_files(cfg.data_dir, "jpg")
         files += get_files(cfg.data_dir, "png")

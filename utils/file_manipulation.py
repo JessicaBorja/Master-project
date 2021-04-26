@@ -12,7 +12,8 @@ def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
     n_episodes = len(glob.glob(root_dir + "/*/"))
     # Split data
     data = {"train": [], "validation": []}
-    val_ep = np.random.choice(n_episodes, 3, replace=False)
+    # val_ep = np.random.choice(n_episodes, 3, replace=False)
+    val_ep = [1, 10, 13]
     train_ep = [ep for ep in range(n_episodes) if ep not in val_ep]
     data["validation"] = {"episode_%d" % e: [] for e in val_ep}
     data["train"] = {"episode_%d" % e: [] for e in train_ep}

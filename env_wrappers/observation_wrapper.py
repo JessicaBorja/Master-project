@@ -9,11 +9,11 @@ import os
 import hydra
 
 
-class EnvWrapper(gym.ObservationWrapper):
+class ObservationWrapper(gym.ObservationWrapper):
     def __init__(self, env, history_length, skip_frames, img_size,
                  use_static_cam=False, use_depth=False, use_gripper_cam=False,
                  use_pos=False, transforms=None, train=False, affordance=None):
-        super(EnvWrapper, self).__init__(env)
+        super(ObservationWrapper, self).__init__(env)
         self.env = env
         self.img_size = img_size
         shape = (1, img_size, img_size)
@@ -34,9 +34,7 @@ class EnvWrapper(gym.ObservationWrapper):
         assert len(self._indices) == history_length
         self._cur_img_obs = None
         # Cameras defaults
-        self.static_id = 0
-        self.gripper_id = 1
-        self.find_cam_ids()
+        self.static_id, self.gripper_id = self.find_cam_ids()
         # Parameters to define observation
         self._use_img_obs = use_static_cam
         self._use_robot_obs = use_pos
@@ -49,11 +47,13 @@ class EnvWrapper(gym.ObservationWrapper):
         self.aff_net = self.init_aff_model()
 
     def find_cam_ids(self):
+        static_id, gripper_id = 0, 1
         for i, cam in enumerate(self.cameras):
             if "gripper" in cam.name:
-                self.gripper_id = i
+                gripper_id = i
             else:
-                self.static_id = i
+                static_id = i
+        return static_id, gripper_id
 
     def get_obs_space(self):
         if(self._use_img_obs or self._use_gripper_img):

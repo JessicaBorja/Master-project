@@ -1,6 +1,6 @@
 import hydra
-from utils.img_processing import get_static_mask, \
-     get_gripper_mask, overlay_mask
+from utils.img_utils import overlay_mask
+from utils.label_segmentation import get_static_mask, get_gripper_mask
 from utils.file_manipulation import get_files, save_data, create_data_ep_split
 import cv2
 import numpy as np

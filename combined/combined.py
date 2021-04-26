@@ -1,23 +1,17 @@
 import sys
-import hydra
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
-from utils.utils import register_env
 from sac_agent.sac import SAC
+from sklearn.cluster import DBSCAN
 from affordance_model.segmentator import Segmentator
 from affordance_model.datasets import get_transforms
-from affordance_model.utils.utils import visualize
+from utils.img_utils import visualize
+from utils.cam_projections import pixel2world
 import os
-import gym
 import cv2
 import torch
-from sklearn.cluster import DBSCAN
-import pybullet as p
-from utils.env_processing_wrapper import EnvWrapper
 from sac_agent.sac_utils.utils import EpisodeStats, tt
 from omegaconf import OmegaConf
-import glm
-register_env()
 
 
 class Combined(SAC):
@@ -61,13 +55,17 @@ class Combined(SAC):
         return aff_net
 
     def find_target_center(self, env):
-        rgb, depth = env.get_camera_obs()
         # Values from static camera
+        rgb, depth = env.get_camera_obs()
         static_img = rgb[self.cam_id][:, :, ::-1].copy()  # H, W, C
         static_depth = depth[self.cam_id]
+        cam = env.cameras[self.cam_id]
+
+        # Compute affordance from static camera
         x = torch.from_numpy(static_img).permute(2, 0, 1).unsqueeze(0)
         x = self.transforms(x).cuda()
         mask = self.aff_net(x)
+
         # Visualization
         out_img = visualize(mask, static_img, False)
 
@@ -102,16 +100,15 @@ class Combined(SAC):
             # ax.scatter(mid_point[1], mid_point[0], s=25, marker='x', c='k')
 
             mid_point = mid_point.astype('uint8')
-            pixel_pt = (mid_point[1], mid_point[0])
-            out_img = cv2.drawMarker(out_img, pixel_pt,
+            u, v = mid_point[1], mid_point[0]
+            out_img = cv2.drawMarker(out_img, (u, v),
                                      (0, 0, 0),
                                      markerType=cv2.MARKER_CROSS,
                                      markerSize=5,
                                      line_type=cv2.LINE_AA)
             # Unprojection
-            # depth = static_depth[pixel_pt[0], pixel_pt[1]]
-            # world_pt = self.pixel2world(pixel_pt[0], pixel_pt[1], depth, str(idx))
-            # points_3d.append(world_pt)
+            world_pt = pixel2world(cam, u, v, static_depth)
+            points_3d.append(world_pt)
 
         # ax.axis('off')
         # plt.show()
@@ -121,31 +118,6 @@ class Combined(SAC):
         # cv2.imshow("depth", static_depth)
         # cv2.waitKey(1)
         return out_img, static_depth
-
-    def world2pixel(self, point, cam):
-        # https://github.com/bulletphysics/bullet3/issues/1952
-        # reshape to get homogeneus transform
-        persp_m = np.array(cam.projectionMatrix).reshape((4, 4)).T
-        view_m = np.array(cam.viewMatrix).reshape((4, 4)).T
-
-        # Perspective proj matrix
-        world_pix_tran = persp_m @ view_m @ point
-        world_pix_tran = world_pix_tran / world_pix_tran[-1]  # divide by w
-        world_pix_tran[:3] = (world_pix_tran[:3] + 1)/2
-        x, y = world_pix_tran[0]*cam.width, (1-world_pix_tran[1])*cam.height
-        x, y = np.floor(x).astype(int), np.floor(y).astype(int)
-        return (x, y)
-
-    def pixel2world(cam, u, v, depth, depth_buffer):
-        T_world_cam = np.linalg.inv(np.array(cam.viewMatrix).reshape((4, 4)).T)
-
-        z = depth[v, u]
-        foc = cam.height / (2 * np.tan(np.deg2rad(cam.fov) / 2))
-        x = (u - cam.width // 2) * z / foc
-        y = -(v - cam.height // 2) * z / foc
-        z = -z
-        world_pos = (T_world_cam @ np.array([x, y, z, 1]))[:3]
-        return world_pos
 
     def compute_target(self):
         target_pos, _ = self.env.get_target_pos()
@@ -157,8 +129,9 @@ class Combined(SAC):
         target = a[0]
         env.robot.apply_action(a)
         last_pos = target
+        # When robot is moving and far from target
         while(np.linalg.norm(tcp_pos - target) > 0.02
-              and np.linalg.norm(last_pos - tcp_pos) > 0.0005):  # When robot is moving
+              and np.linalg.norm(last_pos - tcp_pos) > 0.0005):
             last_pos = tcp_pos
 
             # Update position
@@ -280,50 +253,3 @@ class Combined(SAC):
                      self._eval_and_log(self.writer, t, episode,
                                         plot_data, best_eval_return,
                                         n_eval_ep, max_episode_length)
-
-
-def train(cfg):
-    training_env = gym.make("VREnv-v0", **cfg.env).env
-    eval_env = gym.make("VREnv-v0", **cfg.eval_env).env
-    training_env = EnvWrapper(training_env, train=True,
-                              affordance=cfg.affordance,
-                              **cfg.env_wrapper)
-    eval_env = EnvWrapper(eval_env,
-                          affordance=cfg.affordance,
-                          **cfg.env_wrapper)
-    sac_cfg = {"env": training_env,
-               "eval_env": eval_env,
-               "model_name": cfg.model_name,
-               "save_dir": cfg.agent.save_dir,
-               "net_cfg": cfg.agent.net_cfg,
-               **cfg.agent.hyperparameters}
-
-    model = Combined(cfg, sac_cfg=sac_cfg)
-    model.learn(**cfg.agent.learn_config)
-    training_env.close()
-    eval_env.close()
-
-
-def test(cfg):
-    env = gym.make("VREnv-v0", **cfg.eval_env).env
-    env = EnvWrapper(env,
-                     affordance=cfg.affordance,
-                     **cfg.env_wrapper)
-    sac_cfg = {"env": env,
-               "model_name": cfg.model_name,
-               "save_dir": cfg.agent.save_dir,
-               "net_cfg": cfg.agent.net_cfg,
-               **cfg.agent.hyperparameters}
-
-    model = Combined(cfg, sac_cfg=sac_cfg)
-    model.evaluate(env, **cfg.test.eval_cfg)
-    env.close()
-
-
-@hydra.main(config_path="./config", config_name="cfg_combined")
-def main(cfg):
-    train(cfg)
-
-
-if __name__ == "__main__":
-    main()

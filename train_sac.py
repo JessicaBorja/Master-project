@@ -2,7 +2,7 @@ import gym
 import hydra
 from omegaconf import OmegaConf
 from utils.utils import register_env
-from utils.env_processing_wrapper import EnvWrapper
+from env_wrappers.env_wrapper import ObservationWrapper
 from sac_agent.sac import SAC
 from sac_agent.sac_utils.utils import set_init_pos
 register_env()
@@ -40,12 +40,12 @@ def main(cfg):
     for i in range(cfg.repeat_training):
         training_env = gym.make("VREnv-v0", **cfg.env).env
         eval_env = gym.make("VREnv-v0", **cfg.eval_env).env
-        training_env = EnvWrapper(training_env, train=True,
-                                  affordance=cfg.affordance,
-                                  **cfg.env_wrapper)
-        eval_env = EnvWrapper(eval_env,
-                              affordance=cfg.affordance,
-                              **cfg.env_wrapper)
+        training_env = ObservationWrapper(training_env, train=True,
+                                          affordance=cfg.affordance,
+                                          **cfg.env_wrapper)
+        eval_env = ObservationWrapper(eval_env,
+                                      affordance=cfg.affordance,
+                                      **cfg.env_wrapper)
         model_name = cfg.model_name
         model = SAC(env=training_env,
                     eval_env=eval_env,

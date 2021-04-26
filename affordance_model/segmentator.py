@@ -3,7 +3,7 @@ import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 import numpy as np
 from affordance_model.utils.losses import \
-    compute_mIoU, compute_dice_score, pixel2spatial, \
+    compute_mIoU, compute_dice_score, \
     compute_dice_loss, get_loss
 
 
@@ -28,13 +28,14 @@ class Segmentator(pl.LightningModule):
     def init_model(self, decoder_channels=None, activation=None, n_classes=2):
         if(decoder_channels is None):
             decoder_channels = [128, 64, 32]
+        # encoder_depth Should be equal to number of layers in decoder
         self.unet = smp.Unet(
             encoder_name="resnet18",
             encoder_weights="imagenet",
             in_channels=1,  # Grayscale
             classes=n_classes,
-            encoder_depth=len(decoder_channels),  # Should be equal to number of layers in decoder
-            decoder_channels = tuple(decoder_channels),
+            encoder_depth=len(decoder_channels),
+            decoder_channels=tuple(decoder_channels),
             activation=None
         )
         # Fix encoder weights. Only train decoder

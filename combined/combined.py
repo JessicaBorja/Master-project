@@ -186,7 +186,7 @@ class Combined(SAC):
                 if(render):
                     img = env.render()
                 if(save_images):
-                    img, _ = self.find_target_center(env)
+                    # img, _ = self.find_target_center(env)
                     im_lst.append(img)
                 s = ns
                 episode_return += r

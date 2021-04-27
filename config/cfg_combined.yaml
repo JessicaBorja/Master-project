@@ -1,6 +1,6 @@
 project_path: C:/Users/Jessica/Documents/Proyecto_ssd
 data_path: ${project_path}/VREnv/data/
-save_dir: ./combined/hydra_outputs/
+save_dir: ./combined/hydra_outputs/${task}
 model_name: "full_b_gripper_aff"
 task: banana_combined
 euler_obs: true

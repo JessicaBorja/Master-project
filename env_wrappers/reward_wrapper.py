@@ -102,9 +102,9 @@ class RewardWrapper(gym.RewardWrapper):
                     closest_pt_dist = distance
                     pt = c
             # See selected point
-            if(pt is not None):
-                p.addUserDebugText("gripper pt",
-                                   textPosition=pt, textColorRGB=[1, 0, 0])
+            # if(pt is not None):
+            #     p.addUserDebugText("gripper pt",
+            #                        textPosition=pt, textColorRGB=[1, 0, 0])
             # Create positive reward relative to the distance
             # between the closest point detected by the affordances
             # and the end effector position

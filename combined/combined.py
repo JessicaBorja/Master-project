@@ -123,7 +123,7 @@ class Combined(SAC):
         target_pos, _ = self.env.get_target_pos()
         area_center = np.array(target_pos) \
             + np.array([0, 0, 0.05])
-        return area_center
+        return area_center, target_pos
 
     def move_to_target(self, env, dict_obs, tcp_pos, a):
         target = a[0]
@@ -151,10 +151,11 @@ class Combined(SAC):
         tcp_pos, gripper = s[:3], s[-1]
 
         # Compute target in case it moved
-        self.area_center = self.compute_target()
+        # Area center is the target position + 5cm in z direction
+        self.area_center, target = self.compute_target()
 
         # Move up
-        if(np.linalg.norm(tcp_pos - self.area_center) > self.radius):
+        if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
                          self.area_center[2] + 0.15]
@@ -162,8 +163,7 @@ class Combined(SAC):
             self.move_to_target(env, dict_obs, tcp_pos, a)
 
             # Move to target
-            target_pos = self.area_center + np.array([0, 0, 0.05])
-            a = [target_pos, self.target_orn, gripper]
+            a = [self.area_center, self.target_orn, gripper]
             self.move_to_target(env, dict_obs, tcp_pos, a)
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,

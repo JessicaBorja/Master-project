@@ -6,6 +6,35 @@ import numpy as np
 import cv2
 
 
+# Select files that have a segmentation mask
+def select_files(data, split, ep, episode_files,
+                 remove_blank_masks, skip_first_frames=False):
+    # Skip first n files for validation s.t. masks are
+    # better representatives of true affordances
+    # For the static_cam
+    if skip_first_frames and split == "validation":
+        episode_files.sort()
+        fraction = len(episode_files)//3  # Discard first third
+        iter_files = episode_files[fraction:]
+    else:
+        iter_files = episode_files
+
+    for file in tqdm.tqdm(iter_files):
+        head, tail = os.path.split(file)
+        # Remove extension name
+        file_name = tail.split('.')[0]
+        # Last folder
+        file_relative_path = os.path.basename(os.path.normpath(head))
+        file_name = os.path.join(file_relative_path, file_name)
+        if(remove_blank_masks):
+            mask = np.load(file)["mask"]  # (H, W)
+            if(mask.max() > 0):  # at least one pixel is not background
+                data[split]['episode_%d' % ep].append(file_name)
+        else:
+            data[split]['episode_%d' % ep].append(file_name)
+    return data
+
+
 # Split episodes into train and validation
 def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
     # Episodes are subdirectories
@@ -20,24 +49,16 @@ def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
 
     for ep in tqdm.tqdm(range(n_episodes)):
         ep_dir = os.path.join(root_dir, "episode_%d" % ep)
-        gripper_cam_files = glob.glob("%s/masks/*/*gripper*" % ep_dir)
-        static_cam_files = glob.glob("%s/masks/*/*static*" % ep_dir)
-        episode_files = gripper_cam_files + static_cam_files
         split = "validation" if ep in val_ep else "train"
-        for file in tqdm.tqdm(episode_files):
-            head, tail = os.path.split(file)
-            # Remove extension name
-            file_name = tail.split('.')[0]
-            # Last folder
-            file_relative_path = os.path.basename(os.path.normpath(head))
-            # /{cam}_cam/filename
-            file_name = os.path.join(file_relative_path, file_name)
-            if(remove_blank_mask_instances):
-                mask = np.load(file)  # (H, W)
-                if(mask.max() > 0):  # at least one pixel is not background
-                    data[split]['episode_%d' % ep].append(file_name)
-            else:
-                data[split]['episode_%d' % ep].append(file_name)
+
+        gripper_cam_files = glob.glob("%s/data/*/*gripper*" % ep_dir)
+        data = select_files(data, split, ep, gripper_cam_files,
+                            remove_blank_mask_instances)
+
+        static_cam_files = glob.glob("%s/data/*/*static*" % ep_dir)
+        data = select_files(data, split, ep, static_cam_files,
+                            remove_blank_mask_instances,
+                            skip_first_frames=True)
 
     with open(root_dir+'/episodes_split.json', 'w') as outfile:
         json.dump(data, outfile, indent=2)
@@ -59,24 +80,24 @@ def create_dirs(root_dir, sub_dir, directory_lst):
 # Save a directory wtih frames, masks, viz_out
 def save_data(data_dict, directory, sub_dir, save_viz=True):
     if(save_viz):
-        frames_dir, masks_dir, viz_out_dir = \
-            create_dirs(directory, sub_dir, ['frames', 'masks', 'viz_out'])
+        data_dir, viz_out_dir = \
+            create_dirs(directory, sub_dir, ['data', 'viz_out'])
     else:
-        frames_dir, masks_dir = \
-            create_dirs(directory, sub_dir, ['frames', 'masks'])
+        data_dir = create_dirs(directory, sub_dir, ['data'])
     for img_id, img_dict in data_dict.items():
-        filename = img_id
-        # Write original image
-        img_filename = os.path.join(frames_dir, filename) + ".jpg"
-        cv2.imwrite(img_filename, img_dict['frame'])  # Save images
         # Write vizualization output
         if(save_viz):
-            img_filename = os.path.join(viz_out_dir, filename) + ".jpg"
+            img_filename = os.path.join(viz_out_dir, img_id) + ".jpg"
             cv2.imwrite(img_filename, img_dict['viz_out'])  # Save images
+            img_dict.pop('viz_out')
 
-        mask_filename = os.path.join(masks_dir, filename) + ".npy"
-        with open(mask_filename, 'wb') as f:  # Save masks
-            np.save(f, img_dict['mask'])
+        # img_dict = {"frame":np.array, "mask":np.array, "centers": np.array}
+        # frame is in BGR
+        filename = os.path.join(data_dir, img_id) + ".npz"
+        np.savez_compressed(
+            filename,
+            **img_dict
+        )
 
 
 # Ger valid numpy files with raw data

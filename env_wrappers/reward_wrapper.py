@@ -13,6 +13,9 @@ class RewardWrapper(gym.RewardWrapper):
         super(RewardWrapper, self).__init__(env)
         self.env = env
         self.gripper_id, self.static_id = self.find_cam_ids()
+        if(self.affordance.gripper_cam.use
+           and self.affordance.gripper_cam.densify_reward):
+            print("Using gripper cam to shape reward")
 
     def find_cam_ids(self):
         gripper_id, static_id = None, None

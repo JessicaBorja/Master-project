@@ -1,4 +1,4 @@
-data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_play_large_handles/
+data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_play_no_mask_np_compres/
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: gripper_1CE_5dice
@@ -28,7 +28,7 @@ model_cfg:
     lr: 1e-5
     weight_decay: 1e-3
   unet_cfg:
-    decoder_channels: [256, 128, 64, 32]
+    decoder_channels: [128, 64, 32]
 
 trainer:
   gpus: 1

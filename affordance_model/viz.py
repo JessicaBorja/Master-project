@@ -8,7 +8,6 @@ import sys
 from omegaconf import OmegaConf
 from omegaconf.listconfig import ListConfig
 import tqdm
-
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, parent_dir)
@@ -25,8 +24,8 @@ def viz(cfg):
         os.makedirs(cfg.output_dir)
     # Initialize model
     run_cfg = OmegaConf.load(cfg.folder_name + "/.hydra/config.yaml")
-    # model_cfg = run_cfg.model_cfg
-    model_cfg = cfg.model_cfg
+    model_cfg = run_cfg.model_cfg
+    # model_cfg = cfg.model_cfg
 
     checkpoint_path = os.path.join(cfg.folder_name, "trained_models")
     checkpoint_path = os.path.join(checkpoint_path, cfg.model_name)

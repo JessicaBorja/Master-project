@@ -7,7 +7,6 @@ sys.path.insert(0, os.getcwd())
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, parent_dir+"/VREnv/")
 from env_wrappers.env_wrapper import wrap_env
-from utils.utils import register_env
 from combined.combined import Combined
 from utils.utils import load_cfg, register_env
 register_env()

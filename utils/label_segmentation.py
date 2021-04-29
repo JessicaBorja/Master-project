@@ -99,7 +99,7 @@ def get_static_mask(static_cam, static_im, point):
     # x,y <- pixel coords
     tcp_x, tcp_y = world2pixel(point, static_cam)
     static_mask = create_circle_mask(static_im, (tcp_x, tcp_y), r=10)
-    return static_mask
+    return static_mask, (tcp_x, tcp_y)
 
 
 def get_gripper_mask(img, robot_obs, point, cam_properties=None, radius=25):
@@ -135,4 +135,4 @@ def get_gripper_mask(img, robot_obs, point, cam_properties=None, radius=25):
     point = np.append(point, 1)
     tcp_x, tcp_y = world2pixel(point, gripper_cam)
     mask = create_circle_mask(img, (tcp_x, tcp_y), r=radius)
-    return mask
+    return mask, (tcp_x, tcp_y)

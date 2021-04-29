@@ -37,7 +37,7 @@ affordance:
     gripper_cam:
       use: True  # Use affordance in observation
       densify_reward: False  # Use affordance to shape the reward function
-      model_path: ${models_path}/gripper_1CE_5dice_64px_miou=0.629.ckpt
+      model_path: ${models_path}/gripper_1CE_5_no_mask_close.ckpt
 
 defaults:
   - robot: panda

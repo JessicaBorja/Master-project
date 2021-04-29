@@ -7,6 +7,11 @@ import json
 import hydra
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import sys
+parent_dir = os.path.dirname(os.getcwd())
+sys.path.insert(0, os.getcwd())
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, parent_dir+"/VREnv/")
 
 
 def get_transforms(transforms_cfg):
@@ -66,17 +71,16 @@ class VREnvData(Dataset):
     def __getitem__(self, idx):
         head, filename = os.path.split(self.data[idx].replace("\\", "/"))
         episode, cam_folder = os.path.normpath(head).split(os.path.sep)
-        frame = cv2.imread(self.root_dir +
-                           "/%s/frames/%s/%s.jpg" %
-                           (episode, cam_folder, filename),
-                           cv2.COLOR_BGR2RGB)
+        data = np.load(self.root_dir +
+                       "/%s/data/%s/%s.npz" % (episode, cam_folder, filename))
+
+        # Images are stored in BGR
+        frame = data["frame"]
         frame = torch.from_numpy(frame).permute(2, 0, 1)  # C, W, H
-        # frame = Image.open(self.frames_dir + filename  + ".jpg")
         frame = self.transforms(frame)
 
         # Segmentation mask (H, W)
-        mask = np.load(self.root_dir +
-                       "/%s/masks/%s/%s.npy" % (episode, cam_folder, filename))
+        mask = data["mask"]
         # Resize from torchvision requires mask to have channel dim
         mask = np.expand_dims(mask, 0)
         mask = self.mask_transforms(torch.from_numpy(mask))
@@ -88,3 +92,21 @@ class VREnvData(Dataset):
         with open(json_file) as f:
             data = json.load(f)
         return data
+
+
+@hydra.main(config_path="../config", config_name="cfg_affordance")
+def main(cfg):
+    val = VREnvData(split="validation", log=None,
+                    **cfg.dataset)
+    val_loader = DataLoader(val, num_workers=4, batch_size=1, pin_memory=True)
+    print('val minibatches {}'.format(len(val_loader)))
+
+    for i, item in enumerate(val_loader):
+        frame, _ = item
+        frame = frame[0].detach().cpu().numpy()
+        cv2.imshow("img", frame)
+        cv2.waitKey(1)
+
+
+if __name__ == "__main__":
+    main()

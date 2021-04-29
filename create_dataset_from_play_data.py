@@ -29,13 +29,15 @@ def update_fixed_points(fixed_points, new_point,
 
 def update_mask(fixed_points, mask, frame_img_tuple, cam):
     # Update masks with fixed_points
+    centers = []
     (frame_timestep, img) = frame_img_tuple
     for point_timestep, p in fixed_points:
         # Only add point if it was fixed before seing img
         if(frame_timestep >= point_timestep):
-            new_mask = get_static_mask(cam, img, p)
+            new_mask, center_px = get_static_mask(cam, img, p)
+            centers.append(center_px)
             mask = overlay_mask(new_mask, mask, (255, 255, 255))
-    return mask
+    return mask, centers
 
 
 def check_file(filename, allow_pickle=True):
@@ -72,8 +74,8 @@ def label_gripper(cam_properties, img_hist, point, viz, save_dict):
         # For static mask assume oclusion
         # until back_frames_min before
         if(im_id not in save_dict):
-            mask = get_gripper_mask(img, robot_obs, point,
-                                    cam_properties, radius=25)
+            mask, center_px = get_gripper_mask(img, robot_obs, point,
+                                               cam_properties, radius=25)
 
             out_img = overlay_mask(mask, img, (0, 0, 255))
 
@@ -83,6 +85,7 @@ def label_gripper(cam_properties, img_hist, point, viz, save_dict):
             save_dict[im_id] = {
                 "frame": img,
                 "mask": mask,
+                "centers": np.stack([center_px]),
                 "viz_out": out_img}
     return save_dict
 
@@ -92,14 +95,16 @@ def label_static(static_cam, static_hist, back_min, back_max,
     for idx, (fr_idx, im_id, img) in enumerate(static_hist):
         # For static mask assume oclusion
         # until back_frames_min before
+        centers = []
         if(idx <= len(static_hist) - back_min and
                 idx > len(static_hist) - back_max):
             # Get new grip
-            mask = get_static_mask(static_cam, img, pt)
+            mask, center_px = get_static_mask(static_cam, img, pt)
+            centers.append(center_px)
         else:
             # No segmentation in current image due to occlusion
             mask = np.zeros(img.shape[:2])
-        fp_mask = update_mask(
+        fp_mask, centers_px = update_mask(
             fixed_points,
             np.zeros_like(mask),
             (fr_idx, img),
@@ -119,12 +124,19 @@ def label_static(static_cam, static_hist, back_min, back_max,
 
         if(viz):
             cv2.imshow("Separate", out_separate)
-            cv2.imshow("Separate", out_separate)
             cv2.imshow("Real", out_img)
             cv2.waitKey(1)
+
+        centers += centers_px  # Concat to list
+        if(len(centers) > 0):
+            centers = np.stack(centers)
+        else:
+            centers = np.zeros((0, 2))
+
         save_dict[im_id] = {
             "frame": img,
             "mask": static_mask,
+            "centers": centers,
             "viz_out": out_separate}
     return save_dict
 
@@ -156,7 +168,7 @@ def collect_dataset_close_open(cfg):
     episode = 0
     # Will segment 40 frames
     back_frames_max = 50
-    back_frames_min = 10
+    back_frames_min = 5
     for idx, filename in tqdm.tqdm(enumerate(files)):
         data = check_file(filename)
         if(data is None):
@@ -201,12 +213,12 @@ def collect_dataset_close_open(cfg):
                         frame_idx)
 
                 static_hist, gripper_hist = [], []
-            else:
-                # Was closed and remained closed
-                # Last element in gripper_hist is the newest
-                save_gripper = label_gripper(gripper_cam_properties,
-                                             [gripper_hist[-1]], point,
-                                             cfg.viz, save_gripper)
+            # else:  # mask on close
+            #     # Was closed and remained closed
+            #     # Last element in gripper_hist is the newest
+            #     save_gripper = label_gripper(gripper_cam_properties,
+            #                                  [gripper_hist[-1]], point,
+            #                                  cfg.viz, save_gripper)
         # Open gripper
         else:
             # Closed -> open transition

@@ -44,12 +44,12 @@ class RewardWrapper(gym.RewardWrapper):
         cam = self.cameras[cam_id]
         mask = np.transpose(mask, (1, 2, 0))  # (img_size, img_size, 1)
 
-        # Visualization
-        viz_img = np.transpose(img_obs, (1, 2, 0))
-        viz_img = cv2.normalize(viz_img, None, 255, 0,
-                                cv2.NORM_MINMAX, cv2.CV_8UC1)
-        viz_img = cv2.cvtColor(viz_img, cv2.COLOR_GRAY2RGB)
-        out_img = visualize_np(mask*255.0, viz_img, False, k=5)
+        # # Visualization
+        # viz_img = np.transpose(img_obs, (1, 2, 0))
+        # viz_img = cv2.normalize(viz_img, None, 255, 0,
+        #                         cv2.NORM_MINMAX, cv2.CV_8UC1)
+        # viz_img = cv2.cvtColor(viz_img, cv2.COLOR_GRAY2RGB)
+        # out_img = visualize_np(mask*255.0, viz_img, False, k=5)
 
         # Make clusters
         dbscan = DBSCAN(eps=3, min_samples=3)
@@ -75,17 +75,17 @@ class RewardWrapper(gym.RewardWrapper):
             centers.append(world_pt)
             pixel_counters.append(pixel_count)
 
-            # Viz
-            out_img = cv2.drawMarker(out_img, (u, v),
-                            (0, 0, 0),
-                            markerType=cv2.MARKER_CROSS,
-                            markerSize=5,
-                            line_type=cv2.LINE_AA)
+        #     # Viz
+        #     out_img = cv2.drawMarker(out_img, (u, v),
+        #                     (0, 0, 0),
+        #                     markerType=cv2.MARKER_CROSS,
+        #                     markerSize=5,
+        #                     line_type=cv2.LINE_AA)
 
-        # Viz imgs
-        cv2.imshow("clusters", out_img)
-        cv2.waitKey(1)
-        return (centers, pixel_counters)
+        # # Viz imgs
+        # cv2.imshow("clusters", out_img)
+        # cv2.waitKey(1)
+        # return (centers, pixel_counters)
 
     def reward(self, rew):
         # modify rew

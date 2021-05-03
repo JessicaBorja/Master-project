@@ -54,71 +54,6 @@ class Combined(SAC):
             print("Path does not exist: %s" % path)
         return aff_net
 
-    def find_target_center(self, env):
-        # Values from static camera
-        rgb, depth = env.get_camera_obs()
-        static_img = rgb[self.cam_id][:, :, ::-1].copy()  # H, W, C
-        static_depth = depth[self.cam_id]
-        cam = env.cameras[self.cam_id]
-
-        # Compute affordance from static camera
-        x = torch.from_numpy(static_img).permute(2, 0, 1).unsqueeze(0)
-        x = self.transforms(x).cuda()
-        mask = self.aff_net(x)
-
-        # Visualization
-        out_img = visualize(mask, static_img, False)
-
-        # Reshape to fit large img_size
-        orig_H, orig_W = static_img.shape[:2]
-        mask_np = mask.detach().cpu().numpy()
-        if(mask_np.shape[1] > 1):
-            # mask_np in set [0,1]
-            mask_np = np.argmax(mask_np, axis=1)
-        mask_np = mask_np.astype('uint8').squeeze()
-        mask_np = cv2.resize(mask_np,
-                             dsize=(orig_H, orig_W),
-                             interpolation=cv2.INTER_CUBIC)
-
-        # Make clusters
-        dbscan = DBSCAN(eps=3, min_samples=3)
-        positives = np.argwhere(mask_np > 0.5)
-        if(positives.shape[0] > 0):
-            labels = dbscan.fit_predict(positives)
-        else:
-            return out_img, static_depth
-
-        # fig, ax = plt.subplots()
-        # ax.imshow(static_img[:, :, ::-1])
-        # scatter = ax.scatter(positives[:, 1], positives[:, 0],
-        #                      c=labels, cmap="hsv")
-
-        # Find approximate center
-        points_3d = []
-        for idx, c in enumerate(np.unique(labels)):
-            mid_point = np.mean(positives[np.argwhere(labels == c)], 0)[0]
-            # ax.scatter(mid_point[1], mid_point[0], s=25, marker='x', c='k')
-
-            mid_point = mid_point.astype('uint8')
-            u, v = mid_point[1], mid_point[0]
-            out_img = cv2.drawMarker(out_img, (u, v),
-                                     (0, 0, 0),
-                                     markerType=cv2.MARKER_CROSS,
-                                     markerSize=5,
-                                     line_type=cv2.LINE_AA)
-            # Unprojection
-            world_pt = pixel2world(cam, u, v, static_depth)
-            points_3d.append(world_pt)
-
-        # ax.axis('off')
-        # plt.show()
-
-        # Viz imgs
-        # cv2.imshow("clusters", out_img)
-        # cv2.imshow("depth", static_depth)
-        # cv2.waitKey(1)
-        return out_img, static_depth
-
     def compute_target(self):
         target_pos, _ = self.env.get_target_pos()
         area_center = np.array(target_pos) \
@@ -131,12 +66,13 @@ class Combined(SAC):
         last_pos = target
         # When robot is moving and far from target
         while(np.linalg.norm(tcp_pos - target) > 0.02
-              and np.linalg.norm(last_pos - tcp_pos) > 0.0005):
+              and np.linalg.norm(last_pos - tcp_pos) > 0.005):
             last_pos = tcp_pos
 
             # Update position
-            env.p.stepSimulation()
-            env.fps_controller.step()
+            for i in range(8):
+                env.p.stepSimulation()
+                env.fps_controller.step()
             if(dict_obs):
                 tcp_pos = env.get_obs()["robot_obs"][:3]
             else:
@@ -154,11 +90,11 @@ class Combined(SAC):
         # Area center is the target position + 5cm in z direction
         self.area_center, target = self.compute_target()
 
-        # Move up
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
                          self.area_center[2] + 0.15]
+            # Move up
             a = [up_target, self.target_orn, gripper]
             self.move_to_target(env, dict_obs, tcp_pos, a)
 

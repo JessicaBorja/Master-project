@@ -93,6 +93,7 @@ class ObservationWrapper(gym.ObservationWrapper):
                     print("ENV: Static cam affordance model loaded")
                 else:
                     self.affordance = None
+                    path = os.path.abspath(path)
                     print("Path does not exist: %s" % path)
             elif(self.affordance.gripper_cam.use):
                 path = self.affordance.gripper_cam.model_path
@@ -105,6 +106,7 @@ class ObservationWrapper(gym.ObservationWrapper):
                     print("ENV: gripper affordance model loaded")
                 else:
                     self.affordance = None
+                    path = os.path.abspath(path)
                     print("Path does not exist: %s" % path)
         return aff_net
 

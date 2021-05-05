@@ -16,8 +16,7 @@ class RewardWrapper(gym.RewardWrapper):
         if(self.affordance.gripper_cam.use
            and self.affordance.gripper_cam.densify_reward):
             print("Using gripper cam to shape reward")
-        self.aff_last_target = {"pos": None,
-                                "distance": self.banana_radio}
+        self.current_target = None  # Combined model should initialize this
 
     def find_cam_ids(self):
         gripper_id, static_id = None, None
@@ -31,29 +30,32 @@ class RewardWrapper(gym.RewardWrapper):
     def find_target_center(self, cam_id, img_obs, mask, depth):
         """
         Args:
-            img_obs: np array, grayscale
-                     shape = (1, img_size, img_size)
-                     range = -1 to 1
+            img_obs: np array, RGB original resolution from camera
+                     shape = (1, cam.height, cam.width)
+                     range = 0 to 255
+                     Only used for vizualization purposes
             mask: np array, int64
                   shape = (1, img_size, img_size)
                   range = 0 to 1
         return:
             centers: list of 3d points (x, y, z)
         """
-        # Compute affordance from static camera
+        # Compute affordance from camera
         cam = self.cameras[cam_id]
         mask = np.transpose(mask, (1, 2, 0))  # (img_size, img_size, 1)
 
-        # # Visualization
-        # viz_img = np.transpose(img_obs, (1, 2, 0))
-        # viz_img = cv2.normalize(viz_img, None, 255, 0,
-        #                         cv2.NORM_MINMAX, cv2.CV_8UC1)
-        # viz_img = cv2.cvtColor(viz_img, cv2.COLOR_GRAY2RGB)
-        # out_img = visualize_np(mask*255.0, viz_img, False, k=5)
+        # Scale affordance mask to camera W,H rendering
+        mask_scaled = cv2.resize((mask*255).astype('uint8'),  # To keep in-between values
+                                 dsize=(cam.height, cam.width),
+                                 interpolation=cv2.INTER_CUBIC) / 255.0  # to scale them back between 0-1
+
+        # Visualization
+        # Uses openCV which needs BGR
+        # out_img = visualize_np(mask_scaled*255.0, img_obs[:, :, ::-1])
 
         # Make clusters
         dbscan = DBSCAN(eps=3, min_samples=3)
-        positives = np.argwhere(mask > 0.5)
+        positives = np.argwhere(mask_scaled > 0.5)
         centers, pixel_counters = [], []
         if(positives.shape[0] > 0):
             labels = dbscan.fit_predict(positives)
@@ -61,7 +63,7 @@ class RewardWrapper(gym.RewardWrapper):
             return (centers, pixel_counters)
 
         # Find approximate center
-        n_pixels = mask.shape[0] * mask.shape[1]
+        n_pixels = mask_scaled.shape[0] * mask_scaled.shape[1]
         for idx, c in enumerate(np.unique(labels)):
             cluster = positives[np.argwhere(labels == c).squeeze()]  # N, 3
             if(len(cluster.shape) == 1):
@@ -72,20 +74,22 @@ class RewardWrapper(gym.RewardWrapper):
             u, v = mid_point[1], mid_point[0]
             # Unprojection
             world_pt = pixel2world(cam, u, v, depth)
+            # p.addUserDebugText("O", textPosition=world_pt, textColorRGB=[1, 0, 0])
             centers.append(world_pt)
             pixel_counters.append(pixel_count)
 
         #     # Viz
         #     out_img = cv2.drawMarker(out_img, (u, v),
-        #                     (0, 0, 0),
-        #                     markerType=cv2.MARKER_CROSS,
-        #                     markerSize=5,
-        #                     line_type=cv2.LINE_AA)
+        #                              (0, 0, 0),
+        #                              markerType=cv2.MARKER_CROSS,
+        #                              markerSize=5,
+        #                              line_type=cv2.LINE_AA)
 
         # # Viz imgs
+        # cv2.imshow("depth", depth)
         # cv2.imshow("clusters", out_img)
         # cv2.waitKey(1)
-        # return (centers, pixel_counters)
+        return (centers, pixel_counters)
 
     def reward(self, rew):
         # modify rew
@@ -93,38 +97,44 @@ class RewardWrapper(gym.RewardWrapper):
            and self.affordance.gripper_cam.use
            and self.affordance.gripper_cam.densify_reward):
             obs_dict = self.get_obs()
+            # Cam resolution image
             gripper_depth = obs_dict["depth_obs"][self.gripper_id]
+            gripper_img_orig = obs_dict["rgb_obs"][self.gripper_id] 
 
+            # RL resolution (64x64). What the agent observes
+            # Preprocessed by obs_wrapper
             obs = self.get_gripper_obs(obs_dict)
             gripper_aff = obs["gripper_aff"]
-            gripper_img = obs["gripper_img_obs"]
+            # gripper_img = obs["gripper_img_obs"]
+
             # px count amount of pixels in cluster relative to
             # amount of pixels in img
             centers, px_count = self.find_target_center(self.gripper_id,
-                                                        gripper_img,
+                                                        gripper_img_orig,
                                                         gripper_aff,
                                                         gripper_depth)
             tcp_pos = obs_dict["robot_obs"][:3]
             # Maximum distance given the task
-            pt = None
+            # pt = None
             for c, n_px in zip(centers, px_count):
-                distance = np.linalg.norm(tcp_pos - c)
-                if(distance < self.aff_last_target["distance"]
-                   and n_px > 0.02):  # If aff detects closer target which is large enough
-                    self.aff_last_target["distance"] = distance
-                    self.aff_last_target["pos"] = c
 
-            if(self.aff_last_target is not None):
-                self.aff_last_target["distance"] = \
-                    np.linalg.norm(tcp_pos - self.aff_last_target["pos"])
+                # If aff detects closer target which is large enough
+                # and Detected affordance close to target
+                if(np.linalg.norm(self.current_target - c) < 0.05
+                   and n_px > 0.02):
+                    # pt = c
+                    self.current_target = c
 
             # See selected point
             # if(pt is not None):
-            #     p.addUserDebugText("gripper pt",
+            #     # p.loadURDF("sphere_small.urdf", pt)
+            #     p.addUserDebugText("O",
             #                        textPosition=pt, textColorRGB=[1, 0, 0])
+
             # Create positive reward relative to the distance
             # between the closest point detected by the affordances
             # and the end effector position
+            distance = np.linalg.norm(tcp_pos - self.current_target)
             rew = rew + \
-                (1 - (self.aff_last_target["distance"] / self.banana_radio))
+                (1 - (distance / self.banana_radio))
         return rew

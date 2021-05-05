@@ -2,14 +2,10 @@ import sys
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from sac_agent.sac import SAC
-from sklearn.cluster import DBSCAN
 from affordance_model.segmentator import Segmentator
 from affordance_model.datasets import get_transforms
-from utils.img_utils import visualize
-from utils.cam_projections import pixel2world
 import os
 import cv2
-import torch
 from sac_agent.sac_utils.utils import EpisodeStats, tt
 from omegaconf import OmegaConf
 
@@ -23,7 +19,9 @@ class Combined(SAC):
             self.env.get_obs()["robot_obs"][3:6]
 
         # Make target slightly(5cm) above actual target
-        self.area_center = self.compute_target()
+        self.area_center, self.target = self.compute_target()
+        self.env.current_target = self.target
+        self.eval_env.current_target = self.target
         self.radius = self.env.banana_radio  # Distance in meters
         self.aff_net = self._init_aff_net()
         self.cam_id = self._find_cam_id()
@@ -51,11 +49,17 @@ class Combined(SAC):
             print("Static cam affordance model loaded (to find targets)")
         else:
             self.affordance = None
+            path = os.path.abspath(path)
             print("Path does not exist: %s" % path)
         return aff_net
 
     def compute_target(self):
+        # This should come from static cam affordance later on
         target_pos, _ = self.env.get_target_pos()
+        # 2 cm deviation
+        target_pos = np.array(target_pos)
+        target_pos += np.random.normal(loc=0, scale=0.02,
+                                       size=(len(target_pos)))
         area_center = np.array(target_pos) \
             + np.array([0, 0, 0.05])
         return area_center, target_pos
@@ -88,12 +92,12 @@ class Combined(SAC):
 
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
-        self.area_center, target = self.compute_target()
-
+        # self.area_center, _ = self.compute_target()
+        target = self.target
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
-                         self.area_center[2] + 0.15]
+                         self.area_center[2] + 0.10]
             # Move up
             a = [up_target, self.target_orn, gripper]
             self.move_to_target(env, dict_obs, tcp_pos, a)
@@ -112,9 +116,9 @@ class Combined(SAC):
             s = env.reset()
             episode_length, episode_return = 0, 0
             done = False
+            # Correct Position
+            self.correct_position(env, s)
             while(episode_length < max_episode_length and not done):
-                # Correct Position
-                self.correct_position(env, s)
                 # sample action and scale it to action space
                 a, _ = self._pi.act(tt(s), deterministic=True)
                 a = a.cpu().detach().numpy()
@@ -134,7 +138,6 @@ class Combined(SAC):
 
         # Save images
         if(save_images):
-            import cv2
             os.makedirs("./frames/")
             for idx, im in enumerate(im_lst):
                 cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
@@ -165,8 +168,10 @@ class Combined(SAC):
                      "critic_loss": [],
                      "ent_coef_loss": [], "ent_coef": []}
         # correct_every_ts = 20
+        # Move to target position only one
+        # Episode ends if outside of radius
+        self.correct_position(self.env, s)
         for t in range(1, total_timesteps+1):
-            self.correct_position(self.env, s)
             s, done, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, t, episode_return, episode_length,
                                    plot_data)
@@ -182,6 +187,7 @@ class Combined(SAC):
                 episode += 1
                 episode_return, episode_length = 0, 0
                 s = self.env.reset()
+                self.correct_position(self.env, s)
 
             # Log interval (sac)
             if(t % log_interval == 0):

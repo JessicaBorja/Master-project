@@ -40,11 +40,12 @@ def load_cfg(cfg_path, cfg, optim_res):
         env_wrapper = cfg.env_wrapper
         agent_cfg = cfg.agent.hyperparameters
 
-    if(run_cfg.init_pos_near):
-        init_pos = run_cfg.env.robot_cfg.initial_joint_positions
-        init_pos = set_init_pos(run_cfg.task, init_pos)
-        run_cfg.env.robot_cfg.initial_joint_positions = init_pos
-        run_cfg.eval_env.robot_cfg.initial_joint_positions = init_pos
+    if('init_pos_near' in run_cfg):
+        if(run_cfg.init_pos_near):
+            init_pos = run_cfg.env.robot_cfg.initial_joint_positions
+            init_pos = set_init_pos(run_cfg.task, init_pos)
+            run_cfg.env.robot_cfg.initial_joint_positions = init_pos
+            run_cfg.eval_env.robot_cfg.initial_joint_positions = init_pos
     return run_cfg, net_cfg, env_wrapper, agent_cfg
 
 

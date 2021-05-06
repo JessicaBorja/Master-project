@@ -12,6 +12,7 @@ class Segmentator(pl.LightningModule):
         super().__init__()
         # https://github.com/qubvel/segmentation_models.pytorch
         self.unet = None
+        self.n_classes = cfg.n_classes
         self.init_model(decoder_channels=cfg.unet_cfg.decoder_channels,
                         n_classes=cfg.n_classes)
         self.optimizer_cfg = cfg.optimizer
@@ -74,6 +75,16 @@ class Segmentator(pl.LightningModule):
         decoder_output = self.unet.decoder(*features)
         masks = self.unet.segmentation_head(decoder_output)
         return masks
+
+    def predict(self, x):
+        # x.shape = (B, C, H, W)
+        logits = self.forward(x)
+        if(self.n_classes > 1):
+            # Softmax over channels
+            act_fnc = torch.nn.Softmax(1)
+        else:
+            act_fnc = torch.nn.Sigmoid()
+        return act_fnc(logits)
 
     def log_stats(self, split, max_batch, batch_idx, loss, miou):
         if(batch_idx >= max_batch - 1):

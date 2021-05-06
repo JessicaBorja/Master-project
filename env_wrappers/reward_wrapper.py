@@ -48,7 +48,7 @@ class RewardWrapper(gym.RewardWrapper):
         mask_scaled = cv2.resize((mask*255).astype('uint8'),  # To keep in-between values
                                  dsize=(cam.height, cam.width),
                                  interpolation=cv2.INTER_CUBIC) / 255.0  # to scale them back between 0-1
-
+        mask_scaled[mask_scaled <= 0.5] = 0
         # Visualization
         # Uses openCV which needs BGR
         # out_img = visualize_np(mask_scaled*255.0, img_obs[:, :, ::-1])
@@ -56,11 +56,11 @@ class RewardWrapper(gym.RewardWrapper):
         # Make clusters
         dbscan = DBSCAN(eps=3, min_samples=3)
         positives = np.argwhere(mask_scaled > 0.5)
-        centers, pixel_counters = [], []
+        cluster_outputs = []
         if(positives.shape[0] > 0):
             labels = dbscan.fit_predict(positives)
         else:
-            return (centers, pixel_counters)
+            return cluster_outputs
 
         # Find approximate center
         n_pixels = mask_scaled.shape[0] * mask_scaled.shape[1]
@@ -75,8 +75,11 @@ class RewardWrapper(gym.RewardWrapper):
             # Unprojection
             world_pt = pixel2world(cam, u, v, depth)
             # p.addUserDebugText("O", textPosition=world_pt, textColorRGB=[1, 0, 0])
-            centers.append(world_pt)
-            pixel_counters.append(pixel_count)
+            robustness = np.mean(mask_scaled[cluster])
+            c_out = {"center": world_pt,
+                     "pixel_count": pixel_count,
+                     "robustness": robustness}
+            cluster_outputs.append(c_out)
 
         #     # Viz
         #     out_img = cv2.drawMarker(out_img, (u, v),
@@ -86,10 +89,10 @@ class RewardWrapper(gym.RewardWrapper):
         #                              line_type=cv2.LINE_AA)
 
         # # Viz imgs
-        # cv2.imshow("depth", depth)
+        # # cv2.imshow("depth", depth)
         # cv2.imshow("clusters", out_img)
         # cv2.waitKey(1)
-        return (centers, pixel_counters)
+        return cluster_outputs
 
     def reward(self, rew):
         # modify rew
@@ -99,7 +102,7 @@ class RewardWrapper(gym.RewardWrapper):
             obs_dict = self.get_obs()
             # Cam resolution image
             gripper_depth = obs_dict["depth_obs"][self.gripper_id]
-            gripper_img_orig = obs_dict["rgb_obs"][self.gripper_id] 
+            gripper_img_orig = obs_dict["rgb_obs"][self.gripper_id]
 
             # RL resolution (64x64). What the agent observes
             # Preprocessed by obs_wrapper
@@ -109,15 +112,16 @@ class RewardWrapper(gym.RewardWrapper):
 
             # px count amount of pixels in cluster relative to
             # amount of pixels in img
-            centers, px_count = self.find_target_center(self.gripper_id,
-                                                        gripper_img_orig,
-                                                        gripper_aff,
-                                                        gripper_depth)
+            clusters_outputs = self.find_target_center(self.gripper_id,
+                                                       gripper_img_orig,
+                                                       gripper_aff,
+                                                       gripper_depth)
             tcp_pos = obs_dict["robot_obs"][:3]
             # Maximum distance given the task
             # pt = None
-            for c, n_px in zip(centers, px_count):
-
+            for out_dict in clusters_outputs:
+                c = out_dict["center"]
+                n_px = out_dict["pixel_count"]
                 # If aff detects closer target which is large enough
                 # and Detected affordance close to target
                 if(np.linalg.norm(self.current_target - c) < 0.05

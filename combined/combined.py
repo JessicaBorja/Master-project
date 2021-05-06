@@ -23,7 +23,7 @@ class Combined(SAC):
         self.env.current_target = self.target
         self.eval_env.current_target = self.target
         self.radius = self.env.banana_radio  # Distance in meters
-        self.aff_net = self._init_aff_net()
+        self.aff_net_static_cam = self._init_static_cam_aff_net()
         self.cam_id = self._find_cam_id()
         self.transforms = get_transforms(cfg.transforms.validation)
 
@@ -33,7 +33,7 @@ class Combined(SAC):
                 return i
         return 0
 
-    def _init_aff_net(self):
+    def _init_static_cam_aff_net(self):
         path = self.affordance.static_cam.model_path
         aff_net = None
         if(os.path.exists(path)):
@@ -50,7 +50,7 @@ class Combined(SAC):
         else:
             self.affordance = None
             path = os.path.abspath(path)
-            print("Path does not exist: %s" % path)
+            print("Static cam aff. Path does not exist: %s" % path)
         return aff_net
 
     def compute_target(self):
@@ -61,7 +61,7 @@ class Combined(SAC):
         target_pos += np.random.normal(loc=0, scale=0.02,
                                        size=(len(target_pos)))
         area_center = np.array(target_pos) \
-            + np.array([0, 0, 0.05])
+            + np.array([0, 0, 0.10])
         return area_center, target_pos
 
     def move_to_target(self, env, dict_obs, tcp_pos, a):

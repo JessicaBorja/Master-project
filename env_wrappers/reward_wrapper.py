@@ -148,6 +148,8 @@ class RewardWrapper(gym.RewardWrapper):
             # between the closest point detected by the affordances
             # and the end effector position
             distance = np.linalg.norm(tcp_pos - self.current_target)
-            rew = rew + \
-                (1 - (distance / self.banana_radio))
+            if(self.env.unwrapped._termination()):
+                rew = -1
+            else:
+                rew += (1 - (distance / self.banana_radio))
         return rew

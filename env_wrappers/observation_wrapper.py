@@ -46,6 +46,8 @@ class ObservationWrapper(gym.ObservationWrapper):
         self.affordance = affordance
         self.gripper_cam_aff_net = self.init_aff_net('gripper')
         self.static_cam_aff_net = self.init_aff_net('static')
+        self.curr_raw_obs = None
+        self.curr_processed_obs = None
 
     def find_cam_ids(self):
         static_id, gripper_id = 0, 1
@@ -173,7 +175,8 @@ class ObservationWrapper(gym.ObservationWrapper):
         # "rgb_obs", "depth_obs", "robot_obs","scene_obs"
         if(self._use_img_obs or self._use_gripper_img):
             obs = {}
-            obs_dict = self.get_obs()
+            self.curr_raw_obs = self.get_obs()
+            obs_dict = self.curr_raw_obs
             if(self._use_gripper_img or self._use_img_obs):
                 obs = {**self.get_gripper_obs(obs_dict),
                        **self.get_static_obs(obs_dict)}
@@ -189,6 +192,7 @@ class ObservationWrapper(gym.ObservationWrapper):
             robot_obs, scene_obs = obs['robot_obs'], obs['scene_obs']
             obs = np.concatenate((robot_obs[:7],  # only pos and euler orn
                                   scene_obs[:3]))  # only doors states
+        self.curr_processed_obs = obs
         return obs
 
     def depth_preprocessing(self, frame):

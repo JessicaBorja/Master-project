@@ -9,7 +9,7 @@ hyperparameters:
     tau: 0.005
     batch_size: 256
     buffer_size: 1e5
-    learning_starts: 400 #timesteps before starting updates
+    learning_starts: 0 #timesteps before starting updates
 
 net_cfg:
     hidden_dim: 256
@@ -18,6 +18,6 @@ net_cfg:
 
 learn_config:
     total_timesteps: 5e5
-    log_interval: 1400 #log timestep mean_eval reward every log_interval steps
-    max_episode_length: 100 #max episode length
+    log_interval: 1000 #log timestep mean_eval reward every log_interval steps
+    max_episode_length: 50 #max episode length
     n_eval_ep: 5

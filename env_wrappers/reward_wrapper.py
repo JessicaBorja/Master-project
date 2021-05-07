@@ -69,6 +69,8 @@ class RewardWrapper(gym.RewardWrapper):
             if(len(cluster.shape) == 1):
                 cluster = np.expand_dims(cluster, 0)
             pixel_count = cluster.shape[0] / n_pixels
+            if(pixel_count < 0.02):  # Skip small clusters
+                continue
             mid_point = np.mean(cluster, 0)[:2]
             mid_point = mid_point.astype('uint8')
             u, v = mid_point[1], mid_point[0]
@@ -99,14 +101,23 @@ class RewardWrapper(gym.RewardWrapper):
         if(self.task == "banana_combined"
            and self.affordance.gripper_cam.use
            and self.affordance.gripper_cam.densify_reward):
-            obs_dict = self.get_obs()
+            # set by observation wrapper so that
+            # both have the same observation on
+            # a given timestep
+            if(self.env.curr_raw_obs is not None):
+                obs_dict = self.env.curr_raw_obs
+            else:
+                obs_dict = self.get_obs()
             # Cam resolution image
             gripper_depth = obs_dict["depth_obs"][self.gripper_id]
             gripper_img_orig = obs_dict["rgb_obs"][self.gripper_id]
 
             # RL resolution (64x64). What the agent observes
             # Preprocessed by obs_wrapper
-            obs = self.get_gripper_obs(obs_dict)
+            if(self.env.curr_processed_obs is not None):
+                obs = self.env.curr_processed_obs
+            else:
+                obs = self.get_gripper_obs(obs_dict)
             gripper_aff = obs["gripper_aff"]
             # gripper_img = obs["gripper_img_obs"]
 
@@ -121,11 +132,9 @@ class RewardWrapper(gym.RewardWrapper):
             # pt = None
             for out_dict in clusters_outputs:
                 c = out_dict["center"]
-                n_px = out_dict["pixel_count"]
                 # If aff detects closer target which is large enough
                 # and Detected affordance close to target
-                if(np.linalg.norm(self.current_target - c) < 0.05
-                   and n_px > 0.02):
+                if(np.linalg.norm(self.current_target - c) < 0.05):
                     # pt = c
                     self.current_target = c
 

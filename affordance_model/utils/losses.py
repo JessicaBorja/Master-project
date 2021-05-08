@@ -3,6 +3,105 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+def get_affordance_loss(cfg, n_classes):
+    add_dice = cfg.dice_loss.add
+    class_weights = cfg.ce_loss.class_weights
+    _criterion = nn.BCEWithLogitsLoss if n_classes == 1 \
+        else nn.CrossEntropyLoss
+
+    # Only CE
+    # -> CE loss w/weight
+    if(not add_dice and n_classes > 1):
+        assert len(class_weights) == n_classes, \
+            "Number of weights [%d] != n_classes [%d]" % \
+            (len(class_weights), n_classes)
+        affordance_loss = _criterion(
+                    weight=torch.tensor(class_weights))
+    else:
+        # either BCE w or w/o dice
+        # or CE w dice
+        affordance_loss = _criterion()
+    return affordance_loss
+
+
+def get_loss(add_dice, n_classes, class_weights):
+    _criterion = nn.BCEWithLogitsLoss if n_classes == 1 \
+            else nn.CrossEntropyLoss
+
+    # Only CE
+    # -> CE loss w/weight
+    if(not add_dice and n_classes > 1):
+        assert len(class_weights) == n_classes, \
+            "Number of weights [%d] != n_classes [%d]" % \
+            (len(class_weights), n_classes)
+        loss_fnc = _criterion(
+                    weight=torch.tensor(class_weights))
+    else:
+        # either BCE w or w/o dice
+        # or CE w dice
+        loss_fnc = _criterion()
+    return loss_fnc
+
+
+# https://github.com/chrisdxie/uois/blob/515c92f63bc83411be21da8449d22660863affbd/src/losses.py#L34
+class CosineSimilarityLossWithMask(nn.Module):
+    """ Compute Cosine Similarity loss
+    """
+    def __init__(self, weighted=False):
+        super(CosineSimilarityLossWithMask, self).__init__()
+        self.CosineSimilarity = nn.CosineSimilarity(dim=1)
+        self.weighted = weighted
+
+    def forward(self, x, target, mask=None):
+        """ Compute masked cosine similarity loss
+            @param x: a [N x C x H x W] torch.FloatTensor of values
+            @param target: a [N x C x H x W] torch.FloatTensor of values
+            @param mask: a [N x H x W] torch.FloatTensor with values in {0, 1, 2, ..., K+1}, where K is number of objects. {0,1} are background/table.
+                                       Could also be None
+        """
+        # Shape: [N x H x W]. values are in [0, 1]
+        temp = .5 * (1 - self.CosineSimilarity(x, target))
+        if mask is None:
+            # return mean
+            return torch.sum(temp) / target.numel()
+
+        # Compute tabletop objects mask
+        # Shape: [N x H x W]
+        OBJECTS_LABEL = 2
+        binary_object_mask = (mask.clamp(0, 2).long() == OBJECTS_LABEL)
+
+        if torch.sum(binary_object_mask) > 0:
+            if self.weighted:
+                # Compute pixel weights
+                # Shape: [N x H x W]. weighted mean over pixels
+                weight_mask = torch.zeros_like(mask)
+                unique_object_labels = torch.unique(mask)
+                unique_object_labels = \
+                    unique_object_labels[unique_object_labels >= 2]
+                for obj in unique_object_labels:
+                    num_pixels = torch.sum(mask == obj, dtype=torch.float)
+                    # inversely proportional to number of pixels
+                    weight_mask[mask == obj] = 1 / num_pixels
+            else:
+                # mean over observed pixels
+                weight_mask = binary_object_mask.float()
+            loss = torch.sum(temp * weight_mask) / torch.sum(weight_mask)
+        else:
+            # print("all gradients are 0...")
+            # just 0. all gradients will be 0
+            loss = torch.tensor(0., dtype=torch.float, device=x.device)
+
+        bg_mask = ~binary_object_mask
+        if torch.sum(bg_mask) > 0:
+            bg_loss = 0.1 * torch.sum(temp * bg_mask.float())\
+                     / torch.sum(bg_mask.float())
+        else:
+            # just 0
+            bg_loss = torch.tensor(0., dtype=torch.float, device=x.device)
+
+        return loss + bg_loss
+
+
 def tresh_tensor(logits, threshold=0.5):
     if logits.shape[1] == 1 or len(logits.shape) == 3:
         pred = F.sigmoid(logits)
@@ -34,25 +133,6 @@ def compute_mIoU(logits, gt, threshold=0.5):
     intersection = ((pred == 1) & (gt == 1)).sum().float()
     union = ((pred == 1) | (gt == 1)).sum().float()
     return intersection / max(union, 1e-6)
-
-
-def get_loss(add_dice, n_classes, class_weights):
-    _criterion = nn.BCEWithLogitsLoss if n_classes == 1 \
-            else nn.CrossEntropyLoss
-
-    # Only CE
-    # -> CE loss w/weight
-    if(not add_dice and n_classes > 1):
-        assert len(class_weights) == n_classes, \
-            "Number of weights [%d] != n_classes [%d]" % \
-            (len(class_weights), n_classes)
-        loss_fnc = _criterion(
-                    weight=torch.tensor(class_weights))
-    else:
-        # either BCE w or w/o dice
-        # or CE w dice
-        loss_fnc = _criterion()
-    return loss_fnc
 
 
 # https://github.com/kevinzakka/form2fit/blob/099a4ceac0ec60f5fbbad4af591c24f3fff8fa9e/form2fit/code/ml/losses.py#L305

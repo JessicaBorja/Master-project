@@ -19,5 +19,5 @@ net_cfg:
 learn_config:
     total_timesteps: 5e5
     log_interval: 1000 #log timestep mean_eval reward every log_interval steps
-    max_episode_length: 50 #max episode length
+    max_episode_length: 100 #max episode length
     n_eval_ep: 5

@@ -2,7 +2,7 @@ import datetime
 import logging
 import hydra
 from omegaconf import OmegaConf
-from affordance_model.segmentator import Segmentator
+from affordance_model.segmentator_centers import Segmentator
 from affordance_model.datasets import get_loaders
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -26,7 +26,7 @@ def train(cfg):
 
     # Data split
     train_loader, val_loader = \
-        get_loaders(logger, cfg.dataset, cfg.dataloader)
+        get_loaders(logger, cfg.dataset, cfg.dataloader, cfg.img_size)
 
     # 24hr format
     model_name = cfg.model_name

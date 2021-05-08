@@ -1,7 +1,7 @@
-data_dir:  C:/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_play_no_mask_np_compres/
+data_dir:  /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/vrenv_directions_64px/
 save_dir: ./affordance_model/hydra_outputs/
 
-model_name: gripper_1CE_5dice
+model_name: gripper_aff_center
 n_epochs: 40
 img_size: 64
 
@@ -18,14 +18,25 @@ dataloader:
 model_cfg:
   model_name: "${model_name}"
   n_classes: 2
-  dice_loss:
-    add: True
+  hough_voting:
+    skip_pixels: 10
+    inlier_threshold: 0.9
+    angle_discretization: 100
+    inlier_distance: 20
+    percentage_threshold: 0.5 # this depends on skip_pixels, angle_discretization, inlier_distance. just gotta try it to see if it works
+    object_center_kernel_radius: 10
+  centers_loss:
     weight: 5
-  ce_loss:
-    weight: 1
-    class_weights: [0.2, 0.8]
+  aff_loss:
+    weight: 3
+    dice_loss:
+      add: True
+      weight: 5
+    ce_loss:
+      weight: 1
+      class_weights: [0.2, 0.8]
   optimizer:
-    lr: 1e-5
+    lr: 5e-6
     weight_decay: 1e-3
   unet_cfg:
     decoder_channels: [128, 64, 32]

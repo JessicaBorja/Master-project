@@ -21,3 +21,5 @@ torchvision==0.8.1
 tqdm==4.56.0
 hydra-core
 hydra_colorlog
+sklearn
+pypng

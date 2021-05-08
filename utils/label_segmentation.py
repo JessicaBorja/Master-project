@@ -85,7 +85,7 @@ def create_circle_mask(img, xy_coords, r=10):
     mask = np.zeros((img.shape[0], img.shape[1], 1))
     color = [255, 255, 255]
     mask = cv2.circle(mask, xy_coords, radius=r, color=color, thickness=-1)
-    mask = smoothen(mask, k=15)
+    # mask = smoothen(mask, k=15)
     return mask
 
 
@@ -99,7 +99,7 @@ def get_static_mask(static_cam, static_im, point):
     # x,y <- pixel coords
     tcp_x, tcp_y = world2pixel(point, static_cam)
     static_mask = create_circle_mask(static_im, (tcp_x, tcp_y), r=10)
-    return static_mask, (tcp_x, tcp_y)
+    return static_mask, (tcp_y, tcp_x)  # matrix coord
 
 
 def get_gripper_mask(img, robot_obs, point, cam_properties=None, radius=25):
@@ -110,9 +110,6 @@ def get_gripper_mask(img, robot_obs, point, cam_properties=None, radius=25):
     cam_pos, cam_orn = p.multiplyTransforms(
                                 pt, orn,
                                 cam2tcp_pos, cam2tcp_orn)
-
-    # tcp_x, tcp_y = img.shape[0]//2, img.shape[1]//2
-    # mask = create_circle_mask(img, (tcp_x, tcp_y), r=radius)
 
     # Create projection and view matrix
     cam_rot = p.getMatrixFromQuaternion(cam_orn)
@@ -135,4 +132,4 @@ def get_gripper_mask(img, robot_obs, point, cam_properties=None, radius=25):
     point = np.append(point, 1)
     tcp_x, tcp_y = world2pixel(point, gripper_cam)
     mask = create_circle_mask(img, (tcp_x, tcp_y), r=radius)
-    return mask, (tcp_x, tcp_y)
+    return mask, (tcp_y, tcp_x)

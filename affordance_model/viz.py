@@ -61,7 +61,7 @@ def viz(cfg):
         # i.e. resize to multiple of 32, normalize
         x = torch.from_numpy(orig_img).permute(2, 0, 1).unsqueeze(0)
         x = img_transform(x)
-        mask = model(x)
+        mask = model.predict(x)
         res = visualize(mask, orig_img, cfg.imshow)
         if(cfg.save_images):
             _, tail = os.path.split(filename)

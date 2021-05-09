@@ -11,7 +11,6 @@ from sac_agent.sac_utils.replay_buffer import ReplayBuffer
 from sac_agent.sac_utils.utils import EpisodeStats, tt, soft_update, get_nets
 import logging
 import gym
-import copy
 
 
 class SAC():

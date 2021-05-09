@@ -3,18 +3,46 @@ import hydra
 import os
 import cv2
 import torch
-import os
 import sys
 from omegaconf import OmegaConf
 from omegaconf.listconfig import ListConfig
 import tqdm
+import numpy as np
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, parent_dir)
-from utils.img_utils import visualize
+import utils.flowlib as flowlib
+from utils.img_utils import visualize, overlay_flow
 from utils.file_manipulation import get_files
-from affordance_model.segmentator import Segmentator
+from affordance_model.segmentator_centers import Segmentator
 from affordance_model.datasets import get_transforms
+
+
+def get_filenames(data_dir):
+    files = []
+    np_comprez = False
+    if(isinstance(data_dir, ListConfig)):
+        for dir_i in data_dir:
+            path = os.path.abspath(dir_i)
+            if(not os.path.exists(path)):
+                print("Path does not exist: %s" % path)
+                continue
+            files += get_files(dir_i, "npz")
+            if(len(files) > 0):
+                np_comprez = True
+            files += get_files(dir_i, "jpg")
+            files += get_files(dir_i, "png")
+    else:
+        path = os.path.abspath(data_dir)
+        if(not os.path.exists(path)):
+            print("Path does not exist: %s" % path)
+            return
+        files += get_files(data_dir, "npz")
+        if(len(files) > 0):
+            np_comprez = True
+        files += get_files(data_dir, "jpg")
+        files += get_files(data_dir, "png")
+    return files, np_comprez
 
 
 @hydra.main(config_path="../config", config_name="viz_affordances")
@@ -29,7 +57,7 @@ def viz(cfg):
 
     checkpoint_path = os.path.join(cfg.folder_name, "trained_models")
     checkpoint_path = os.path.join(checkpoint_path, cfg.model_name)
-    model = Segmentator.load_from_checkpoint(checkpoint_path, cfg=model_cfg)
+    model = Segmentator.load_from_checkpoint(checkpoint_path, cfg=model_cfg).cuda()
     model.eval()
     print("model loaded")
 
@@ -38,35 +66,70 @@ def viz(cfg):
     img_transform = get_transforms(cfg.transforms.validation)
 
     # Iterate images
-    files = []
-    if(isinstance(cfg.data_dir, ListConfig)):
-        for dir_i in cfg.data_dir:
-            path = os.path.abspath(dir_i)
-            if(not os.path.exists(path)):
-                print("Path does not exist: %s" % path)
-                continue
-            files += get_files(dir_i, "jpg")
-            files += get_files(dir_i, "png")
-    else:
-        path = os.path.abspath(cfg.data_dir)
-        if(not os.path.exists(path)):
-            print("Path does not exist: %s" % path)
-            return
-        files += get_files(cfg.data_dir, "jpg")
-        files += get_files(cfg.data_dir, "png")
+    files, np_comprez = get_filenames(cfg.data_dir)
+    out_shape = (cfg.img_size, cfg.img_size)
 
     for filename in tqdm.tqdm(files):
-        orig_img = cv2.imread(filename, cv2.COLOR_BGR2RGB)
-        # Process image as in validation
-        # i.e. resize to multiple of 32, normalize
+        if(np_comprez):
+            data = np.load(filename)
+            orig_img = data["frame"]
+            gt_mask = data["mask"]
+            gt_directions = data["directions"]
+        else:
+            orig_img = cv2.imread(filename, cv2.COLOR_BGR2RGB)
+
+        # Apply validation transforms
         x = torch.from_numpy(orig_img).permute(2, 0, 1).unsqueeze(0)
-        x = img_transform(x)
-        mask = model.predict(x)
-        res = visualize(mask, orig_img, cfg.imshow)
+        x = img_transform(x).cuda()
+
+        # Predict affordance, centers and directions
+        mask, _, directions, object_centers, _ = model.predict(x)
+        # res = visualize(mask, orig_img, cfg.imshow)
+
+        # To numpy arrays
+        mask = mask.detach().cpu().numpy()
+        directions = directions[0].detach().cpu().numpy()
+        centers = []
+        for o in object_centers:
+            c = o.detach().cpu().numpy()
+            if(c.size > 0):
+                centers.append(c)
+
+        # To flow img
+        directions = np.transpose(directions, (1, 2, 0))
+        flow_img = flowlib.flow_to_image(directions)  # RGB
+        flow_img = flow_img[:, :, ::-1]  # BGR
+        gt_flow = flowlib.flow_to_image(gt_directions)[:, :, ::-1]
+
+        mask = np.transpose(mask, (1, 2, 0))*255
+
+        # Resize to out_shape
+        orig_img = cv2.resize(orig_img, out_shape)
+        flow_img = cv2.resize(flow_img, out_shape)
+        mask = cv2.resize(mask, out_shape)
+        gt_mask = cv2.resize(gt_mask, out_shape)
+        gt_directions = cv2.resize(gt_flow, out_shape)
+
+        # Overlay directions and centers
+        res = overlay_flow(flow_img, orig_img, mask)
+        gt_res = overlay_flow(gt_directions, orig_img, gt_mask)
+        for c in centers:
+            u, v = c[1], c[0]  # center stored in matrix convention
+            res = cv2.drawMarker(res, (u, v),
+                                 (0, 0, 0),
+                                 markerType=cv2.MARKER_CROSS,
+                                 markerSize=5,
+                                 line_type=cv2.LINE_AA)
+
+        # Save and show
         if(cfg.save_images):
             _, tail = os.path.split(filename)
             output_file = os.path.join(cfg.output_dir, tail)
             cv2.imwrite(output_file, res)
+        if(cfg.imshow):
+            cv2.imshow("gt", gt_res)
+            cv2.imshow("output", res)
+            cv2.waitKey(1)
 
 
 if __name__ == "__main__":

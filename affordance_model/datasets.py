@@ -177,12 +177,12 @@ def main(cfg):
             c = c.squeeze().detach().cpu().numpy()
             u, v = c[1], c[0]  # center stored in matrix convention
             out_img = cv2.drawMarker(out_img, (u, v),
-                                        (0, 0, 0),
-                                        markerType=cv2.MARKER_CROSS,
-                                        markerSize=5,
-                                        line_type=cv2.LINE_AA)
+                                     (0, 0, 0),
+                                     markerType=cv2.MARKER_CROSS,
+                                     markerSize=5,
+                                     line_type=cv2.LINE_AA)
         out_img = cv2.resize(out_img, (200, 200),
-                                interpolation=cv2.INTER_CUBIC)
+                             interpolation=cv2.INTER_CUBIC)
         cv2.imshow("img", out_img)
         cv2.waitKey(1)
 

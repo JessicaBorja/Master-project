@@ -20,7 +20,8 @@ def show_mask_np(x, mask):
     # x.shape = [C, H, W]
     # mask.shape = [B, 2, H, W]
     show_mask = np.transpose(mask, (1, 2, 0))*255.0
-    show_mask = smoothen(show_mask, k=5)  # [0, 255] int
+    show_mask = cv2.normalize(show_mask, None, 255, 0, cv2.NORM_MINMAX, cv2.CV_8UC1)
+
     img = np.transpose(x, (1, 2, 0))*255.0
     img = cv2.normalize(img, None, 255, 0,
                         cv2.NORM_MINMAX, cv2.CV_8UC1)

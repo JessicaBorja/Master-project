@@ -1,4 +1,4 @@
-project_path:  /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/ # C:/Users/Jessica/Documents/Proyecto_ssd # 
+project_path:  C:/Users/Jessica/Documents/Proyecto_ssd # /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/ #
 data_path: ${project_path}/VREnv/data/
 save_dir: ./combined/hydra_outputs/${task}
 model_name: "full_b_gripper_aff"

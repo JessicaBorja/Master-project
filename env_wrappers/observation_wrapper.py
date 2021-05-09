@@ -157,17 +157,21 @@ class ObservationWrapper(gym.ObservationWrapper):
                 # 1, 1, H, W in range [-1, 1]
                 obs_t = torch.tensor(gripper_obs).unsqueeze(0)
                 obs_t = obs_t.float().cuda()
+
                 # 1, 2, H, W in [0-1]
-                mask = self.gripper_cam_aff_net.predict(obs_t)  # softmax output
-                mask = mask[0, 1].cpu().detach().numpy()
+                # softmax output
+                # mask = self.gripper_cam_aff_net.predict(obs_t)
+                # mask = mask[0, 1].cpu().detach().numpy()
+                # mask = np.expand_dims(mask, 0)
 
                 # 1, H, W
-                # mask = torch.argmax(mask, axis=1, keepdim=True)
-                # mask = mask[0].cpu().detach().numpy()
+                # Tresholded mask ..
+                mask = self.gripper_cam_aff_net(obs_t)
+                mask = torch.argmax(mask, axis=1, keepdim=True)
+                mask = mask[0].cpu().detach().numpy()
                 # show_mask_np(gripper_obs, mask)
                 del obs_t
-            # obs["gripper_aff"] = mask
-            obs["gripper_aff"] = np.expand_dims(mask, 0)
+            obs["gripper_aff"] = mask
             del gripper_obs
         return obs
 

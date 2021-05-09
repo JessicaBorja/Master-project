@@ -48,7 +48,7 @@ class RewardWrapper(gym.RewardWrapper):
         mask_scaled = cv2.resize((mask*255).astype('uint8'),  # To keep in-between values
                                  dsize=(cam.height, cam.width),
                                  interpolation=cv2.INTER_CUBIC) / 255.0  # to scale them back between 0-1
-        mask_scaled[mask_scaled <= 0.5] = 0
+        # mask_scaled[mask_scaled <= 0.5] = 0
         # Visualization
         # Uses openCV which needs BGR
         # out_img = visualize_np(mask_scaled*255.0, img_obs[:, :, ::-1])

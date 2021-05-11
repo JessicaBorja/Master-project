@@ -3,9 +3,9 @@ import numpy as np
 import cv2
 import pybullet as p
 from utils.cam_projections import pixel2world
-from utils.img_utils import visualize_np
+from utils.img_utils import overlay_mask
 from sklearn.cluster import DBSCAN
-
+from matplotlib import cm
 
 # As it wraps the environment, inherits its attributes
 class RewardWrapper(gym.RewardWrapper):
@@ -48,35 +48,46 @@ class RewardWrapper(gym.RewardWrapper):
         mask_scaled = cv2.resize((mask*255).astype('uint8'),  # To keep in-between values
                                  dsize=(cam.height, cam.width),
                                  interpolation=cv2.INTER_CUBIC) / 255.0  # to scale them back between 0-1
-        # mask_scaled[mask_scaled <= 0.5] = 0
-        # Visualization
-        # Uses openCV which needs BGR
-        # out_img = visualize_np(mask_scaled*255.0, img_obs[:, :, ::-1])
 
         # Make clusters
         dbscan = DBSCAN(eps=3, min_samples=3)
-        positives = np.argwhere(mask_scaled > 0.5)
+        positives = np.argwhere(mask_scaled > 0.3)
         cluster_outputs = []
         if(positives.shape[0] > 0):
             labels = dbscan.fit_predict(positives)
         else:
             return cluster_outputs
 
+        cluster_ids = np.unique(labels)
+
+        # Visualization
+        # Uses openCV which needs BGR
+        # out_img = visualize_np(mask_scaled*255.0, img_obs[:, :, ::-1])
+
+        # Create cluster segmentation mask
+        # colors = cm.jet(np.linspace(0, 1, len(cluster_ids)))
+        # out_img = overlay_mask(mask_scaled * 255.0, img_obs[:, :, ::-1], (0, 0, 255))
+
         # Find approximate center
         n_pixels = mask_scaled.shape[0] * mask_scaled.shape[1]
-        for idx, c in enumerate(np.unique(labels)):
+        for idx, c in enumerate(cluster_ids):
             cluster = positives[np.argwhere(labels == c).squeeze()]  # N, 3
             if(len(cluster.shape) == 1):
                 cluster = np.expand_dims(cluster, 0)
             pixel_count = cluster.shape[0] / n_pixels
+
+            # # Visualize all cluster
+            # out_img[cluster[:, 0], cluster[:, 1]] = \
+            #         [int(a * 255) for a in colors[idx][:3]]
+
             if(pixel_count < 0.02):  # Skip small clusters
                 continue
-            mid_point = np.mean(cluster, 0)[:2]
-            mid_point = mid_point.astype('uint8')
+
+            # img size is 300 then we need int64 to cover all pixels
+            mid_point = np.mean(cluster, 0).astype('int')
             u, v = mid_point[1], mid_point[0]
             # Unprojection
             world_pt = pixel2world(cam, u, v, depth)
-            # p.addUserDebugText("O", textPosition=world_pt, textColorRGB=[1, 0, 0])
             robustness = np.mean(mask_scaled[cluster])
             c_out = {"center": world_pt,
                      "pixel_count": pixel_count,
@@ -91,7 +102,7 @@ class RewardWrapper(gym.RewardWrapper):
         #                              line_type=cv2.LINE_AA)
 
         # # Viz imgs
-        # # cv2.imshow("depth", depth)
+        # cv2.imshow("depth", depth)
         # cv2.imshow("clusters", out_img)
         # cv2.waitKey(1)
         return cluster_outputs
@@ -129,20 +140,18 @@ class RewardWrapper(gym.RewardWrapper):
                                                        gripper_depth)
             tcp_pos = obs_dict["robot_obs"][:3]
             # Maximum distance given the task
-            # pt = None
             for out_dict in clusters_outputs:
                 c = out_dict["center"]
                 # If aff detects closer target which is large enough
                 # and Detected affordance close to target
                 if(np.linalg.norm(self.current_target - c) < 0.05):
-                    # pt = c
                     self.current_target = c
 
             # See selected point
-            # if(pt is not None):
-            #     # p.loadURDF("sphere_small.urdf", pt)
-            #     p.addUserDebugText("O",
-            #                        textPosition=pt, textColorRGB=[1, 0, 0])
+            # p.removeAllUserDebugItems()
+            # p.addUserDebugText("target",
+            #                    textPosition=self.current_target,
+            #                    textColorRGB=[1, 0, 0])
 
             # Create positive reward relative to the distance
             # between the closest point detected by the affordances

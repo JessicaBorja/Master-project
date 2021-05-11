@@ -94,6 +94,11 @@ class Combined(SAC):
         # Area center is the target position + 5cm in z direction
         # self.area_center, _ = self.compute_target()
         target = self.target
+
+        # Set current_target in each episode
+        self.env.current_target = target
+        self.eval_env.current_target = target
+
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],

@@ -7,7 +7,7 @@ from affordance_model.segmentator import Segmentator
 from sac_agent.sac_utils.utils import show_mask_np
 import os
 import hydra
-
+from gym import spaces
 
 class ObservationWrapper(gym.ObservationWrapper):
     def __init__(self, env, history_length, skip_frames, img_size,
@@ -48,6 +48,8 @@ class ObservationWrapper(gym.ObservationWrapper):
         self.static_cam_aff_net = self.init_aff_net('static')
         self.curr_raw_obs = None
         self.curr_processed_obs = None
+        _action_space = np.ones(4)
+        self.action_space = spaces.Box(_action_space * -1, _action_space)
 
     def find_cam_ids(self):
         static_id, gripper_id = 0, 1
@@ -94,11 +96,11 @@ class ObservationWrapper(gym.ObservationWrapper):
                                         cfg=self.affordance.hyperparameters)
                     aff_net.cuda()
                     aff_net.eval()
-                    print("ENV: Static cam affordance model loaded")
+                    print("obs_wrapper: Static cam affordance model loaded")
                 else:
                     self.affordance = None
                     path = os.path.abspath(path)
-                    print("Path does not exist: %s" % path)
+                    print("obs_wrapper: Path does not exist: %s" % path)
             elif(self.affordance.gripper_cam.use
                  and cam_str == "gripper"):
                 path = self.affordance.gripper_cam.model_path
@@ -108,11 +110,11 @@ class ObservationWrapper(gym.ObservationWrapper):
                                         cfg=self.affordance.hyperparameters)
                     aff_net.cuda()
                     aff_net.eval()
-                    print("ENV: gripper affordance model loaded")
+                    print("obs_wrapper: gripper affordance model loaded")
                 else:
                     self.affordance = None
                     path = os.path.abspath(path)
-                    print("Path does not exist: %s" % path)
+                    print("obs_wrapper: Path does not exist: %s" % path)
         return aff_net
 
     def get_static_obs(self, obs_dict):
@@ -120,6 +122,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         if(self._use_img_obs):
             # cv2.imshow("static_cam orig",
             #            obs_dict['rgb_obs'][self.static_id])
+            # cv2.waitKey(1)
             img_obs = self.img_preprocessing(
                         obs_dict['rgb_obs'][self.static_id])
             obs["img_obs"] = img_obs

@@ -38,7 +38,7 @@ def get_gripper_network(obs_space, out_feat, activation, affordance_cfg):
         use_affordance = \
             os.path.exists(affordance_cfg.gripper_cam.model_path)\
             and affordance_cfg.gripper_cam.use
-        print("Using gripper cam affordance: %s" % use_affordance)
+        print("Networks: Use gripper cam affordance: %s" % use_affordance)
         # Build network
         return CNNCommon(
             _history_length, _img_size,
@@ -59,7 +59,7 @@ def get_img_network(obs_space, out_feat, activation, affordance_cfg):
         use_affordance = \
             os.path.exists(affordance_cfg.static_cam.model_path)\
             and affordance_cfg.static_cam.use
-        print("Using static cam affordance: %s" % use_affordance)
+        print("Networks: Using static cam affordance: %s" % use_affordance)
 
         # Build network
         return CNNCommon(

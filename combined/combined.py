@@ -8,6 +8,7 @@ import os
 import cv2
 from sac_agent.sac_utils.utils import EpisodeStats, tt
 from omegaconf import OmegaConf
+import pybullet as p
 
 
 class Combined(SAC):
@@ -20,6 +21,12 @@ class Combined(SAC):
 
         # Make target slightly(5cm) above actual target
         self.area_center, self.target = self.compute_target()
+        # p.addUserDebugText("target_0",
+        #                    textPosition=self.area_center,
+        #                    textColorRGB=[0, 1, 0])
+        # p.addUserDebugText("a_center",
+        #                    textPosition=self.area_center,
+        #                    textColorRGB=[0, 1, 0])
         self.env.current_target = self.target
         self.eval_env.current_target = self.target
         self.radius = self.env.banana_radio  # Distance in meters
@@ -58,10 +65,10 @@ class Combined(SAC):
         target_pos, _ = self.env.get_target_pos()
         # 2 cm deviation
         target_pos = np.array(target_pos)
-        target_pos += np.random.normal(loc=0, scale=0.02,
+        target_pos += np.random.normal(loc=0, scale=0.002,
                                        size=(len(target_pos)))
         area_center = np.array(target_pos) \
-            + np.array([0, 0, 0.10])
+            + np.array([-0.025, 0, 0.07])
         return area_center, target_pos
 
     def move_to_target(self, env, dict_obs, tcp_pos, a):
@@ -69,7 +76,7 @@ class Combined(SAC):
         env.robot.apply_action(a)
         last_pos = target
         # When robot is moving and far from target
-        while(np.linalg.norm(tcp_pos - target) > 0.02
+        while(np.linalg.norm(tcp_pos - target) > 0.01
               and np.linalg.norm(last_pos - tcp_pos) > 0.005):
             last_pos = tcp_pos
 
@@ -99,15 +106,19 @@ class Combined(SAC):
         self.env.current_target = target
         self.eval_env.current_target = target
 
+        # p.addUserDebugText("target_0",
+        #                    textPosition=target,
+        #                    textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
-                         self.area_center[2] + 0.10]
+                         self.area_center[2] + 0.07]
             # Move up
             a = [up_target, self.target_orn, gripper]
             self.move_to_target(env, dict_obs, tcp_pos, a)
 
             # Move to target
+            tcp_pos = env.get_obs()["robot_obs"][:3]
             a = [self.area_center, self.target_orn, gripper]
             self.move_to_target(env, dict_obs, tcp_pos, a)
 

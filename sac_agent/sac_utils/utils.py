@@ -7,7 +7,7 @@ from collections import namedtuple
 import os
 import pickle
 import importlib
-from utils.img_utils import smoothen, overlay_mask
+from utils.img_utils import overlay_mask
 import cv2
 
 EpisodeStats = namedtuple(
@@ -46,7 +46,7 @@ def set_init_pos(task, init_pos):
 def get_nets(img_obs, obs_space, action_space):
     action_dim = action_space.shape[0]
     if(img_obs):
-        print("Using: %s" % str([k for k in obs_space]))
+        print("SAC get_nets using: %s" % str([k for k in obs_space]))
         policy = "CNNPolicy"
         critic = "CNNCritic"
         # policy = "legacy_CNNPolicy"
@@ -62,7 +62,7 @@ def get_nets(img_obs, obs_space, action_space):
     critic_net = getattr(
         importlib.import_module("sac_agent.networks.critic_network"),
         critic)
-    print("Networks: %s, \t%s" % (policy, critic))
+    print("SAC get_nets: %s, \t%s" % (policy, critic))
     return policy_net, critic_net, obs_space, action_dim
 
 

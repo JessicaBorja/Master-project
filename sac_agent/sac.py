@@ -38,7 +38,7 @@ class SAC():
         if(isinstance(obs_space, gym.spaces.Dict) and
            any([x in _cnn_policy_cond for x in obs_space])):
             _img_obs = True
-        print("Using images as observation: %s" % _img_obs)
+        print("SAC: images as observation: %s" % _img_obs)
         self._max_size = buffer_size
         self._replay_buffer = ReplayBuffer(buffer_size, _img_obs)
         self.batch_size = batch_size
@@ -394,8 +394,8 @@ class SAC():
             self._q2_optimizer.load_state_dict(
                 checkpoint['critic_2_optimizer_dict'])
 
-            # self.ent_coef =  checkpoint["ent_coef"]
-            # self.ent_coef_optimizer.load_state_dict(checkpoint['ent_coef_optimizer_dict'])
+            self.ent_coef = checkpoint["ent_coef"]
+            self.ent_coef_optimizer.load_state_dict(checkpoint['ent_coef_optimizer'])
             print("load done")
             return True
         else:

@@ -15,7 +15,7 @@ class RewardWrapper(gym.RewardWrapper):
         self.gripper_id, self.static_id = self.find_cam_ids()
         if(self.affordance.gripper_cam.use
            and self.affordance.gripper_cam.densify_reward):
-            print("Using gripper cam to shape reward")
+            print("RewardWrapper: Gripper cam to shape reward")
         self.current_target = None  # Combined model should initialize this
 
     def find_cam_ids(self):
@@ -102,7 +102,7 @@ class RewardWrapper(gym.RewardWrapper):
         #                              line_type=cv2.LINE_AA)
 
         # # Viz imgs
-        # cv2.imshow("depth", depth)
+        # # cv2.imshow("depth", depth)
         # cv2.imshow("clusters", out_img)
         # cv2.waitKey(1)
         return cluster_outputs
@@ -139,6 +139,11 @@ class RewardWrapper(gym.RewardWrapper):
                                                        gripper_aff,
                                                        gripper_depth)
             tcp_pos = obs_dict["robot_obs"][:3]
+
+            # p.removeAllUserDebugItems()
+            # p.addUserDebugText("target",
+            #                    textPosition=self.current_target,
+            #                    textColorRGB=[1, 0, 0])
             # Maximum distance given the task
             for out_dict in clusters_outputs:
                 c = out_dict["center"]
@@ -160,5 +165,6 @@ class RewardWrapper(gym.RewardWrapper):
             if(self.env.unwrapped._termination()):
                 rew = -1
             else:
-                rew += (1 - (distance / self.banana_radio))
+                scale_dist = min(distance / self.banana_radio, 1) # cannot be larger than 1
+                rew += (1 - scale_dist)**(0.4)
         return rew

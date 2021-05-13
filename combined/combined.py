@@ -9,6 +9,7 @@ import cv2
 from sac_agent.sac_utils.utils import EpisodeStats, tt
 from omegaconf import OmegaConf
 import pybullet as p
+import math
 
 
 class Combined(SAC):
@@ -16,13 +17,13 @@ class Combined(SAC):
         super(Combined, self).__init__(**sac_cfg)
         self.affordance = cfg.affordance
         self.writer = SummaryWriter(self.writer_name)
-        self.target_orn = \
-            self.env.get_obs()["robot_obs"][3:6]
+        self.target_orn = np.array([- math.pi, 0, - math.pi / 2])  # initial angle
+            # self.env.get_obs()["robot_obs"][3:6]
 
         # Make target slightly(5cm) above actual target
         self.area_center, self.target = self.compute_target()
         # p.addUserDebugText("target_0",
-        #                    textPosition=self.area_center,
+        #                    textPosition=self.target,
         #                    textColorRGB=[0, 1, 0])
         # p.addUserDebugText("a_center",
         #                    textPosition=self.area_center,
@@ -73,14 +74,15 @@ class Combined(SAC):
 
     def move_to_target(self, env, dict_obs, tcp_pos, a):
         target = a[0]
-        env.robot.apply_action(a)
+        # env.robot.apply_action(a)
         last_pos = target
         # When robot is moving and far from target
         while(np.linalg.norm(tcp_pos - target) > 0.01
-              and np.linalg.norm(last_pos - tcp_pos) > 0.005):
+              and np.linalg.norm(last_pos - tcp_pos) > 0.0005):
             last_pos = tcp_pos
 
             # Update position
+            env.robot.apply_action(a)
             for i in range(8):
                 env.p.stepSimulation()
                 env.fps_controller.step()
@@ -106,8 +108,8 @@ class Combined(SAC):
         self.env.current_target = target
         self.eval_env.current_target = target
 
-        # p.addUserDebugText("target_0",
-        #                    textPosition=target,
+        # p.addUserDebugText("a_center",
+        #                    textPosition=self.area_center,
         #                    textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
@@ -121,6 +123,9 @@ class Combined(SAC):
             tcp_pos = env.get_obs()["robot_obs"][:3]
             a = [self.area_center, self.target_orn, gripper]
             self.move_to_target(env, dict_obs, tcp_pos, a)
+            # p.addUserDebugText("tcp_pos",
+            #                    textPosition=env.get_obs()["robot_obs"][:3],
+            #                    textColorRGB=[0, 0, 1])
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
                  print_all_episodes=False, render=False, save_images=False):

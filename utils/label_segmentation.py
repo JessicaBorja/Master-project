@@ -18,7 +18,7 @@ def get_elipse_angle(cam_name):
 def delete_oclussion(mask, robot_pose):
     robot_mask = np.zeros((mask.shape[0], mask.shape[1], 1))
     robot_mask = cv2.circle(robot_mask, robot_pose, 10, [255, 255, 255], -1)
-    robot_mask = smoothen(robot_mask, k=7)
+    # robot_mask = smoothen(robot_mask, k=7)
     mask = cv2.subtract(mask, robot_mask, mask)
     # cv2.imshow("robot_mask", robot_mask)
     return mask
@@ -37,8 +37,7 @@ def create_target_mask(img, xy_coords, task, elipse_angle=0):
     else:  # Vertical handles
         axesLength = (8, 25)  # major, minor axis
         mask = cv2.ellipse(mask, xy_coords, axesLength, 0, 0, 360, color, -1)
-    # mask dtype = float [0., 255.]
-    mask = smoothen(mask, k=15)
+    # mask = smoothen(mask, k=15)
     return mask
 
 

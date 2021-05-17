@@ -2,7 +2,7 @@ import datetime
 import logging
 import hydra
 from omegaconf import OmegaConf
-from affordance_model.segmentator_centers import Segmentator
+from affordance_model.segmentator import Segmentator
 from affordance_model.datasets import get_loaders
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -55,8 +55,6 @@ def train(cfg):
                         model_name,
                         datetime.datetime.now().strftime('%d-%m_%H-%M'))
     wandb_logger = WandbLogger(name=model_name, project="affordance_model")
-    # tb_logger = TensorBoardLogger("tb_logs", name=model_name)
-
     aff_model = Segmentator(cfg.model_cfg, cmd_log=logger)
     trainer = pl.Trainer(
         callbacks=[checkpoint_miou_callback, checkpoint_loss_callback],

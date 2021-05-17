@@ -2,27 +2,18 @@
 project_path: /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/
 vrenv_path: ${project_path}/VREnv
 vrenv_data_path: ${vrenv_path}/data/
-img_size: 64
-
-# For collecting dataset with RL agent
-# Load agent
-models_dir: ${project_path}/SAC/hydra_outputs/
-model_name: drawer_best_eval
-folder_name: ${models_dir}/trained_no_img/drawer/
+img_size: 200
+mask_on_close: True
 
 # For collecting dataset with playdata
 play_data_dir: ${project_path}/datasets/play_data_large_handles/
 
 #Save dataset
-save_dir: ${project_path}/datasets/vrenv_directions_64px/
+save_dir: ${project_path}/datasets/vrenv_npcomprez_mask_close15/
 
 viz: True
-#RL Agent
-n_episodes: 10
-max_timesteps: 150
 
 defaults:
-  - agent: default
   - env: env
   - scene@env.scene: basic_playtable
   - camera_conf@env: static_and_gripper

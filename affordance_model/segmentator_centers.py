@@ -33,6 +33,13 @@ class Segmentator(pl.LightningModule):
         self.hough_voting_layer = hv.HoughVoting(**cfg.hough_voting)
         print("hvl init")
 
+        # Prediction act_fnc
+        if(self.n_classes > 1):
+            # Softmax over channels
+            self.act_fnc = torch.nn.Softmax(1)
+        else:
+            self.act_fnc = torch.nn.Sigmoid()
+
     def init_model(self, decoder_channels=None, n_classes=2):
         if(decoder_channels is None):
             decoder_channels = [128, 64, 32]
@@ -116,7 +123,6 @@ class Segmentator(pl.LightningModule):
         self.unet.encoder.eval()
         features = self.unet.encoder(x)
         decoder_output = self.unet.decoder(*features)
-
         segmentation_logits = self.unet.segmentation_head(decoder_output)
         center_direction_prediction = self.center_direction_net(decoder_output)
         return segmentation_logits, center_direction_prediction
@@ -127,14 +133,9 @@ class Segmentator(pl.LightningModule):
 
         with torch.no_grad():
             aff_logits, center_dir = self.forward(x)
-            if(self.n_classes > 1):
-                # Softmax over channels
-                act_fnc = torch.nn.Softmax(1)
-            else:
-                act_fnc = torch.nn.Sigmoid()
 
             # Affordance
-            aff_probs = act_fnc(aff_logits)  # Shape: [N x 3 x H x W]
+            aff_probs = self.act_fnc(aff_logits)  # Shape: [N x 3 x H x W]
             aff_mask = torch.argmax(aff_probs, dim=1)  # Shape: [N x H x W]
 
             # Center direction
@@ -175,9 +176,12 @@ class Segmentator(pl.LightningModule):
         x, labels = batch
 
         # B, N_classes, img_size, img_size
-        aff_logits, center_dir = self(x)
+        # Forward pass
+        aff_logits, center_dir = self.forward(x)
         preds = {"affordance_logits": aff_logits,
                  "center_dirs": center_dir}
+
+        # Compute loss
         total_loss, info = self.compute_loss(preds, labels)
 
         # Metrics
@@ -196,11 +200,15 @@ class Segmentator(pl.LightningModule):
 
     def validation_step(self, val_batch, batch_idx):
         x, labels = val_batch
-        _, _, center_dir, object_centers, aff_logits = self.predict(x)
-
+        # _, _, center_dir, object_centers, aff_logits = self.predict(x)
+        # Predictions
+        aff_logits, center_dir = self.forward(x)
         preds = {"affordance_logits": aff_logits,
                  "center_dirs": center_dir}
+
+        # Compute loss
         total_loss, info = self.compute_loss(preds, labels)
+
         # Compute metrics
         mIoU = compute_mIoU(aff_logits, labels["affordance"])
         dice_score = compute_dice_score(aff_logits, labels["affordance"])

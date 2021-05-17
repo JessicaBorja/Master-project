@@ -16,6 +16,8 @@ from utils.img_utils import visualize, overlay_flow
 from utils.file_manipulation import get_files
 from affordance_model.segmentator_centers import Segmentator
 from affordance_model.datasets import get_transforms
+from affordance_model.utils.losses import compute_mIoU
+import json
 
 
 def get_filenames(data_dir):
@@ -45,6 +47,17 @@ def get_filenames(data_dir):
     return files, np_comprez
 
 
+def get_validation_files(data_dir):
+    json_file = os.path.join(data_dir[0], "episodes_split.json")
+    with open(json_file) as f:
+        data = json.load(f)
+    d = []
+    for e in data['validation']['episode_1']:
+        cam_folder, filename = os.path.split(e.replace("\\", "/"))
+        d.append(data_dir[0] + "/%s/data/%s/%s.npz" % ("episode_1", cam_folder, filename))
+    return d, True
+
+
 @hydra.main(config_path="../config", config_name="viz_affordances")
 def viz(cfg):
     # Create output directory if save_images
@@ -64,10 +77,12 @@ def viz(cfg):
     # Image needs to be multiple of 32 because of skip connections
     # and decoder layers
     img_transform = get_transforms(cfg.transforms.validation)
-
+    mask_transforms = get_transforms(cfg.transforms.masks)
     # Iterate images
     files, np_comprez = get_filenames(cfg.data_dir)
-    out_shape = (cfg.img_size, cfg.img_size)
+    n = len(files) // 2
+    files = files[n:]
+    out_shape = (cfg.out_size, cfg.out_size)
 
     for filename in tqdm.tqdm(files):
         if(np_comprez):
@@ -83,8 +98,10 @@ def viz(cfg):
         x = img_transform(x).cuda()
 
         # Predict affordance, centers and directions
-        mask, _, directions, object_centers, _ = model.predict(x)
+        mask, _, directions, object_centers, aff_logits = model.predict(x)
         # res = visualize(mask, orig_img, cfg.imshow)
+        gt_transformed = mask_transforms(torch.Tensor(np.expand_dims(gt_mask, 0)).cuda())
+        # print(compute_mIoU(aff_logits, gt_transformed))
 
         # To numpy arrays
         mask = mask.detach().cpu().numpy()
@@ -101,13 +118,13 @@ def viz(cfg):
         flow_img = flow_img[:, :, ::-1]  # BGR
         gt_flow = flowlib.flow_to_image(gt_directions)[:, :, ::-1]
 
-        mask = np.transpose(mask, (1, 2, 0))*255
+        mask = (np.transpose(mask, (1, 2, 0))*255).astype('uint8')
 
         # Resize to out_shape
         orig_img = cv2.resize(orig_img, out_shape)
         flow_img = cv2.resize(flow_img, out_shape)
         mask = cv2.resize(mask, out_shape)
-        gt_mask = cv2.resize(gt_mask, out_shape)
+        gt_mask = cv2.resize(gt_mask.astype('uint8'), out_shape)
         gt_directions = cv2.resize(gt_flow, out_shape)
 
         # Overlay directions and centers
@@ -124,9 +141,11 @@ def viz(cfg):
         # Save and show
         if(cfg.save_images):
             _, tail = os.path.split(filename)
-            output_file = os.path.join(cfg.output_dir, tail)
+            name, ext = tail.split('.')
+            output_file = os.path.join(cfg.output_dir, name + ".jpg")
             cv2.imwrite(output_file, res)
         if(cfg.imshow):
+            cv2.imshow("flow", flow_img)
             cv2.imshow("gt", gt_res)
             cv2.imshow("output", res)
             cv2.waitKey(1)

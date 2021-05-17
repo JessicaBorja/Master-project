@@ -1,6 +1,7 @@
+from PIL.Image import new
 import hydra
 import utils.flowlib as flowlib
-from utils.img_utils import overlay_mask, tresh_np, overlay_flow
+from utils.img_utils import overlay_mask, paste_img, tresh_np, overlay_flow
 from utils.label_segmentation import get_static_mask, get_gripper_mask
 from utils.file_manipulation import get_files, save_data, create_data_ep_split
 import cv2
@@ -11,6 +12,7 @@ import sys
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, parent_dir+"/VREnv/")
+from matplotlib import cm
 
 
 # Keep points in a distance larger than radius from new_point
@@ -44,21 +46,25 @@ def label_directions(center, object_mask, direction_labels):
     return direction_labels
 
 
-def update_mask(fixed_points, mask, directions,
+def update_mask(fixed_points, mask,
                 frame_img_tuple, cam, out_img_size):
     # Update masks with fixed_points
     centers = []
     (frame_timestep, img) = frame_img_tuple
+    scene_objects = 0
     for point_timestep, p in fixed_points:
         # Only add point if it was fixed before seing img
         if(frame_timestep >= point_timestep):
-            new_mask, center_px = get_static_mask(cam, img, p)
-            new_mask, center_px = resize_mask_and_center(new_mask, center_px,
-                                                         out_img_size)
-            centers.append(center_px)
-            directions = label_directions(center_px, new_mask, directions)
-            mask = overlay_mask(new_mask, mask, (255, 255, 255))
-    return mask, centers, directions
+            mask_i, center_px = get_static_mask(cam, img, p)
+            mask_i, center_px = resize_mask_and_center(mask_i, center_px,
+                                                       out_img_size)
+            if(mask_i.max() > 0):  # sometimes point is outside image
+                scene_objects += 1
+                new_mask = np.zeros_like(mask_i)
+                new_mask[mask_i > 100] = scene_objects
+                centers.append(center_px)
+                mask[new_mask == scene_objects] = scene_objects
+    return mask, centers
 
 
 def check_file(filename, allow_pickle=True):
@@ -91,38 +97,29 @@ def create_gripper_cam_properties(cam_cfg):
 
 
 def label_gripper(cam_properties, img_hist, point, viz,
-                  save_dict, out_img_size, radius=20):
+                  save_dict, out_img_size):
     for idx, (fr_idx, im_id, robot_obs, img) in enumerate(img_hist):
         if(im_id not in save_dict):
             # Shape: [H x W x 2]
             H, W = out_img_size  # img.shape[:2]
-            directions = np.stack(
-                            [np.ones((H, W)),
-                             np.zeros((H, W))], axis=-1).astype(np.float32)
             # Center and directions in matrix convention (row, column)
             mask, center_px = get_gripper_mask(img, robot_obs, point,
-                                               cam_properties, radius=radius)
+                                               cam_properties, radius=25)
             mask, center_px = resize_mask_and_center(mask, center_px,
                                                      out_img_size)
-            directions = label_directions(center_px, mask, directions)
 
             # Visualize results
             img = cv2.resize(img, out_img_size)
             out_img = overlay_mask(mask, img, (0, 0, 255))
-            flow_img = flowlib.flow_to_image(directions)[:, :, ::-1]
-            flow_over_img = overlay_flow(flow_img, img, mask)
 
             if(viz):
                 cv2.imshow("Gripper", out_img)
-                cv2.imshow('Gripper flow_img', flow_over_img)
-                cv2.imshow('Gripperreal flow', flow_img)
                 cv2.waitKey(1)
 
             save_dict[im_id] = {
                 "frame": img,
                 "mask": mask,
                 "centers": np.stack([center_px]),
-                "directions": directions,
                 "viz_out": out_img}
     return save_dict
 
@@ -141,24 +138,24 @@ def label_static(static_cam, static_hist, back_min, back_max,
         # until back_frames_min before
         centers = []
         H, W = out_img_size  # img.shape[:2]  # img_shape = (H, W, C)
-        directions = np.stack([np.ones((H, W)),
-                               np.zeros((H, W))], axis=-1).astype(np.float32)
-        fp_mask, centers_px, fp_directions = update_mask(
+        fp_mask, centers_px = update_mask(
             fixed_points,
             np.zeros((H, W)),
-            directions,
             (fr_idx, img),
             static_cam,
             out_img_size)
+        n_objects = int(fp_mask.max())
         # first create fp masks and place current(newest)
         # mask and optical flow on top
         if(idx <= len(static_hist) - back_min and
                 idx > len(static_hist) - back_max):
             # Get new grip
-            mask, center_px = get_static_mask(static_cam, img, pt)
-            mask, center_px = resize_mask_and_center(mask, center_px,
-                                                     out_img_size)
-            directions = label_directions(center_px, mask, fp_directions)
+            curr_mask, center_px = get_static_mask(static_cam, img, pt)
+            curr_mask, center_px = resize_mask_and_center(curr_mask, center_px,
+                                                          out_img_size)
+            mask = np.zeros_like(curr_mask)
+            n_objects += 1
+            mask[curr_mask > 100] = n_objects
             centers.append(center_px)
         else:
             # No segmentation in current image due to occlusion
@@ -176,15 +173,25 @@ def label_static(static_cam, static_hist, back_min, back_max,
             (0, 0, 255))
 
         # Real mask
-        static_mask = overlay_mask(mask, fp_mask, (255, 255, 255))
-        out_img = overlay_mask(static_mask, img, (0, 0, 255))
-        flow_img = flowlib.flow_to_image(directions)[:, :, ::-1]
-        flow_over_img = overlay_flow(flow_img, img, static_mask)
+        # highest value is current mask
+        curr_mask = np.max(np.stack((mask, fp_mask)), 0).astype("int")
+        colors = cm.jet(np.linspace(0, 1, n_objects)) * 255
+        shape = (*curr_mask.shape[:2], 3)
+        static_mask = np.zeros(shape)
+        for c in range(1, n_objects + 1):
+            class_mask = np.zeros_like(curr_mask)
+            idx = np.argwhere(curr_mask == c)
+            class_mask[idx[:, 0], idx[:, 1]] = 255
+            color = colors[c-1][:3].astype("int")
+            static_mask = overlay_mask(class_mask,
+                                       static_mask,
+                                       tuple(color))
+        curr_mask[curr_mask > 0] = 255
+        bin_masks = overlay_mask(curr_mask, img, (0, 0, 255))
+        out_img = paste_img(img, static_mask, curr_mask)
         if(viz):
-            cv2.imshow("Separate", out_separate)
-            cv2.imshow("Real", out_img)
-            cv2.imshow('flow_img', flow_over_img)
-            cv2.imshow('real flow', flow_img)
+            cv2.imshow("bin", bin_masks)
+            cv2.imshow("Instance seg.", out_img)
             cv2.waitKey(1)
 
         centers += centers_px  # Concat to list
@@ -196,7 +203,6 @@ def label_static(static_cam, static_hist, back_min, back_max,
             "frame": img,
             "mask": static_mask,
             "centers": centers,
-            "directions": directions,
             "viz_out": out_separate}
     return save_dict
 
@@ -204,7 +210,6 @@ def label_static(static_cam, static_hist, back_min, back_max,
 def collect_dataset_close_open(cfg):
     global pixel_indices
     img_size = cfg.img_size
-    mask_on_close = cfg.mask_on_close
     pixel_indices = np.indices((img_size, img_size),
                                dtype=np.float32).transpose(1, 2, 0)
     # Episodes info
@@ -280,15 +285,12 @@ def collect_dataset_close_open(cfg):
                         frame_idx)
 
                 static_hist, gripper_hist = [], []
-            else:  # mask on close
-                # Was closed and remained closed
-                # Last element in gripper_hist is the newest
-                if(mask_on_close):
-                    save_gripper = label_gripper(gripper_cam_properties,
-                                                 [gripper_hist[-1]], point,
-                                                 cfg.viz, save_gripper,
-                                                 (img_size, img_size),
-                                                 radius=15)
+            # else:  # mask on close
+            #     # Was closed and remained closed
+            #     # Last element in gripper_hist is the newest
+            #     save_gripper = label_gripper(gripper_cam_properties,
+            #                                  [gripper_hist[-1]], point,
+            #                                  cfg.viz, save_gripper)
         # Open gripper
         else:
             # Closed -> open transition

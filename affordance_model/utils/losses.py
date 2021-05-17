@@ -104,19 +104,19 @@ class CosineSimilarityLossWithMask(nn.Module):
 
 def tresh_tensor(logits, threshold=0.5):
     if logits.shape[1] == 1 or len(logits.shape) == 3:
-        pred = F.sigmoid(logits)
+        probs = F.sigmoid(logits)
         if threshold == 0.5:
-            pred = pred.round().byte()
+            pred = probs.round().byte()
         else:
-            pred = pred > threshold
+            pred = probs > threshold
     else:
-        pred = F.softmax(logits, dim=1)
-        pred = pred.argmax(dim=1).byte()
-    return pred
+        probs = F.softmax(logits, dim=1)
+        pred = probs.argmax(dim=1).byte()
+    return pred, probs
 
 
 def compute_dice_score(logits, gt, threshold=0.5):
-    pred = tresh_tensor(logits, threshold)
+    pred, _ = tresh_tensor(logits, threshold)
     true_positives = ((pred == 1) & (gt == 1)).sum().float()
     false_positives = ((pred == 1) & (gt == 0)).sum().float()
     false_negatives = ((pred == 0) & (gt == 1)).sum().float()
@@ -129,7 +129,7 @@ def compute_dice_score(logits, gt, threshold=0.5):
 def compute_mIoU(logits, gt, threshold=0.5):
     # logits.shape = [BS, 2, img_size, img_size]
     # gt.shape = [BS, 128, 128]
-    pred = tresh_tensor(logits, threshold)
+    pred, _ = tresh_tensor(logits, threshold)
     intersection = ((pred == 1) & (gt == 1)).sum().float()
     union = ((pred == 1) | (gt == 1)).sum().float()
     return intersection / max(union, 1e-6)

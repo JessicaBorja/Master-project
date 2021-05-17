@@ -4,7 +4,7 @@ import segmentation_models_pytorch as smp
 import numpy as np
 from affordance_model.utils.losses import \
     compute_mIoU, compute_dice_score, \
-    compute_dice_loss, get_loss
+    compute_dice_loss, get_loss, tresh_tensor
 
 
 class Segmentator(pl.LightningModule):
@@ -69,22 +69,10 @@ class Segmentator(pl.LightningModule):
         return loss, info
 
     def forward(self, x):
-        # in lightning, forward defines the prediction/inference actions
-        self.unet.encoder.eval()
-        features = self.unet.encoder(x)
-        decoder_output = self.unet.decoder(*features)
-        masks = self.unet.segmentation_head(decoder_output)
-        return masks
-
-    def predict(self, x):
         # x.shape = (B, C, H, W)
-        logits = self.forward(x)
-        if(self.n_classes > 1):
-            # Softmax over channels
-            act_fnc = torch.nn.Softmax(1)
-        else:
-            act_fnc = torch.nn.Sigmoid()
-        return act_fnc(logits)
+        logits = self.unet(x)
+        preds, probs = tresh_tensor(logits)
+        return preds, probs, logits
 
     def log_stats(self, split, max_batch, batch_idx, loss, miou):
         if(batch_idx >= max_batch - 1):
@@ -105,9 +93,9 @@ class Segmentator(pl.LightningModule):
         # training_step defined the train loop. It is independent of forward
         x, labels = batch
         logits = self.unet(x)  # B, N_classes, img_size, img_size
-        total_loss, info = self.compute_loss(logits, labels)
-        mIoU = compute_mIoU(logits, labels)
-        dice_score = compute_dice_score(logits, labels)
+        total_loss, info = self.compute_loss(logits, labels["affordance"])
+        mIoU = compute_mIoU(logits, labels["affordance"])
+        dice_score = compute_dice_score(logits, labels["affordance"])
 
         self.log_stats("train", self.trainer.num_training_batches,
                        batch_idx, total_loss, mIoU)
@@ -122,9 +110,9 @@ class Segmentator(pl.LightningModule):
     def validation_step(self, val_batch, batch_idx):
         x, labels = val_batch
         logits = self.unet(x)
-        total_loss, info = self.compute_loss(logits, labels)
-        mIoU = compute_mIoU(logits, labels)
-        dice_score = compute_dice_score(logits, labels)
+        total_loss, info = self.compute_loss(logits, labels["affordance"])
+        mIoU = compute_mIoU(logits, labels["affordance"])
+        dice_score = compute_dice_score(logits, labels["affordance"])
         # Log metrics
         self.log_stats("validation", sum(self.trainer.num_val_batches),
                        batch_idx, total_loss, mIoU)

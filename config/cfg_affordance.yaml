@@ -2,7 +2,7 @@ data_dir:  /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/datasets/v
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: gripper_aff_center
-n_epochs: 40
+n_epochs: 50
 img_size: 64
 
 dataset:
@@ -26,9 +26,9 @@ model_cfg:
     percentage_threshold: 0.5 # this depends on skip_pixels, angle_discretization, inlier_distance. just gotta try it to see if it works
     object_center_kernel_radius: 10
   centers_loss:
-    weight: 5
+    weight: 1
   aff_loss:
-    weight: 3
+    weight: 1
     dice_loss:
       add: True
       weight: 5
@@ -36,7 +36,7 @@ model_cfg:
       weight: 1
       class_weights: [0.2, 0.8]
   optimizer:
-    lr: 5e-6
+    lr: 1e-5
     weight_decay: 1e-3
   unet_cfg:
     decoder_channels: [128, 64, 32]

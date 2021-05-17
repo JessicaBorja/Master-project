@@ -9,10 +9,9 @@ import cv2
 # Select files that have a segmentation mask
 def select_files(data, split, ep, episode_files,
                  remove_blank_masks, skip_first_frames=False):
-    # Skip first n files for validation s.t. masks are
-    # better representatives of true affordances
-    # For the static_cam
-    if skip_first_frames and split == "validation":
+    # Skip first n files for static cams since
+    # affordances are incomplete at the beginning of episodes
+    if skip_first_frames:
         episode_files.sort()
         fraction = len(episode_files)//3  # Discard first third
         iter_files = episode_files[fraction:]
@@ -46,6 +45,7 @@ def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
     train_ep = [ep for ep in range(n_episodes) if ep not in val_ep]
     data["validation"] = {"episode_%d" % e: [] for e in val_ep}
     data["train"] = {"episode_%d" % e: [] for e in train_ep}
+    skip_first_frames = False
 
     for ep in tqdm.tqdm(range(n_episodes)):
         ep_dir = os.path.join(root_dir, "episode_%d" % ep)
@@ -56,9 +56,11 @@ def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
                             remove_blank_mask_instances)
 
         static_cam_files = glob.glob("%s/data/*/*static*" % ep_dir)
+        if(split == "validation"):
+            skip_first_frames = True
         data = select_files(data, split, ep, static_cam_files,
                             remove_blank_mask_instances,
-                            skip_first_frames=True)
+                            skip_first_frames=skip_first_frames)
 
     with open(root_dir+'/episodes_split.json', 'w') as outfile:
         json.dump(data, outfile, indent=2)

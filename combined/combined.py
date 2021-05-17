@@ -1,5 +1,7 @@
 import sys
+from utils.img_utils import overlay_mask, paste_img
 import numpy as np
+import torch
 from torch.utils.tensorboard import SummaryWriter
 from sac_agent.sac import SAC
 from affordance_model.segmentator import Segmentator
@@ -10,30 +12,38 @@ from sac_agent.sac_utils.utils import EpisodeStats, tt
 from omegaconf import OmegaConf
 import pybullet as p
 import math
+from sklearn.cluster import DBSCAN
+from matplotlib import cm
+from utils.cam_projections import pixel2world
 
 
 class Combined(SAC):
     def __init__(self, cfg, sac_cfg=None):
         super(Combined, self).__init__(**sac_cfg)
         self.affordance = cfg.affordance
+        self.aff_net_static_cam = self._init_static_cam_aff_net()
         self.writer = SummaryWriter(self.writer_name)
-        self.target_orn = np.array([- math.pi, 0, - math.pi / 2])  # initial angle
-            # self.env.get_obs()["robot_obs"][3:6]
+        self.cam_id = self._find_cam_id()
+        self.transforms = get_transforms(cfg.transforms.validation)
+        # initial angle
+        self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
+        # self.env.get_obs()["robot_obs"][3:6]
 
+        # Search for targets
         # Make target slightly(5cm) above actual target
-        self.area_center, self.target = self.compute_target()
+        # self.area_center, self.target = self._env_compute_target()
         # p.addUserDebugText("target_0",
         #                    textPosition=self.target,
         #                    textColorRGB=[0, 1, 0])
         # p.addUserDebugText("a_center",
         #                    textPosition=self.area_center,
         #                    textColorRGB=[0, 1, 0])
+        self.area_center, self.target = self._env_compute_target()
+
+        # Target specifics
         self.env.current_target = self.target
         self.eval_env.current_target = self.target
         self.radius = self.env.banana_radio  # Distance in meters
-        self.aff_net_static_cam = self._init_static_cam_aff_net()
-        self.cam_id = self._find_cam_id()
-        self.transforms = get_transforms(cfg.transforms.validation)
 
     def _find_cam_id(self):
         for i, cam in enumerate(self.env.cameras):
@@ -61,9 +71,114 @@ class Combined(SAC):
             print("Static cam aff. Path does not exist: %s" % path)
         return aff_net
 
-    def compute_target(self):
+    def _env_compute_target(self):
         # This should come from static cam affordance later on
         target_pos, _ = self.env.get_target_pos()
+        # 2 cm deviation
+        target_pos = np.array(target_pos)
+        target_pos += np.random.normal(loc=0, scale=0.002,
+                                       size=(len(target_pos)))
+        area_center = np.array(target_pos) \
+            + np.array([-0.025, 0, 0.07])
+        return area_center, target_pos
+
+    def _aff_compute_target(self):
+        # Predictions for current observation
+        cam = self.env.cameras[self.cam_id]
+        obs = self.env.get_obs()
+        img_obs = obs["rgb_obs"][self.cam_id]
+        depth_obs = obs["depth_obs"][self.cam_id]
+        orig_H, orig_W = img_obs.shape[:2]
+
+        # Prediction from aff_model
+        processed_obs = self.transforms(
+                            torch.tensor(img_obs).permute(2, 0, 1))
+        processed_obs = processed_obs.unsqueeze(1).cuda()
+        aff_preds, probs, logits = self.aff_net_static_cam(processed_obs)
+        aff_preds = aff_preds.cpu().detach().numpy()
+        # (img_size, img_size, 1)
+        aff_preds = np.transpose(aff_preds, (1, 2, 0))
+        probs = probs[0].cpu().detach().numpy()
+        probs = np.transpose(probs, (1, 2, 0))
+
+        # Clustering
+        # Predictions are between 0 and 1
+        dbscan = DBSCAN(eps=3, min_samples=3)
+        positives = np.argwhere(aff_preds > 0.3)
+        cluster_outputs = []
+        if(positives.shape[0] > 0):
+            labels = dbscan.fit_predict(positives)
+        else:
+            return cluster_outputs
+
+        cluster_ids = np.unique(labels)
+
+        # For printing the clusters
+        colors = cm.jet(np.linspace(0, 1, len(cluster_ids)))
+        colors = (colors * 255).astype("int")
+        out_mask = np.zeros((orig_H, orig_W, 3))  # (64, 64, 3)
+
+        # Find approximate center
+        max_robustness = 0
+        px_target = (0, 0)
+        n_pixels = aff_preds.shape[0] * aff_preds.shape[1]
+        out_img = img_obs[:, :, ::-1]
+        for idx, c in enumerate(cluster_ids):
+            cluster = positives[np.argwhere(labels == c).squeeze()]  # N, 3
+            if(len(cluster.shape) == 1):
+                cluster = np.expand_dims(cluster, 0)
+            pixel_count = cluster.shape[0] / n_pixels
+
+            # Visualize all cluster
+            curr_mask = np.zeros((*aff_preds.shape[:2], 1))
+            curr_mask[cluster[:, 0], cluster[:, 1]] = 255
+            curr_mask = cv2.resize(curr_mask, (orig_H, orig_W))
+            out_img = overlay_mask(curr_mask, out_img, tuple(colors[idx][:3]))
+
+            # img size is 300 then we need int64 to cover all pixels
+            scaled_cluster = np.argwhere(curr_mask > 0)
+            mid_point = np.mean(scaled_cluster, 0).astype('int')
+            u, v = mid_point[1], mid_point[0]
+            # u = int(u * orig_W / aff_preds.shape[0])
+            # v = int(v * orig_W / aff_preds.shape[0])
+            # Unprojection
+            world_pt = pixel2world(cam, u, v, depth_obs)
+
+            # Softmax output from predicted affordances
+            robustness = np.mean(probs[cluster[:, 0], cluster[:, 1]])
+
+            if(robustness > max_robustness):
+                target_pos = world_pt
+                px_target = (u, v)
+            c_out = {"px_center": (u, v),
+                     "pixel_count": pixel_count,
+                     "robustness": robustness}
+            cluster_outputs.append(c_out)
+
+        # Viz imgs
+        for c in cluster_outputs:
+            center = c["px_center"]
+            out_img = cv2.drawMarker(out_img, center,
+                                     (0, 0, 0),
+                                     markerType=cv2.MARKER_CROSS,
+                                     markerSize=5,
+                                     line_type=cv2.LINE_AA)
+
+        out_img = cv2.drawMarker(out_img, px_target,
+                                 (0, 255, 0),
+                                 markerType=cv2.MARKER_CROSS,
+                                 markerSize=5,
+                                 line_type=cv2.LINE_AA)
+
+        depth_obs = cv2.drawMarker(depth_obs, px_target,
+                                 (0, 255, 0),
+                                 markerType=cv2.MARKER_CROSS,
+                                 markerSize=5,
+                                 line_type=cv2.LINE_AA)
+        cv2.imshow("depth", depth_obs)
+        cv2.imshow("clusters", out_img)
+        cv2.waitKey(1)
+
         # 2 cm deviation
         target_pos = np.array(target_pos)
         target_pos += np.random.normal(loc=0, scale=0.002,

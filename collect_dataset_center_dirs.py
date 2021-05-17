@@ -91,7 +91,7 @@ def create_gripper_cam_properties(cam_cfg):
 
 
 def label_gripper(cam_properties, img_hist, point, viz,
-                  save_dict, out_img_size, radius=20):
+                  save_dict, out_img_size):
     for idx, (fr_idx, im_id, robot_obs, img) in enumerate(img_hist):
         if(im_id not in save_dict):
             # Shape: [H x W x 2]
@@ -101,7 +101,7 @@ def label_gripper(cam_properties, img_hist, point, viz,
                              np.zeros((H, W))], axis=-1).astype(np.float32)
             # Center and directions in matrix convention (row, column)
             mask, center_px = get_gripper_mask(img, robot_obs, point,
-                                               cam_properties, radius=radius)
+                                               cam_properties, radius=25)
             mask, center_px = resize_mask_and_center(mask, center_px,
                                                      out_img_size)
             directions = label_directions(center_px, mask, directions)
@@ -204,7 +204,6 @@ def label_static(static_cam, static_hist, back_min, back_max,
 def collect_dataset_close_open(cfg):
     global pixel_indices
     img_size = cfg.img_size
-    mask_on_close = cfg.mask_on_close
     pixel_indices = np.indices((img_size, img_size),
                                dtype=np.float32).transpose(1, 2, 0)
     # Episodes info
@@ -280,15 +279,12 @@ def collect_dataset_close_open(cfg):
                         frame_idx)
 
                 static_hist, gripper_hist = [], []
-            else:  # mask on close
-                # Was closed and remained closed
-                # Last element in gripper_hist is the newest
-                if(mask_on_close):
-                    save_gripper = label_gripper(gripper_cam_properties,
-                                                 [gripper_hist[-1]], point,
-                                                 cfg.viz, save_gripper,
-                                                 (img_size, img_size),
-                                                 radius=15)
+            # else:  # mask on close
+            #     # Was closed and remained closed
+            #     # Last element in gripper_hist is the newest
+            #     save_gripper = label_gripper(gripper_cam_properties,
+            #                                  [gripper_hist[-1]], point,
+            #                                  cfg.viz, save_gripper)
         # Open gripper
         else:
             # Closed -> open transition

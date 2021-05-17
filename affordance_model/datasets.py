@@ -66,7 +66,7 @@ class VREnvData(Dataset):
         print("%s episodes: %s" % (split, str(split_episodes)))
         for ep in split_episodes:
             for file in data[split][ep]:
-                if(cam in file):
+                if(cam in file or cam == "full"):
                     split_data.append("%s/%s" % (ep, file))
         print("%s images: %d" % (split, len(split_data)))
         return split_data
@@ -133,13 +133,10 @@ class VREnvData(Dataset):
         mask = mask.squeeze()  # H, W
 
         # centers, center_dirs = self.get_directions(mask)
-
-        # centers = data["centers"]
         center_dirs = torch.tensor(data["directions"]).permute(2, 0, 1)
-        # orig_frame = cv2.resize(data["frame"],
-        #                         (self.img_size, self.img_size))
+
         labels = {"affordance": mask,
-                  # "centers": centers,
+                  # "centers": data["centers"],
                   "center_dirs": center_dirs}
         return frame, labels
 
@@ -149,38 +146,68 @@ class VREnvData(Dataset):
         return data
 
 
+def test_dir_labels(hv, frame, aff_mask, center_dir):
+    center_dir /= torch.norm(center_dir,
+                             dim=1,
+                             keepdim=True
+                             ).clamp(min=1e-10)
+
+    bool_mask = (aff_mask == 1).int().cuda()
+    center_dir = center_dir.cuda()
+    initial_masks, num_objects, object_centers_padded = \
+        hv(bool_mask, center_dir)
+
+    initial_masks = initial_masks.cpu()
+    object_centers_padded = object_centers_padded[0].cpu().permute((1, 0))
+    for c in object_centers_padded:
+        c = c.detach().cpu().numpy()
+        u, v = int(c[1]), int(c[0])  # center stored in matrix convention
+        frame = cv2.drawMarker(frame, (u, v),
+                               (0, 0, 0),
+                               markerType=cv2.MARKER_CROSS,
+                               markerSize=5,
+                               line_type=cv2.LINE_AA)
+    cv2.imshow("hv_center", frame)
+    cv2.waitKey(1)
+    return initial_masks, num_objects, object_centers_padded
+
+
 @hydra.main(config_path="../config", config_name="cfg_affordance")
 def main(cfg):
     val = VREnvData(cfg.img_size, split="validation", log=None,
                     **cfg.dataset)
-    val_loader = DataLoader(val, num_workers=4, batch_size=20, pin_memory=True)
+    val_loader = DataLoader(val, num_workers=4, batch_size=1, pin_memory=True)
     print('val minibatches {}'.format(len(val_loader)))
+    from affordance_model.hough_voting import hough_voting as hv
+    hv = hv.HoughVoting(**cfg.model_cfg.hough_voting)
 
     for b_idx, b in enumerate(val_loader):
         frame, labels = b
-        directions = labels["center_dirs"].detach().cpu().numpy()
+        directions = labels["center_dirs"][0].detach().cpu().numpy()
         mask = labels["affordance"].detach().cpu().numpy()
 
-        directions = np.transpose(directions, (1, 2, 0))
-        flow_img = flowlib.flow_to_image(directions)  # RGB
-        flow_img = flow_img[:, :, ::-1]  # BGR
-        frame = frame.detach().cpu().numpy()
+        frame = frame[0].detach().cpu().numpy()
         frame = ((frame + 1)*255/2).astype('uint8')
         frame = np.transpose(frame, (1, 2, 0))
         frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
 
+        test_dir_labels(hv, frame, labels["affordance"], labels["center_dirs"])
+
+        directions = np.transpose(directions, (1, 2, 0))
+        flow_img = flowlib.flow_to_image(directions)  # RGB
+        flow_img = flow_img[:, :, ::-1]  # BGR
         mask = np.transpose(mask, (1, 2, 0))*255
 
         out_img = overlay_flow(flow_img, frame, mask)
-        centers = labels["centers"][0]
-        for c in centers:
-            c = c.squeeze().detach().cpu().numpy()
-            u, v = c[1], c[0]  # center stored in matrix convention
-            out_img = cv2.drawMarker(out_img, (u, v),
-                                     (0, 0, 0),
-                                     markerType=cv2.MARKER_CROSS,
-                                     markerSize=5,
-                                     line_type=cv2.LINE_AA)
+        # centers = labels["centers"][0]
+        # for c in centers:
+        #     c = c.squeeze().detach().cpu().numpy()
+        #     u, v = c[1], c[0]  # center stored in matrix convention
+        #     out_img = cv2.drawMarker(out_img, (u, v),
+        #                              (0, 0, 0),
+        #                              markerType=cv2.MARKER_CROSS,
+        #                              markerSize=5,
+        #                              line_type=cv2.LINE_AA)
         out_img = cv2.resize(out_img, (200, 200),
                              interpolation=cv2.INTER_CUBIC)
         cv2.imshow("img", out_img)

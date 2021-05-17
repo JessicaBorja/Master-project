@@ -9,6 +9,7 @@ import os
 import hydra
 from gym import spaces
 
+
 class ObservationWrapper(gym.ObservationWrapper):
     def __init__(self, env, history_length, skip_frames, img_size,
                  use_static_cam=False, use_depth=False, use_gripper_cam=False,
@@ -134,8 +135,7 @@ class ObservationWrapper(gym.ObservationWrapper):
                 # 1, 1, W, H
                 obs_t = torch.tensor(img_obs).unsqueeze(0)
                 obs_t = obs_t.float().cuda()
-                mask = self.static_cam_aff_net(obs_t)
-                mask = torch.argmax(mask, axis=1, keepdim=True)
+                mask, _, _ = self.static_cam_aff_net(obs_t)
                 mask = mask[0].cpu().detach().numpy()
                 del obs_t
             del img_obs
@@ -169,8 +169,7 @@ class ObservationWrapper(gym.ObservationWrapper):
 
                 # 1, H, W
                 # Tresholded mask ..
-                mask = self.gripper_cam_aff_net(obs_t)
-                mask = torch.argmax(mask, axis=1, keepdim=True)
+                mask, _, _ = self.gripper_cam_aff_net(obs_t)
                 mask = mask[0].cpu().detach().numpy()
                 # show_mask_np(gripper_obs, mask)
                 del obs_t

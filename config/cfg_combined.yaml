@@ -44,7 +44,7 @@ defaults:
   - scene: basic_playtable
   - env: env_combined
   - env@eval_env: env_combined
-  - camera_conf: sideview_left
+  - camera_conf: topview
   - agent: default
   - test: test_combined
   - transforms: img_transforms

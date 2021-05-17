@@ -1,9 +1,7 @@
-from affordance_model.utils.losses import tresh_tensor
 import numpy as np
 import cv2
 from PIL import Image
 import torch
-import torch.nn.functional as F
 
 
 def visualize_np(mask, img, imshow=False, k=15):
@@ -57,6 +55,15 @@ def overlay_flow(flow, img, mask):
     pil_mask = Image.fromarray(np.uint8(mask.squeeze()))
     flow = Image.fromarray(np.uint8(flow))
     result.paste(flow, (0, 0), pil_mask)
+    result = np.array(result)
+    return result
+
+
+def paste_img(im1, im2, mask):
+    result = Image.fromarray(np.uint8(im1))
+    im2 = Image.fromarray(np.uint8(im2))
+    pil_mask = Image.fromarray(np.uint8(mask))
+    result.paste(im2, (0, 0), pil_mask)
     result = np.array(result)
     return result
 

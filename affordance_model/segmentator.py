@@ -71,7 +71,7 @@ class Segmentator(pl.LightningModule):
     def forward(self, x):
         # x.shape = (B, C, H, W)
         logits = self.unet(x)
-        preds, probs = tresh_tensor(logits)
+        preds, probs = tresh_tensor(logits, keepdim=True)
         return preds, probs, logits
 
     def log_stats(self, split, max_batch, batch_idx, loss, miou):

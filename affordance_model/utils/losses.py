@@ -102,7 +102,7 @@ class CosineSimilarityLossWithMask(nn.Module):
         return loss + bg_loss
 
 
-def tresh_tensor(logits, threshold=0.5):
+def tresh_tensor(logits, threshold=0.5, keepdim=False):
     if logits.shape[1] == 1 or len(logits.shape) == 3:
         probs = F.sigmoid(logits)
         if threshold == 0.5:
@@ -111,7 +111,7 @@ def tresh_tensor(logits, threshold=0.5):
             pred = probs > threshold
     else:
         probs = F.softmax(logits, dim=1)
-        pred = probs.argmax(dim=1).byte()
+        pred = probs.argmax(dim=1, keepdim=keepdim).byte()
     return pred, probs
 
 

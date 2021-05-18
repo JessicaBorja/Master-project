@@ -79,7 +79,7 @@ class Combined(SAC):
         target_pos += np.random.normal(loc=0, scale=0.002,
                                        size=(len(target_pos)))
         area_center = np.array(target_pos) \
-            + np.array([-0.025, 0, 0.07])
+            + np.array([0, 0, 0.05])
         return area_center, target_pos
 
     def _aff_compute_target(self):
@@ -184,7 +184,7 @@ class Combined(SAC):
         target_pos += np.random.normal(loc=0, scale=0.002,
                                        size=(len(target_pos)))
         area_center = np.array(target_pos) \
-            + np.array([-0.025, 0, 0.07])
+            + np.array([0, 0, 0.05])
         return area_center, target_pos
 
     def move_to_target(self, env, dict_obs, tcp_pos, a):
@@ -229,14 +229,14 @@ class Combined(SAC):
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
-                         self.area_center[2] + 0.07]
+                         self.area_center[2] + 0.10]
             # Move up
-            a = [up_target, self.target_orn, gripper]
+            a = [up_target, self.target_orn, 1]
             self.move_to_target(env, dict_obs, tcp_pos, a)
 
             # Move to target
             tcp_pos = env.get_obs()["robot_obs"][:3]
-            a = [self.area_center, self.target_orn, gripper]
+            a = [self.area_center, self.target_orn, 1]
             self.move_to_target(env, dict_obs, tcp_pos, a)
             # p.addUserDebugText("tcp_pos",
             #                    textPosition=env.get_obs()["robot_obs"][:3],

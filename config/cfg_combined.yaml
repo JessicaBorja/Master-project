@@ -1,4 +1,4 @@
-project_path:  /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/ #C:/Users/Jessica/Documents/Proyecto_ssd # 
+project_path:  /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/ # C:/Users/Jessica/Documents/Proyecto_ssd #
 data_path: ${project_path}/VREnv/data/
 save_dir: ./combined/hydra_outputs/${task}
 model_name: "full_b_gripper_aff"
@@ -17,6 +17,7 @@ env_wrapper:
   transforms: ${transforms}
 
 models_path: "${project_path}/SAC/trained_models/"
+target_search_aff: ${models_path}/static_cam_1ce_5dice.ckpt
 affordance:
     hyperparameters:
       unet_cfg:
@@ -85,6 +86,17 @@ all_cameras:
     height: 300
     look_at: [ 0.2, 0.85, 0.5 ]
     look_from: [0.2, 0.05, 1.3]
+  tabletop_topview:
+    _target_: vr_env.camera.static_camera.StaticCamera
+    name: tabletop_topview
+    fov: 75
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 300
+    height: 300
+    look_at: [0.3, 0.8, 0.5]
+    look_from: [0.3, 0.6, 1.5]
   static:
     _target_: vr_env.camera.static_camera.StaticCamera
     name: static

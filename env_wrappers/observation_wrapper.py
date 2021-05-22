@@ -49,7 +49,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         self.static_cam_aff_net = self.init_aff_net('static')
         self.curr_raw_obs = None
         self.curr_processed_obs = None
-        _action_space = np.ones(4)
+        _action_space = np.ones(7)
         self.action_space = spaces.Box(_action_space * -1, _action_space)
 
     def find_cam_ids(self):

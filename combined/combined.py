@@ -88,6 +88,8 @@ class Combined(SAC):
         obs = self.env.get_obs()
         img_obs = obs["rgb_obs"][self.cam_id]
         depth_obs = obs["depth_obs"][self.cam_id]
+        cv2.imshow("img_obs", img_obs[:, :, ::-1])
+        cv2.waitKey(1)
         orig_H, orig_W = img_obs.shape[:2]
 
         # Prediction from aff_model
@@ -97,7 +99,7 @@ class Combined(SAC):
         aff_preds, probs, logits = self.aff_net_static_cam(processed_obs)
         aff_preds = aff_preds.cpu().detach().numpy()
         # (img_size, img_size, 1)
-        aff_preds = np.transpose(aff_preds, (1, 2, 0))
+        aff_preds = np.transpose(aff_preds[0], (1, 2, 0))
         probs = probs[0].cpu().detach().numpy()
         probs = np.transpose(probs, (1, 2, 0))
 
@@ -109,7 +111,7 @@ class Combined(SAC):
         if(positives.shape[0] > 0):
             labels = dbscan.fit_predict(positives)
         else:
-            return cluster_outputs
+            return [0, 0, 0], [0, 0, 0]  # area_center, target_pos
 
         cluster_ids = np.unique(labels)
 
@@ -223,13 +225,13 @@ class Combined(SAC):
         self.env.current_target = target
         self.eval_env.current_target = target
 
-        # p.addUserDebugText("a_center",
-        #                    textPosition=self.area_center,
-        #                    textColorRGB=[0, 0, 1])
+        p.addUserDebugText("a_center",
+                           textPosition=self.area_center,
+                           textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
-                         self.area_center[2] + 0.10]
+                         self.area_center[2] + 0.15]
             # Move up
             a = [up_target, self.target_orn, 1]
             self.move_to_target(env, dict_obs, tcp_pos, a)

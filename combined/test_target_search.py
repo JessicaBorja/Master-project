@@ -17,7 +17,7 @@ register_env()
 def main(cfg):
     test_cfg = cfg.test
     run_cfg, net_cfg, env_wrapper, agent_cfg =\
-        load_cfg(os.path.join(test_cfg.folder_name, ".hydra/config.yaml"),
+        load_cfg("None",
                  cfg, optim_res=False)
 
     run_cfg.eval_env.show_gui = cfg.env.show_gui

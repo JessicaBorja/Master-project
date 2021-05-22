@@ -66,7 +66,7 @@ def viz(cfg):
     # Initialize model
     run_cfg = OmegaConf.load(cfg.folder_name + "/.hydra/config.yaml")
     model_cfg = run_cfg.model_cfg
-    # model_cfg = cfg.model_cfg
+    model_cfg.hough_voting = cfg.model_cfg.hough_voting
 
     checkpoint_path = os.path.join(cfg.folder_name, "trained_models")
     checkpoint_path = os.path.join(checkpoint_path, cfg.model_name)
@@ -104,13 +104,13 @@ def viz(cfg):
         # print(compute_mIoU(aff_logits, gt_transformed))
 
         # To numpy arrays
+        pred_shape = np.array(mask[0].shape)
         mask = mask.detach().cpu().numpy()
         directions = directions[0].detach().cpu().numpy()
         centers = []
         for o in object_centers:
-            c = o.detach().cpu().numpy()
-            if(c.size > 0):
-                centers.append(c)
+            o = o.detach().cpu().numpy()
+            centers.append(o)
 
         # To flow img
         directions = np.transpose(directions, (1, 2, 0))
@@ -127,6 +127,11 @@ def viz(cfg):
         gt_mask = cv2.resize(gt_mask.astype('uint8'), out_shape)
         gt_directions = cv2.resize(gt_flow, out_shape)
 
+        # Resize centers
+        new_shape = np.array(out_shape)
+        for i in range(len(centers)):
+            centers[i] = (centers[i] * new_shape / pred_shape).astype("int32")
+
         # Overlay directions and centers
         res = overlay_flow(flow_img, orig_img, mask)
         gt_res = overlay_flow(gt_directions, orig_img, gt_mask)
@@ -135,7 +140,7 @@ def viz(cfg):
             res = cv2.drawMarker(res, (u, v),
                                  (0, 0, 0),
                                  markerType=cv2.MARKER_CROSS,
-                                 markerSize=5,
+                                 markerSize=10,
                                  line_type=cv2.LINE_AA)
 
         # Save and show

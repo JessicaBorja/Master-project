@@ -1,5 +1,5 @@
 #Environment
-project_path: /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/
+project_path: /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/ #  "C:/Users/Jessica/Documents/Proyecto_ssd" # 
 vrenv_path: ${project_path}/VREnv
 vrenv_data_path: ${vrenv_path}/data/
 img_size: 200
@@ -8,8 +8,8 @@ mask_on_close: True
 # For collecting dataset with playdata
 play_data_dir: ${project_path}/datasets/play_data_large_handles/
 
-#Save dataset
-save_dir: ${project_path}/datasets/vrenv_npcomprez_mask_close15/
+#Output directory where dataset will be stored
+output_dir: ${project_path}/datasets/vrenv_directions_200px/
 
 viz: True
 
@@ -20,6 +20,7 @@ defaults:
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
 
+save_dir: ../tmp/
 all_cameras:
   static: #Side view (slide)
     _target_: vr_env.camera.static_camera.StaticCamera
@@ -83,4 +84,4 @@ all_cameras:
     look_from: [0.2, 0.05, 1.3]
 hydra:
   run:
-    dir: ../tmp/datacollection/${now:%Y-%m-%d}_${now:%H-%M-%S}
+    dir: ${save_dir}/datacollection/${now:%Y-%m-%d}_${now:%H-%M-%S}

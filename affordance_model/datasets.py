@@ -44,7 +44,7 @@ class VREnvData(Dataset):
         self.log = log
         self.root_dir = root_dir
         _ids = self.read_json(os.path.join(root_dir, "episodes_split.json"))
-        self.data = self._get_split_data(_ids, "train", cam, 1)
+        self.data = self._get_split_data(_ids, split, cam, n_train_ep)
         # self._get_split_data(_ids, split, cam, n_train_ep)
         self.transforms = get_transforms(transforms[split])
         self.mask_transforms = get_transforms(transforms['masks'])

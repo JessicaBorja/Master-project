@@ -13,13 +13,16 @@ sys.path.insert(0, os.getcwd())
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, parent_dir+"/VREnv/")
 import utils.flowlib as flowlib
-from utils.img_utils import overlay_flow, tresh_np
+from utils.img_utils import overlay_flow, overlay_mask, tresh_np
 from sklearn.cluster import DBSCAN
 
 
-def get_transforms(transforms_cfg):
+def get_transforms(transforms_cfg, img_size=None):
     transforms_lst = []
     for cfg in transforms_cfg:
+        if(cfg._target_ == "torchvision.transforms.Resize"
+           and img_size is not None):
+            cfg.size = img_size
         transforms_lst.append(hydra.utils.instantiate(cfg))
     return transforms.Compose(transforms_lst)
 
@@ -51,12 +54,25 @@ class VREnvData(Dataset):
                                         dtype=np.float32).transpose(1, 2, 0)
         self.img_size = img_size
 
+    def _overfit_split_data(self, data, split, cam, n_train_ep):
+        split_data = []
+        split_episodes = ["episode_0"]
+
+        print("%s episodes: %s" % (split, str(split_episodes)))
+        for ep in split_episodes:
+            for file in data[split][ep]:
+                if(cam in file or cam == "full"):
+                    split_data.append("%s/%s" % (ep, file))
+        print("%s images: %d" % (split, len(split_data)))
+        return split_data
+
     def _get_split_data(self, data, split, cam, n_train_ep):
         split_data = []
         split_episodes = list(data[split].keys())
 
         # Select amount of data to train on
-        if(n_train_ep > 0 and split == "train"):
+        if(n_train_ep > 0
+           and split == "train"):
             assert len(split_episodes) >= n_train_ep, \
                 "n_train_ep must <= %d" % len(split_episodes)
             split_episodes = np.random.choice(split_episodes,
@@ -90,14 +106,15 @@ class VREnvData(Dataset):
             if(len(cluster.shape) == 1):
                 cluster = np.expand_dims(cluster, 0)
             mid_point = np.mean(cluster, 0)[:2]
-            mid_point = mid_point.astype('uint8')
-            center = np.array([mid_point[1], mid_point[0]])
+            mid_point = mid_point.astype('uint8')  # px coords
+            center = np.array([mid_point[1], mid_point[0]])  # matrix coords
             centers.append(center)
+
             # Object mask
             object_mask = np.zeros_like(mask)
-            object_mask[cluster] = 1
+            object_mask[cluster[:, 0], cluster[:, 1]] = 1
             object_center_directions = \
-                (center - self.pixel_indices).astype(np.float32)
+                (mid_point - self.pixel_indices).astype(np.float32)
             object_center_directions = object_center_directions\
                 / np.maximum(np.linalg.norm(object_center_directions,
                                             axis=2, keepdims=True), 1e-10)
@@ -105,7 +122,9 @@ class VREnvData(Dataset):
             # Add it to the labels
             directions[object_mask == 1] = \
                 object_center_directions[object_mask == 1]
-        return centers, directions
+
+        directions = np.transpose(directions, (2, 0, 1))
+        return centers, directions  # 2, H, W
 
     def __len__(self):
         return len(self.data)
@@ -114,7 +133,7 @@ class VREnvData(Dataset):
         # directions: optical flow image in middlebury color
 
         head, filename = os.path.split(self.data[idx].replace("\\", "/"))
-        episode, cam_folder = os.path.normpath(head).split(os.path.sep)
+        episode, cam_folder = os.path.split(head)
         data = np.load(self.root_dir +
                        "/%s/data/%s/%s.npz" % (episode, cam_folder, filename))
 
@@ -136,7 +155,7 @@ class VREnvData(Dataset):
         center_dirs = torch.tensor(data["directions"]).permute(2, 0, 1)
 
         labels = {"affordance": mask,
-                  # "centers": data["centers"],
+                  # "centers": centers,
                   "center_dirs": center_dirs}
         return frame, labels
 
@@ -147,15 +166,19 @@ class VREnvData(Dataset):
 
 
 def test_dir_labels(hv, frame, aff_mask, center_dir):
-    center_dir /= torch.norm(center_dir,
-                             dim=1,
-                             keepdim=True
-                             ).clamp(min=1e-10)
-
+    # center_dir /= torch.norm(center_dir,
+    #                          dim=1,
+    #                          keepdim=True
+    #                          ).clamp(min=1e-10)
+    flow_img = center_dir[0].permute((1, 2, 0)).cpu().detach().numpy()
+    flow_img = flowlib.flow_to_image(flow_img)  # RGB
+    flow_img = flow_img[:, :, ::-1]  # BGR
+    cv2.imshow("directions_l", flow_img)
+    cv2.waitKey(1)
     bool_mask = (aff_mask == 1).int().cuda()
-    center_dir = center_dir.cuda()
+    center_dir = center_dir.cuda()  # 1, 2, H, W
     initial_masks, num_objects, object_centers_padded = \
-        hv(bool_mask, center_dir)
+        hv(bool_mask, center_dir.contiguous())
 
     initial_masks = initial_masks.cpu()
     object_centers_padded = object_centers_padded[0].cpu().permute((1, 0))
@@ -169,14 +192,14 @@ def test_dir_labels(hv, frame, aff_mask, center_dir):
                                line_type=cv2.LINE_AA)
     cv2.imshow("hv_center", frame)
     cv2.waitKey(1)
-    return initial_masks, num_objects, object_centers_padded
+    return frame
 
 
 @hydra.main(config_path="../config", config_name="cfg_affordance")
 def main(cfg):
     val = VREnvData(cfg.img_size, split="validation", log=None,
                     **cfg.dataset)
-    val_loader = DataLoader(val, num_workers=4, batch_size=1, pin_memory=True)
+    val_loader = DataLoader(val, num_workers=1, batch_size=1, pin_memory=True)
     print('val minibatches {}'.format(len(val_loader)))
     from affordance_model.hough_voting import hough_voting as hv
     hv = hv.HoughVoting(**cfg.model_cfg.hough_voting)
@@ -191,14 +214,18 @@ def main(cfg):
         frame = np.transpose(frame, (1, 2, 0))
         frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
 
-        test_dir_labels(hv, frame, labels["affordance"], labels["center_dirs"])
-
         directions = np.transpose(directions, (1, 2, 0))
         flow_img = flowlib.flow_to_image(directions)  # RGB
         flow_img = flow_img[:, :, ::-1]  # BGR
         mask = np.transpose(mask, (1, 2, 0))*255
-
         out_img = overlay_flow(flow_img, frame, mask)
+
+        out_img = test_dir_labels(hv,
+                                  out_img,
+                                  labels["affordance"],
+                                  labels["center_dirs"])
+
+
         # centers = labels["centers"][0]
         # for c in centers:
         #     c = c.squeeze().detach().cpu().numpy()

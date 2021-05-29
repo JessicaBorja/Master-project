@@ -2,7 +2,7 @@ import datetime
 import logging
 import hydra
 from omegaconf import OmegaConf
-from affordance_model.segmentator import Segmentator
+from affordance_model.segmentator_centers import Segmentator
 from affordance_model.datasets import get_loaders
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint

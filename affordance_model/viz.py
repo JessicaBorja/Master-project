@@ -12,11 +12,12 @@ parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, parent_dir)
 import utils.flowlib as flowlib
-from utils.img_utils import visualize, overlay_flow
+from utils.img_utils import overlay_mask, visualize, overlay_flow
 from utils.file_manipulation import get_files
 from affordance_model.segmentator_centers import Segmentator
 from affordance_model.datasets import get_transforms
 from affordance_model.utils.losses import compute_mIoU
+from matplotlib import cm
 import json
 
 
@@ -66,7 +67,7 @@ def viz(cfg):
     # Initialize model
     run_cfg = OmegaConf.load(cfg.folder_name + "/.hydra/config.yaml")
     model_cfg = run_cfg.model_cfg
-    # model_cfg = cfg.model_cfg
+    model_cfg.hough_voting = cfg.model_cfg.hough_voting
 
     checkpoint_path = os.path.join(cfg.folder_name, "trained_models")
     checkpoint_path = os.path.join(checkpoint_path, cfg.model_name)
@@ -98,19 +99,32 @@ def viz(cfg):
         x = img_transform(x).cuda()
 
         # Predict affordance, centers and directions
-        mask, _, directions, object_centers, aff_logits = model.predict(x)
-        # res = visualize(mask, orig_img, cfg.imshow)
+        fg_mask, aff_probs, directions, object_centers, aff_logits, object_masks = \
+            model.predict(x)
+
         gt_transformed = mask_transforms(torch.Tensor(np.expand_dims(gt_mask, 0)).cuda())
         # print(compute_mIoU(aff_logits, gt_transformed))
 
         # To numpy arrays
-        mask = mask.detach().cpu().numpy()
+        pred_shape = np.array(fg_mask[0].shape)
+        mask = fg_mask.detach().cpu().numpy()
+        object_masks = object_masks.permute((1, 2, 0)).detach().cpu().numpy()
         directions = directions[0].detach().cpu().numpy()
+
+        # Plot different objects
         centers = []
-        for o in object_centers:
-            c = o.detach().cpu().numpy()
-            if(c.size > 0):
-                centers.append(c)
+        obj_segmentation = orig_img
+        obj_class = np.unique(object_masks)[1:]
+        obj_class = obj_class[obj_class != 0]  # remove background class
+        colors = cm.jet(np.linspace(0, 1, len(obj_class)))
+        for i, o in enumerate(object_centers):
+            o = o.detach().cpu().numpy()
+            centers.append(o)
+            obj_mask = np.zeros_like(object_masks)
+            obj_mask[object_masks == obj_class[i]] = 255
+            obj_segmentation = overlay_mask(obj_mask[:, :, 0],
+                                            obj_segmentation,
+                                            tuple([int(c*255) for c in colors[i][:3]]))
 
         # To flow img
         directions = np.transpose(directions, (1, 2, 0))
@@ -127,6 +141,11 @@ def viz(cfg):
         gt_mask = cv2.resize(gt_mask.astype('uint8'), out_shape)
         gt_directions = cv2.resize(gt_flow, out_shape)
 
+        # Resize centers
+        new_shape = np.array(out_shape)
+        for i in range(len(centers)):
+            centers[i] = (centers[i] * new_shape / pred_shape).astype("int32")
+
         # Overlay directions and centers
         res = overlay_flow(flow_img, orig_img, mask)
         gt_res = overlay_flow(gt_directions, orig_img, gt_mask)
@@ -135,7 +154,7 @@ def viz(cfg):
             res = cv2.drawMarker(res, (u, v),
                                  (0, 0, 0),
                                  markerType=cv2.MARKER_CROSS,
-                                 markerSize=5,
+                                 markerSize=10,
                                  line_type=cv2.LINE_AA)
 
         # Save and show
@@ -145,6 +164,7 @@ def viz(cfg):
             output_file = os.path.join(cfg.output_dir, name + ".jpg")
             cv2.imwrite(output_file, res)
         if(cfg.imshow):
+            cv2.imshow("object masks", obj_segmentation)
             cv2.imshow("flow", flow_img)
             cv2.imshow("gt", gt_res)
             cv2.imshow("output", res)

@@ -151,10 +151,15 @@ class Segmentator(pl.LightningModule):
         # Compute list of object centers
         object_centers = []
         for i in range(initial_masks.shape[0]):
-            object_centers.append(object_centers_padded[i, :, :num_objects[i]])
+            centers_padded = object_centers_padded[i]
+            centers_padded = centers_padded.permute((1, 0))[:, :num_objects[i]]
+            for obj_center in centers_padded:
+                if(torch.norm(obj_center) > 0):
+                    # cast to int for pixel
+                    object_centers.append(obj_center.long())
 
         self.train_mode()
-        return aff_mask, aff_probs, center_dir, object_centers, aff_logits
+        return aff_mask, aff_probs, center_dir, object_centers, aff_logits, initial_masks
 
     def log_stats(self, split, max_batch, batch_idx, loss, miou):
         if(batch_idx >= max_batch - 1):

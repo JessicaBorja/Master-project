@@ -2,6 +2,62 @@ import numpy as np
 import cv2
 from PIL import Image
 import torch
+import utils.flowlib as flowlib
+
+
+def torch_to_numpy(x):
+    return x.detach().cpu().numpy()
+
+
+def viz_aff_centers_preds(img_obs, output):
+    mask, aff_probs, directions, object_centers, logits, object_masks = \
+        output
+
+    # To numpy
+    mask = torch_to_numpy(mask[0])  # H, W
+    aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
+    directions = torch_to_numpy(directions[0].permute(1, 2, 0))  # H, W, 2
+    object_centers = [torch_to_numpy(o) for o in object_centers]
+    object_masks = torch_to_numpy(object_masks[0])  # H, W
+
+    # Output img
+    # To flow img
+    flow_img = flowlib.flow_to_image(directions)  # RGB
+    flow_img = flow_img[:, :, ::-1]  # BGR
+
+    im_size = mask.shape[:2]
+    orig_img = cv2.resize(img_obs, im_size)[:, :, ::-1]
+    mask = (mask*255).astype('uint8')
+    flow_over_img = overlay_flow(flow_img, orig_img, mask)
+    out_img = overlay_mask(mask, orig_img, (0, 0, 255))
+
+    # Visualize segmentations individually and obj centers
+    obj_class = np.unique(object_masks)
+    obj_class = obj_class[obj_class != 0]  # remove background class
+    max_robustness = 0
+    for i, o in enumerate(object_centers):
+        # Mean prob of being class 1 (foreground)
+        robustness = np.mean(aff_probs[object_masks == obj_class[i], 1])
+        if(robustness > max_robustness):
+            max_robustness = robustness
+            target_px = o
+        v, u = o
+        out_img = cv2.drawMarker(out_img, (u, v),
+                                 (0, 0, 0),
+                                 markerType=cv2.MARKER_CROSS,
+                                 markerSize=8,
+                                 line_type=cv2.LINE_AA)
+
+    out_img = cv2.drawMarker(out_img, (target_px[1], target_px[0]),
+                             (255, 0, 0),
+                             markerType=cv2.MARKER_CROSS,
+                             markerSize=12,
+                             line_type=cv2.LINE_AA)
+
+    cv2.imshow("flow_img", flow_img)
+    cv2.imshow("flow_over_img", flow_over_img)
+    cv2.imshow("preds", out_img)
+    cv2.waitKey(0)
 
 
 def visualize_np(mask, img, imshow=False, k=15):
@@ -69,6 +125,19 @@ def paste_img(im1, im2, mask):
 
 
 def overlay_mask(mask, img, color):
+    '''
+        mask:
+            - shape: (H, W)
+            - range: 0 - 255.0
+            - float32
+        img:
+            - shape: (H, W, 3)
+            - range: 0 - 255
+            - uint8
+        color:
+            - tuple size 3 RGB
+            - range: 0 - 255
+    '''
     result = Image.fromarray(np.uint8(img))
     pil_mask = Image.fromarray(np.uint8(mask))
     color = Image.new("RGB", result.size, color)

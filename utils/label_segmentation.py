@@ -88,7 +88,7 @@ def create_circle_mask(img, xy_coords, r=10):
     return mask
 
 
-def get_static_mask(static_cam, static_im, point):
+def get_static_mask(static_cam, static_im, point, r=10):
     # Img history containes previus frames where gripper action was open
     # Point is the point in which the gripper closed for the 1st time
     # TCP in homogeneus coord.
@@ -97,7 +97,7 @@ def get_static_mask(static_cam, static_im, point):
     # Project point to camera
     # x,y <- pixel coords
     tcp_x, tcp_y = world2pixel(point, static_cam)
-    static_mask = create_circle_mask(static_im, (tcp_x, tcp_y), r=10)
+    static_mask = create_circle_mask(static_im, (tcp_x, tcp_y), r=r)
     return static_mask, (tcp_y, tcp_x)  # matrix coord
 
 

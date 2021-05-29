@@ -2,7 +2,7 @@ project_folder: /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/SAC/a
 
 # Load data
 # Validation episodes
-data_dir: [../../Proyecto_ssd/datasets/vrenv_directions_64px/episode_1/data/static_cam/ ]
+data_dir: [../../Proyecto_ssd/datasets/vrenv_directions_200px/episode_1/data/static_cam/ ]
           #  ../../Proyecto_ssd/datasets/vrenv_directions_64px/episode_10/data/gripper_cam/,
           #  ../../Proyecto_ssd/datasets/vrenv_directions_64px/episode_13/data/gripper_cam/]
 
@@ -27,27 +27,43 @@ data_dir: [../../Proyecto_ssd/datasets/vrenv_directions_64px/episode_1/data/stat
 # model_name: affordance-epoch=77-val_miou=0.58.ckpt
 
 # gripper dice 64
+# folder_name:  ${project_folder}/hydra_outputs/2021-05-22/13-27-19
+# model_name: overfit_centers_ep0_centers5_aff200px_epoch=99-val_miou=0.801.ckpt
 
-folder_name:  ${project_folder}/hydra_outputs/2021-05-08/19-04-13
-model_name: aff_centers_dir_test_epoch=06-val_miou=0.398.ckpt
-# gripper_aff_center_epoch=38-val_miou=0.393
+# Static camera
+folder_name: ${project_folder}/hydra_outputs/2021-05-23/00-50-43
+
+# Gripper camera
+# folder_name: ${project_folder}/hydra_outputs/2021-05-12/11-58-02
+model_name: last.ckpt
 
 # Output img size, must be mutiple of 32
 save_images: False
 imshow: True
-img_size: 64
-out_size: 200
+img_size: 200
+out_size: 300
 output_dir: ${project_folder}/predictions/aff_centers_dir_static
 
 model_cfg:
   model_name: "${model_name}"
   n_classes: 2
-  dice_loss:
-    add: True
-    weight: 5
-  ce_loss:
+  hough_voting:
+    skip_pixels: 2
+    inlier_threshold: 0.7
+    angle_discretization: 100
+    inlier_distance: 10
+    percentage_threshold: 0.3
+    object_center_kernel_radius: 10
+  centers_loss:
+    weight: 3
+  aff_loss:
     weight: 1
-    class_weights: [0.2, 0.8]
+    dice_loss:
+      add: True
+      weight: 5
+    ce_loss:
+      weight: 1
+      class_weights: [0.2, 0.8]
   optimizer:
     lr: 1e-5
     weight_decay: 1e-3
@@ -60,6 +76,7 @@ defaults:
   - hydra/hydra_logging: colorlog
 
 #-- Hydra config --#
+save_dir: ../../tmp/
 hydra:
   run:
-    dir: ../../tmp/viz # Output directory for normal runs
+    dir: ${save_dir}/viz # Output directory for normal runs

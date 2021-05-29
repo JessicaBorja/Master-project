@@ -1,10 +1,12 @@
 import sys
-from utils.img_utils import overlay_mask, paste_img
+
+from numpy.lib import utils
+from utils.img_utils import overlay_mask, viz_aff_centers_preds
 import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from sac_agent.sac import SAC
-from affordance_model.segmentator import Segmentator
+from affordance_model.segmentator_centers import Segmentator
 from affordance_model.datasets import get_transforms
 import os
 import cv2
@@ -15,35 +17,34 @@ import math
 from sklearn.cluster import DBSCAN
 from matplotlib import cm
 from utils.cam_projections import pixel2world
+from utils.img_utils import torch_to_numpy
 
 
 class Combined(SAC):
     def __init__(self, cfg, sac_cfg=None):
         super(Combined, self).__init__(**sac_cfg)
-        self.affordance = cfg.affordance
+        self.affordance = cfg.target_search_aff
         self.aff_net_static_cam = self._init_static_cam_aff_net()
         self.writer = SummaryWriter(self.writer_name)
         self.cam_id = self._find_cam_id()
-        self.transforms = get_transforms(cfg.transforms.validation)
+        self.transforms = get_transforms(
+            cfg.transforms.validation,
+            self.affordance.img_size)
         # initial angle
         self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
         # self.env.get_obs()["robot_obs"][3:6]
 
         # Search for targets
         # Make target slightly(5cm) above actual target
-        # self.area_center, self.target = self._env_compute_target()
-        # p.addUserDebugText("target_0",
-        #                    textPosition=self.target,
-        #                    textColorRGB=[0, 1, 0])
-        # p.addUserDebugText("a_center",
-        #                    textPosition=self.area_center,
-        #                    textColorRGB=[0, 1, 0])
-        self.area_center, self.target = self._env_compute_target()
+        self._compute_target = self._env_compute_target
+        # self._compute_target = self._aff_compute_target
+        # self._compute_target = self._compute_target_centers
+        self.area_center, self.target = self._compute_target()
 
         # Target specifics
         self.env.current_target = self.target
         self.eval_env.current_target = self.target
-        self.radius = self.env.banana_radio  # Distance in meters
+        self.radius = self.env.target_radius  # Distance in meters
 
     def _find_cam_id(self):
         for i, cam in enumerate(self.env.cameras):
@@ -52,12 +53,10 @@ class Combined(SAC):
         return 0
 
     def _init_static_cam_aff_net(self):
-        path = self.affordance.static_cam.model_path
+        path = self.affordance.model_path
         aff_net = None
         if(os.path.exists(path)):
             hp = OmegaConf.to_container(self.affordance.hyperparameters)
-            hp['unet_cfg'].pop('decoder_channels')
-            hp['unet_cfg']['decoder_channels'] = [256, 128, 64, 32]
             hp = OmegaConf.create(hp)
             aff_net = Segmentator.load_from_checkpoint(
                                 path,
@@ -79,7 +78,16 @@ class Combined(SAC):
         target_pos += np.random.normal(loc=0, scale=0.002,
                                        size=(len(target_pos)))
         area_center = np.array(target_pos) \
-            + np.array([0, 0, 0.05])
+            + np.array([0, 0, 0.07])
+
+        # Visualize targets
+        p.removeAllUserDebugItems()
+        p.addUserDebugText("target_0",
+                           textPosition=target_pos,
+                           textColorRGB=[0, 1, 0])
+        p.addUserDebugText("a_center",
+                           textPosition=area_center,
+                           textColorRGB=[0, 1, 0])
         return area_center, target_pos
 
     def _aff_compute_target(self):
@@ -189,6 +197,73 @@ class Combined(SAC):
             + np.array([0, 0, 0.05])
         return area_center, target_pos
 
+    def _compute_target_centers(self):
+        # Get environment observation
+        cam = self.env.cameras[self.cam_id]
+        obs = self.env.get_obs()
+        depth_obs = obs["depth_obs"][self.cam_id]
+        orig_img = obs["rgb_obs"][self.cam_id]
+
+        # Apply validation transforms
+        img_obs = torch.tensor(orig_img).permute(2, 0, 1).unsqueeze(0).cuda()
+        img_obs = self.transforms(img_obs)
+
+        # Predict affordances and centers
+        prediction = self.aff_net_static_cam.predict(img_obs)
+        _, aff_probs, _, object_centers, _, object_masks = prediction
+
+        # To numpy
+        aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
+        object_masks = torch_to_numpy(object_masks[0])  # H, W
+
+        # Visualize predictions
+        viz_aff_centers_preds(orig_img, prediction)
+
+        # Plot different objects
+        if(len(object_centers) > 0):
+            target_px = object_centers[0]
+        else:
+            return [0, 0, 0], [0, 0, 0]  # No center detected
+
+        max_robustness = 0
+        obj_class = np.unique(object_masks)[1:]
+        obj_class = obj_class[obj_class != 0]  # remove background class
+
+        # Look for most likely center
+        for i, o in enumerate(object_centers):
+            # Mean prob of being class 1 (foreground)
+            robustness = np.mean(aff_probs[object_masks == obj_class[i], 1])
+            if(robustness > max_robustness):
+                max_robustness = robustness
+                target_px = o
+
+        # Convert back to observation size
+        pred_shape = aff_probs.shape[:2]
+        orig_shape = depth_obs.shape[:2]
+        target_px = target_px.detach().cpu().numpy()
+        target_px = (target_px * orig_shape / pred_shape).astype("int64")
+
+        # world cord
+        v, u = target_px
+        # out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
+        #                          (u, v),
+        #                          (0, 255, 0),
+        #                          markerType=cv2.MARKER_CROSS,
+        #                          markerSize=12,
+        #                          line_type=cv2.LINE_AA)
+        # cv2.imshow("out_img", out_img)
+
+        # Compute depth
+        target_pos = pixel2world(cam, u, v, depth_obs)
+
+        # 2 cm deviation
+        target_pos = np.array(target_pos)
+        target_pos += np.random.normal(loc=0, scale=0.002,
+                                       size=(len(target_pos)))
+        area_center = np.array(target_pos) \
+            + np.array([0, 0, 0.03])
+        return area_center, target_pos
+
     def move_to_target(self, env, dict_obs, tcp_pos, a):
         target = a[0]
         # env.robot.apply_action(a)
@@ -214,13 +289,13 @@ class Combined(SAC):
         if(isinstance(s, dict)):
             s = s["robot_obs"]
             dict_obs = True
-        tcp_pos, gripper = s[:3], s[-1]
+        tcp_pos, gripper_action = s[:3], s[-1]
 
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
-        # self.area_center, _ = self.compute_target()
+        self.area_center, self.target = \
+            self._compute_target()
         target = self.target
-
         # Set current_target in each episode
         self.env.current_target = target
         self.eval_env.current_target = target
@@ -231,7 +306,7 @@ class Combined(SAC):
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
-                         self.area_center[2] + 0.15]
+                         self.area_center[2] + 0.20]
             # Move up
             a = [up_target, self.target_orn, 1]
             self.move_to_target(env, dict_obs, tcp_pos, a)
@@ -240,9 +315,9 @@ class Combined(SAC):
             tcp_pos = env.get_obs()["robot_obs"][:3]
             a = [self.area_center, self.target_orn, 1]
             self.move_to_target(env, dict_obs, tcp_pos, a)
-            # p.addUserDebugText("tcp_pos",
-            #                    textPosition=env.get_obs()["robot_obs"][:3],
-            #                    textColorRGB=[0, 0, 1])
+            p.addUserDebugText("target",
+                               textPosition=target,
+                               textColorRGB=[0, 0, 1])
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
                  print_all_episodes=False, render=False, save_images=False):

@@ -6,6 +6,31 @@ import numpy as np
 import cv2
 
 
+# Merge datasets using json files
+def merge_datasets(directory_list, output_dir):
+    new_data = {"train": {}, "validation": {}}
+    episode_it = [0, 0]
+    for dir in directory_list:
+        json_path = os.path.join(dir, "episodes_split.json")
+        with open(json_path) as f:
+            data = json.load(f)
+
+        # TRAINING EPISODES
+        # Rename episode numbers if repeated
+        data_split = ["train", "validation"]
+        for split, episode in zip(data_split, episode_it):
+            dataset_name = os.path.basename(os.path.normpath(dir))
+            for key in data[split].keys():
+                new_data[split]["../%s/%s" % (dataset_name, key) ] = \
+                    data[split][key]
+                episode += 1
+    # Write output
+    if(not os.path.exists(output_dir)):
+        os.makedirs(output_dir)
+    with open(output_dir + '/episodes_split.json', 'w') as outfile:
+        json.dump(new_data, outfile, indent=2)
+
+
 # Select files that have a segmentation mask
 def select_files(data, split, ep, episode_files,
                  remove_blank_masks, skip_first_frames=False):
@@ -37,6 +62,10 @@ def select_files(data, split, ep, episode_files,
 # Split episodes into train and validation
 def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
     # Episodes are subdirectories
+    n_episodes = 0
+    if(isinstance(root_dir, list)):
+        for dir_i in root_dir:
+            n_episodes += len(glob.glob(dir_i + "/*/"))
     n_episodes = len(glob.glob(root_dir + "/*/"))
     # Split data
     data = {"train": [], "validation": []}

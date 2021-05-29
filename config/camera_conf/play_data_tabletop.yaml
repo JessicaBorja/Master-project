@@ -1,0 +1,4 @@
+# @package _group_
+cameras:
+  - '${all_cameras.play_data_tabletop}'
+  - '${all_cameras.gripper}'

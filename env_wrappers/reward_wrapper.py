@@ -67,7 +67,9 @@ class RewardWrapper(gym.RewardWrapper):
 
         # Create cluster segmentation mask
         # colors = cm.jet(np.linspace(0, 1, len(cluster_ids)))
-        # out_img = overlay_mask(mask_scaled * 255.0, img_obs[:, :, ::-1], (0, 0, 255))
+        out_img = overlay_mask(mask_scaled * 255.0,
+                               img_obs[:, :, ::-1],
+                               (0, 0, 255))
 
         # Find approximate center
         n_pixels = mask_scaled.shape[0] * mask_scaled.shape[1]
@@ -95,22 +97,22 @@ class RewardWrapper(gym.RewardWrapper):
                      "robustness": robustness}
             cluster_outputs.append(c_out)
 
-        #     # Viz
-        #     out_img = cv2.drawMarker(out_img, (u, v),
-        #                              (0, 0, 0),
-        #                              markerType=cv2.MARKER_CROSS,
-        #                              markerSize=5,
-        #                              line_type=cv2.LINE_AA)
+            # Viz
+            out_img = cv2.drawMarker(out_img, (u, v),
+                                     (0, 0, 0),
+                                     markerType=cv2.MARKER_CROSS,
+                                     markerSize=5,
+                                     line_type=cv2.LINE_AA)
 
-        # # Viz imgs
-        # # cv2.imshow("depth", depth)
-        # cv2.imshow("clusters", out_img)
-        # cv2.waitKey(1)
+        # Viz imgs
+        # cv2.imshow("depth", depth)
+        cv2.imshow("clusters", out_img)
+        cv2.waitKey(1)
         return cluster_outputs
 
     def reward(self, rew):
         # modify rew
-        if(self.task == "banana_combined"
+        if(self.task == "banana_combined" or self.task == "pickup"
            and self.affordance.gripper_cam.use
            and self.affordance.gripper_cam.densify_reward):
             # set by observation wrapper so that
@@ -155,9 +157,9 @@ class RewardWrapper(gym.RewardWrapper):
 
             # See selected point
             # p.removeAllUserDebugItems()
-            # p.addUserDebugText("target",
-            #                    textPosition=self.current_target,
-            #                    textColorRGB=[1, 0, 0])
+            p.addUserDebugText("target",
+                               textPosition=self.current_target,
+                               textColorRGB=[1, 0, 0])
 
             # Create positive reward relative to the distance
             # between the closest point detected by the affordances
@@ -166,6 +168,6 @@ class RewardWrapper(gym.RewardWrapper):
             if(self.env.unwrapped._termination()):
                 rew = -1
             else:
-                scale_dist = min(distance / self.banana_radio, 1)  # cannot be larger than 1
+                scale_dist = min(distance / self.target_radius, 1)  # cannot be larger than 1
                 rew += (1 - scale_dist)**(0.4)
         return rew

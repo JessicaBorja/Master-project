@@ -17,9 +17,12 @@ from utils.img_utils import overlay_flow, overlay_mask, tresh_np
 from sklearn.cluster import DBSCAN
 
 
-def get_transforms(transforms_cfg):
+def get_transforms(transforms_cfg, img_size=None):
     transforms_lst = []
     for cfg in transforms_cfg:
+        if(cfg._target_ == "torchvision.transforms.Resize"
+           and img_size is not None):
+            cfg.size = img_size
         transforms_lst.append(hydra.utils.instantiate(cfg))
     return transforms.Compose(transforms_lst)
 
@@ -45,7 +48,6 @@ class VREnvData(Dataset):
         self.root_dir = root_dir
         _ids = self.read_json(os.path.join(root_dir, "episodes_split.json"))
         self.data = self._get_split_data(_ids, split, cam, n_train_ep)
-        # self._get_split_data(_ids, split, cam, n_train_ep)
         self.transforms = get_transforms(transforms[split])
         self.mask_transforms = get_transforms(transforms['masks'])
         self.pixel_indices = np.indices((img_size, img_size),
@@ -69,7 +71,8 @@ class VREnvData(Dataset):
         split_episodes = list(data[split].keys())
 
         # Select amount of data to train on
-        if(n_train_ep > 0 and split == "train"):
+        if(n_train_ep > 0
+           and split == "train"):
             assert len(split_episodes) >= n_train_ep, \
                 "n_train_ep must <= %d" % len(split_episodes)
             split_episodes = np.random.choice(split_episodes,
@@ -130,7 +133,7 @@ class VREnvData(Dataset):
         # directions: optical flow image in middlebury color
 
         head, filename = os.path.split(self.data[idx].replace("\\", "/"))
-        episode, cam_folder = os.path.normpath(head).split(os.path.sep)
+        episode, cam_folder = os.path.split(head)
         data = np.load(self.root_dir +
                        "/%s/data/%s/%s.npz" % (episode, cam_folder, filename))
 

@@ -1,5 +1,5 @@
 project_path: /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd
-data_dir: ${project_path}/datasets/vrenv_directions_200px/
+data_dir: ${project_path}/datasets/fulldata_directions_200px/
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: gripper_aff_center
@@ -9,7 +9,7 @@ img_size: 200
 dataset:
   root_dir: ${data_dir}
   cam: gripper
-  n_train_ep: 16 # n-1 training ep, n_episodes in [8,6,4]
+  n_train_ep: -1  # Train using all episodes
 
 dataloader:
   num_workers: 4
@@ -27,9 +27,9 @@ model_cfg:
     percentage_threshold: 0.3
     object_center_kernel_radius: 10
   centers_loss:
-    weight: 5
+    weight: 2.5
   aff_loss:
-    weight: 2
+    weight: 1
     dice_loss:
       add: True
       weight: 5

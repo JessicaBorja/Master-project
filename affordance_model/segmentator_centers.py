@@ -159,7 +159,7 @@ class Segmentator(pl.LightningModule):
                     object_centers.append(obj_center.long())
 
         self.train_mode()
-        return aff_mask, aff_probs, center_dir, object_centers, aff_logits
+        return aff_mask, aff_probs, center_dir, object_centers, aff_logits, initial_masks
 
     def log_stats(self, split, max_batch, batch_idx, loss, miou):
         if(batch_idx >= max_batch - 1):

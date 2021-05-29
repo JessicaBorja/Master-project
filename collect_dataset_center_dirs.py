@@ -2,7 +2,7 @@ import hydra
 import utils.flowlib as flowlib
 from utils.img_utils import overlay_mask, tresh_np, overlay_flow
 from utils.label_segmentation import get_static_mask, get_gripper_mask
-from utils.file_manipulation import get_files, save_data, create_data_ep_split
+from utils.file_manipulation import get_files, save_data, create_data_ep_split, merge_datasets
 import cv2
 import numpy as np
 import tqdm
@@ -204,6 +204,7 @@ def label_static(static_cam, static_hist, back_min, back_max,
 def collect_dataset_close_open(cfg):
     global pixel_indices
     img_size = cfg.img_size
+    mask_on_close = cfg.mask_on_close
     pixel_indices = np.indices((img_size, img_size),
                                dtype=np.float32).transpose(1, 2, 0)
     # Episodes info
@@ -279,12 +280,15 @@ def collect_dataset_close_open(cfg):
                         frame_idx)
 
                 static_hist, gripper_hist = [], []
-            # else:  # mask on close
-            #     # Was closed and remained closed
-            #     # Last element in gripper_hist is the newest
-            #     save_gripper = label_gripper(gripper_cam_properties,
-            #                                  [gripper_hist[-1]], point,
-            #                                  cfg.viz, save_gripper)
+            else:
+                # mask on close
+                # Was closed and remained closed
+                # Last element in gripper_hist is the newest
+                if(mask_on_close):
+                    save_gripper = label_gripper(gripper_cam_properties,
+                                                 [gripper_hist[-1]], point,
+                                                 cfg.viz, save_gripper,
+                                                 (img_size, img_size))
         # Open gripper
         else:
             # Closed -> open transition
@@ -299,36 +303,38 @@ def collect_dataset_close_open(cfg):
             past_action = 1  # Open
             save_static, save_gripper = {}, {}
             save_data(save_static,
-                      cfg.save_dir + "episode_%d" % episode,
+                      cfg.output_dir + "episode_%d" % episode,
                       sub_dir="static_cam")
             save_data(save_gripper,
-                      cfg.save_dir + "episode_%d" % episode,
+                      cfg.output_dir + "episode_%d" % episode,
                       sub_dir="gripper_cam")
             episode += 1
 
         if (len(save_gripper.keys()) + len(save_static.keys()) > 150):
             save_data(save_static,
-                      cfg.save_dir + "episode_%d" % episode,
+                      cfg.output_dir + "episode_%d" % episode,
                       sub_dir="static_cam")
             save_data(save_gripper,
-                      cfg.save_dir + "episode_%d" % episode,
+                      cfg.output_dir + "episode_%d" % episode,
                       sub_dir="gripper_cam")
             save_static, save_gripper = {}, {}
         past_action = data['actions'][-1]
 
     save_data(save_static,
-              cfg.save_dir + "episode_%d" % episode,
+              cfg.output_dir + "episode_%d" % episode,
               sub_dir="static_cam")
     save_data(save_gripper,
-              cfg.save_dir + "episode_%d" % episode,
+              cfg.output_dir + "episode_%d" % episode,
               sub_dir="gripper_cam")
-    create_data_ep_split(cfg.save_dir)
+    create_data_ep_split(cfg.output_dir)
 
 
 @hydra.main(config_path="./config", config_name="cfg_datacollection")
 def main(cfg):
     collect_dataset_close_open(cfg)
-    # create_data_ep_split(cfg.save_dir)
+    # data_lst = ["%s/datasets/tabletop_directions_200px_MoC/" % cfg.project_path,
+    #             "%s/datasets/vrenv_directions_200px/" % cfg.project_path]
+    # merge_datasets(data_lst, cfg.output_dir)
 
 
 if __name__ == "__main__":

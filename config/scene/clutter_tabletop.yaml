@@ -18,21 +18,11 @@ objects:
     initial_pos: [0.13, 0.7, 0.62]
     initial_orn: [0, 0, 3.141592653589793]
     fixed: false
-  plate:
-    file: 029_plate/google_16k/textured.urdf
+  bowl:
+    file: 024_bowl/google_16k/textured.urdf
     initial_pos: [0.35, 0.92, 0.61]
     initial_orn: [0, 0, 0]
     fixed: false
-  # knife:
-  #   file: 032_knife/google_16k/textured.urdf
-  #   initial_pos: [0.2125, 0.95, 0.606]
-  #   initial_orn: [3.141592653589793, 0, 1.5707963267948966]
-  #   fixed: false
-  # oil:
-  #   file: ais_objects/oil/oil.urdf
-  #   initial_pos: [0.3, 0.56, 0.7]
-  #   initial_orn: [0, 0, 0]
-  #   fixed: false
   orange:
     file: 017_orange/google_16k/textured.urdf
     initial_pos: [0.2, 0.45, 0.62]

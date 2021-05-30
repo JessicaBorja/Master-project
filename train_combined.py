@@ -16,7 +16,7 @@ def main(cfg):
     eval_env = wrap_env(eval_env,
                         affordance=cfg.affordance,
                         **cfg.env_wrapper)
-    eval_env = None
+    # eval_env = None
     sac_cfg = {"env": training_env,
                "eval_env": eval_env,
                "model_name": cfg.model_name,

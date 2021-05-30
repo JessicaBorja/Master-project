@@ -81,13 +81,13 @@ class Combined(SAC):
             + np.array([0, 0, 0.07])
 
         # Visualize targets
-        p.removeAllUserDebugItems()
-        p.addUserDebugText("target_0",
-                           textPosition=target_pos,
-                           textColorRGB=[0, 1, 0])
-        p.addUserDebugText("a_center",
-                           textPosition=area_center,
-                           textColorRGB=[0, 1, 0])
+        # p.removeAllUserDebugItems()
+        # p.addUserDebugText("target_0",
+        #                    textPosition=target_pos,
+        #                    textColorRGB=[0, 1, 0])
+        # p.addUserDebugText("a_center",
+        #                    textPosition=area_center,
+        #                    textColorRGB=[0, 1, 0])
         return area_center, target_pos
 
     # Clustering
@@ -220,8 +220,8 @@ class Combined(SAC):
         object_masks = torch_to_numpy(object_masks[0])  # H, W
 
         # Visualize predictions
-        viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                              object_centers, object_masks)
+        # viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+        #                       object_centers, object_masks)
 
         # Plot different objects
         if(len(object_centers) > 0):
@@ -304,9 +304,9 @@ class Combined(SAC):
         self.env.current_target = target
         self.eval_env.current_target = target
 
-        p.addUserDebugText("a_center",
-                           textPosition=self.area_center,
-                           textColorRGB=[0, 0, 1])
+        # p.addUserDebugText("a_center",
+        #                    textPosition=self.area_center,
+        #                    textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
@@ -319,9 +319,9 @@ class Combined(SAC):
             tcp_pos = env.get_obs()["robot_obs"][:3]
             a = [self.area_center, self.target_orn, 1]
             self.move_to_target(env, dict_obs, tcp_pos, a)
-            p.addUserDebugText("target",
-                               textPosition=target,
-                               textColorRGB=[0, 0, 1])
+            # p.addUserDebugText("target",
+            #                    textPosition=target,
+            #                    textColorRGB=[0, 0, 1])
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
                  print_all_episodes=False, render=False, save_images=False):
@@ -384,6 +384,11 @@ class Combined(SAC):
         plot_data = {"actor_loss": [],
                      "critic_loss": [],
                      "ent_coef_loss": [], "ent_coef": []}
+
+        _log_n_ep = log_interval//max_episode_length
+        if(_log_n_ep < 1):
+            _log_n_ep = 1
+
         # correct_every_ts = 20
         # Move to target position only one
         # Episode ends if outside of radius
@@ -407,7 +412,8 @@ class Combined(SAC):
                 self.correct_position(self.env, s)
 
             # Log interval (sac)
-            if(t % log_interval == 0):
+            if((t % log_interval == 0 and not self._log_by_episodes)
+               or (self._log_by_episodes and episode % _log_n_ep)):
                 best_eval_return, plot_data = \
                      self._eval_and_log(self.writer, t, episode,
                                         plot_data, best_eval_return,

@@ -118,8 +118,8 @@ class RewardWrapper(gym.RewardWrapper):
 
         # Viz imgs
         # cv2.imshow("depth", depth)
-        cv2.imshow("clusters", out_img)
-        cv2.waitKey(1)
+        # cv2.imshow("clusters", out_img)
+        # cv2.waitKey(1)
         return cluster_outputs
 
     # Aff-center 
@@ -158,8 +158,8 @@ class RewardWrapper(gym.RewardWrapper):
             self.gripper_cam_aff_net.predict(tt(aff_mask), tt(directions))
 
         # Visualize predictions
-        viz_aff_centers_preds(orig_img, aff_mask, tt(aff_probs), center_dir,
-                              object_centers, object_masks)
+        # viz_aff_centers_preds(orig_img, aff_mask, tt(aff_probs), center_dir,
+        #                       object_centers, object_masks)
 
         # Plot different objects
         cluster_outputs = []
@@ -179,6 +179,8 @@ class RewardWrapper(gym.RewardWrapper):
 
         # Look for most likely center
         n_pixels = aff_mask.shape[1] * aff_mask.shape[2]
+        pred_shape = aff_probs.shape[:2]
+        orig_shape = depth.shape[:2]
         for i, o in enumerate(object_centers):
             # Mean prob of being class 1 (foreground)
             cluster = aff_probs[object_masks == obj_class[i], 1]
@@ -186,7 +188,11 @@ class RewardWrapper(gym.RewardWrapper):
             pixel_count = cluster.shape[0] / n_pixels
             if(pixel_count < 0.02):  # Skip small clusters
                 continue
+
+            # Convert back to observation size
+            o = (o * orig_shape / pred_shape).astype("int64")
             v, u = o
+
             world_pt = pixel2world(cam, u, v, depth)
             c_out = {"center": world_pt,
                      "pixel_count": pixel_count,
@@ -196,25 +202,22 @@ class RewardWrapper(gym.RewardWrapper):
                 max_robustness = robustness
                 target_px = o
 
-        # Convert back to observation size
-        pred_shape = aff_probs.shape[:2]
-        orig_shape = depth.shape[:2]
-        target_px = (target_px * orig_shape / pred_shape).astype("int64")
-
         # world cord
-        v, u = target_px
-        out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
-                                 (u, v),
-                                 (0, 255, 0),
-                                 markerType=cv2.MARKER_CROSS,
-                                 markerSize=12,
-                                 line_type=cv2.LINE_AA)
-        cv2.imshow("out_img", out_img)
-        cv2.imshow("depth", depth)
-
-        # Compute depth
-        target_pos = pixel2world(cam, u, v, depth)
-        target_pos = np.array(target_pos)
+        # v, u = target_px
+        # out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
+        #                          (u, v),
+        #                          (0, 255, 0),
+        #                          markerType=cv2.MARKER_CROSS,
+        #                          markerSize=12,
+        #                          line_type=cv2.LINE_AA)
+        # depth = cv2.drawMarker(np.array(depth),
+        #                        (u, v),
+        #                        (0, 255, 0),
+        #                        markerType=cv2.MARKER_CROSS,
+        #                        markerSize=12,
+        #                        line_type=cv2.LINE_AA)
+        # cv2.imshow("out_img", out_img)
+        # cv2.imshow("depth", depth)
         return cluster_outputs
 
     def reward(self, rew):
@@ -248,10 +251,10 @@ class RewardWrapper(gym.RewardWrapper):
                                                        obs)
             tcp_pos = obs_dict["robot_obs"][:3]
 
-            p.removeAllUserDebugItems()
-            p.addUserDebugText("target",
-                               textPosition=self.current_target,
-                               textColorRGB=[1, 0, 0])
+            # p.removeAllUserDebugItems()
+            # p.addUserDebugText("target",
+            #                    textPosition=self.current_target,
+            #                    textColorRGB=[1, 0, 0])
             # Maximum distance given the task
             for out_dict in clusters_outputs:
                 c = out_dict["center"]
@@ -261,10 +264,9 @@ class RewardWrapper(gym.RewardWrapper):
                     self.current_target = c
 
             # See selected point
-            # p.removeAllUserDebugItems()
-            p.addUserDebugText("target",
-                               textPosition=self.current_target,
-                               textColorRGB=[1, 0, 0])
+            # p.addUserDebugText("target",
+            #                    textPosition=self.current_target,
+            #                    textColorRGB=[1, 0, 0])
 
             # Create positive reward relative to the distance
             # between the closest point detected by the affordances

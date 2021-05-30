@@ -400,8 +400,19 @@ class Combined(SAC):
                                    plot_data)
 
             # End episode
-            if(done or (max_episode_length and
-                        (episode_length >= max_episode_length))):
+            end_ep = done or (max_episode_length
+                              and (episode_length >= max_episode_length))
+
+            # Log interval (sac)
+            if((t % log_interval == 0 and not self._log_by_episodes)
+               or (self._log_by_episodes and end_ep
+                   and episode % _log_n_ep == 0)):
+                best_eval_return, plot_data = \
+                     self._eval_and_log(self.writer, t, episode,
+                                        plot_data, best_eval_return,
+                                        n_eval_ep, max_episode_length)
+
+            if(end_ep):
                 best_return = \
                     self._on_train_ep_end(self.writer, t, episode,
                                           total_timesteps, best_return,
@@ -411,11 +422,3 @@ class Combined(SAC):
                 episode_return, episode_length = 0, 0
                 s = self.env.reset()
                 self.correct_position(self.env, s)
-
-            # Log interval (sac)
-            if((t % log_interval == 0 and not self._log_by_episodes)
-               or (self._log_by_episodes and episode % _log_n_ep == 0)):
-                best_eval_return, plot_data = \
-                     self._eval_and_log(self.writer, t, episode,
-                                        plot_data, best_eval_return,
-                                        n_eval_ep, max_episode_length)

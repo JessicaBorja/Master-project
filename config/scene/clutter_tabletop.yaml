@@ -20,7 +20,7 @@ objects:
     fixed: false
   bowl:
     file: 024_bowl/google_16k/textured.urdf
-    initial_pos: [0.35, 0.92, 0.61]
+    initial_pos: [0.35, 0.92, 0.623]
     initial_orn: [0, 0, 0]
     fixed: false
   orange:
@@ -35,7 +35,7 @@ objects:
     fixed: false
   apple:
     file: 013_apple/google_16k/textured.urdf
-    initial_pos: [-0.1, 0.6, 0.62]
+    initial_pos: [-0.1, 0.6, 0.623]
     initial_orn: [0, 0, 0]
     fixed: false
   banana:

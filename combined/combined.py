@@ -1,24 +1,23 @@
-import sys
-
-from numpy.lib import utils
-from utils.img_utils import overlay_mask, viz_aff_centers_preds
 import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from sac_agent.sac import SAC
-from affordance_model.segmentator_centers import Segmentator
-from affordance_model.datasets import get_transforms
+import sys
 import os
 import cv2
-from sac_agent.sac_utils.utils import EpisodeStats, tt
 from omegaconf import OmegaConf
 import pybullet as p
 import math
 from sklearn.cluster import DBSCAN
 from matplotlib import cm
-from utils.cam_projections import pixel2world
-from utils.img_utils import torch_to_numpy
 
+from sac_agent.sac import SAC
+from sac_agent.sac_utils.utils import EpisodeStats, tt
+
+from affordance_model.segmentator_centers import Segmentator
+from affordance_model.datasets import get_transforms
+
+from utils.cam_projections import pixel2world
+from utils.img_utils import torch_to_numpy, overlay_mask, viz_aff_centers_preds
 
 class Combined(SAC):
     def __init__(self, cfg, sac_cfg=None):
@@ -70,6 +69,7 @@ class Combined(SAC):
             print("Static cam aff. Path does not exist: %s" % path)
         return aff_net
 
+    # Env real target pos
     def _env_compute_target(self):
         # This should come from static cam affordance later on
         target_pos, _ = self.env.get_target_pos()
@@ -90,6 +90,7 @@ class Combined(SAC):
                            textColorRGB=[0, 1, 0])
         return area_center, target_pos
 
+    # Clustering
     def _aff_compute_target(self):
         # Predictions for current observation
         cam = self.env.cameras[self.cam_id]
@@ -197,6 +198,7 @@ class Combined(SAC):
             + np.array([0, 0, 0.05])
         return area_center, target_pos
 
+    # Aff-center model
     def _compute_target_centers(self):
         # Get environment observation
         cam = self.env.cameras[self.cam_id]
@@ -209,15 +211,17 @@ class Combined(SAC):
         img_obs = self.transforms(img_obs)
 
         # Predict affordances and centers
-        prediction = self.aff_net_static_cam.predict(img_obs)
-        _, aff_probs, _, object_centers, _, object_masks = prediction
+        _, aff_probs, aff_mask, center_dir = self.forward(img_obs)
+        aff_mask, center_dir, object_centers, object_masks = \
+            self.predict(aff_mask, center_dir)
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
         object_masks = torch_to_numpy(object_masks[0])  # H, W
 
         # Visualize predictions
-        viz_aff_centers_preds(orig_img, prediction)
+        viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+                              object_centers, object_masks)
 
         # Plot different objects
         if(len(object_centers) > 0):

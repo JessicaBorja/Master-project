@@ -1,10 +1,12 @@
 import gym
 import cv2
 import numpy as np
+from omegaconf.omegaconf import OmegaConf
 import torch
 from torchvision import transforms
-from affordance_model.segmentator import Segmentator
+from affordance_model.segmentator_centers import Segmentator
 from sac_agent.sac_utils.utils import show_mask_np
+from utils.img_utils import torch_to_numpy
 import os
 import hydra
 from gym import spaces
@@ -49,7 +51,8 @@ class ObservationWrapper(gym.ObservationWrapper):
         self.static_cam_aff_net = self.init_aff_net('static')
         self.curr_raw_obs = None
         self.curr_processed_obs = None
-        _action_space = np.ones(7)
+        # 0-2 -> position , 3 -> yaw angle, 4 gripper action
+        _action_space = np.ones(5)
         self.action_space = spaces.Box(_action_space * -1, _action_space)
 
     def find_cam_ids(self):
@@ -105,10 +108,15 @@ class ObservationWrapper(gym.ObservationWrapper):
             elif(self.affordance.gripper_cam.use
                  and cam_str == "gripper"):
                 path = self.affordance.gripper_cam.model_path
+
+                # Configuration of the model
+                hp = {**self.affordance.hyperparameters,
+                      "hough_voting": self.affordance.gripper_cam.hough_voting}
+                hp = OmegaConf.create(hp)
+
+                # Create model
                 if(os.path.exists(path)):
-                    aff_net = Segmentator.load_from_checkpoint(
-                                        path,
-                                        cfg=self.affordance.hyperparameters)
+                    aff_net = Segmentator.load_from_checkpoint(path, cfg=hp)
                     aff_net.cuda()
                     aff_net.eval()
                     print("obs_wrapper: gripper affordance model loaded")
@@ -142,7 +150,7 @@ class ObservationWrapper(gym.ObservationWrapper):
             obs["static_aff"] = mask
         return obs
 
-    def get_gripper_obs(self, obs_dict):
+    def _get_gripper_obs(self, obs_dict):
         obs = {}
         if(self._use_gripper_img):
             # cv2.imshow("gripper_cam orig",
@@ -174,6 +182,38 @@ class ObservationWrapper(gym.ObservationWrapper):
                 # show_mask_np(gripper_obs, mask)
                 del obs_t
             obs["gripper_aff"] = mask
+
+    # Segmentator centers model
+    def get_gripper_obs(self, obs_dict):
+        obs = {}
+        if(self._use_gripper_img):
+            # cv2.imshow("gripper_cam orig",
+            #            obs_dict['rgb_obs'][self.gripper_id])
+            gripper_obs = self.img_preprocessing(
+                            obs_dict['rgb_obs'][self.gripper_id])
+            # 1, W, H
+            obs["gripper_img_obs"] = gripper_obs
+        if(self.gripper_cam_aff_net is not None
+           and self.affordance.gripper_cam.use):
+            # Np array 1, H, W
+            gripper_obs = self.img_preprocessing(
+                        obs_dict['rgb_obs'][self.gripper_id])
+            with torch.no_grad():
+                # 1, 1, H, W in range [-1, 1]
+                obs_t = torch.tensor(gripper_obs).unsqueeze(0)
+                obs_t = obs_t.float().cuda()
+
+                # 1, H, W
+                # aff_logits, aff_probs, aff_mask, directions
+                _, aff_probs, aff_mask, directions = \
+                    self.gripper_cam_aff_net(obs_t)
+                mask = torch_to_numpy(aff_mask)  # foreground/affordance Mask
+                probs = torch_to_numpy(aff_probs)
+                center_dir = torch_to_numpy(directions)
+                del obs_t
+            obs["gripper_aff"] = mask
+            obs["gripper_center_dir"] = center_dir
+            obs["gripper_aff_probs"] = probs
             del gripper_obs
         return obs
 

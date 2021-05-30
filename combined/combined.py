@@ -19,6 +19,7 @@ from affordance_model.datasets import get_transforms
 from utils.cam_projections import pixel2world
 from utils.img_utils import torch_to_numpy, overlay_mask, viz_aff_centers_preds
 
+
 class Combined(SAC):
     def __init__(self, cfg, sac_cfg=None):
         super(Combined, self).__init__(**sac_cfg)
@@ -374,7 +375,7 @@ class Combined(SAC):
               max_episode_length=None, n_eval_ep=5):
         if not isinstance(total_timesteps, int):   # auto
             total_timesteps = int(total_timesteps)
-        episode = 0
+        episode = 1
         s = self.env.reset()
         episode_return, episode_length = 0, 0
         best_return, best_eval_return = -np.inf, -np.inf
@@ -413,7 +414,7 @@ class Combined(SAC):
 
             # Log interval (sac)
             if((t % log_interval == 0 and not self._log_by_episodes)
-               or (self._log_by_episodes and episode % _log_n_ep)):
+               or (self._log_by_episodes and episode % _log_n_ep == 0)):
                 best_eval_return, plot_data = \
                      self._eval_and_log(self.writer, t, episode,
                                         plot_data, best_eval_return,

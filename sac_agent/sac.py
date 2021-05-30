@@ -266,7 +266,7 @@ class SAC():
             total_timesteps = int(total_timesteps)
         # eval_writer = SummaryWriter(self.eval_writer_name)
         writer = SummaryWriter(self.writer_name)
-        episode = 0
+        episode = 1
         s = self.env.reset()
         episode_return, episode_length = 0, 0
         best_return, best_eval_return = -np.inf, -np.inf
@@ -298,7 +298,7 @@ class SAC():
                 s = self.env.reset()
 
             if((t % log_interval == 0 and not self._log_by_episodes)
-               or (self._log_by_episodes and episode % _log_n_ep)):
+               or (self._log_by_episodes and episode % _log_n_ep == 0)):
                 best_eval_return, plot_data = \
                      self._eval_and_log(writer, t, episode,
                                         plot_data, best_eval_return,

@@ -9,16 +9,17 @@ register_env()
 @hydra.main(config_path="./config", config_name="cfg_combined")
 def main(cfg):
     training_env = gym.make("VREnv-v0", **cfg.env).env
-    eval_env = gym.make("VREnv-v0", **cfg.eval_env).env
     training_env = wrap_env(training_env, train=True,
                             affordance=cfg.affordance,
                             **cfg.env_wrapper)
-    eval_env = wrap_env(eval_env,
-                        affordance=cfg.affordance,
-                        **cfg.env_wrapper)
-    # eval_env = None
+
+    # eval_env = gym.make("VREnv-v0", **cfg.eval_env).env
+    # eval_env = wrap_env(eval_env,
+    #                     affordance=cfg.affordance,
+    #                     **cfg.env_wrapper)
+
     sac_cfg = {"env": training_env,
-               "eval_env": eval_env,
+               "eval_env": None,
                "model_name": cfg.model_name,
                "save_dir": cfg.agent.save_dir,
                "net_cfg": cfg.agent.net_cfg,
@@ -27,7 +28,7 @@ def main(cfg):
     model = Combined(cfg, sac_cfg=sac_cfg)
     model.learn(**cfg.agent.learn_config)
     training_env.close()
-    eval_env.close()
+    # eval_env.close()
 
 
 if __name__ == "__main__":

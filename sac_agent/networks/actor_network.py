@@ -121,7 +121,7 @@ class CNNPolicy(nn.Module):
                 logits = gripper_action_logits.unsqueeze(0)
             else:
                 logits = gripper_action_logits
-            gripper_probs = F.softmax(logits, dim=0)
+            gripper_probs = F.softmax(logits, dim=-1)
             gripper_action = torch.argmax(gripper_probs)
         else:
             dist = Normal(mu, sigma)

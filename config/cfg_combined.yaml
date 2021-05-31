@@ -71,7 +71,7 @@ affordance:
     gripper_cam:
       use: True  # Use affordance in observation
       densify_reward: False  # Use affordance to shape the reward function
-      model_path: ${models_path}/gripper_centers_2-5_1_5_1_64px_val_miou-0.474.ckpt
+      model_path: ${models_path}/gripper_centers_2-5_1_5_1_64px_epoch_40.ckpt
       hough_voting:
         skip_pixels: 2
         inlier_threshold: 0.7

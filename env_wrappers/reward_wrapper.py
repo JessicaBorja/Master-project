@@ -186,8 +186,6 @@ class RewardWrapper(gym.RewardWrapper):
             cluster = aff_probs[object_masks == obj_class[i], 1]
             robustness = np.mean(cluster)
             pixel_count = cluster.shape[0] / n_pixels
-            if(pixel_count < 0.02):  # Skip small clusters
-                continue
 
             # Convert back to observation size
             o = (o * orig_shape / pred_shape).astype("int64")
@@ -276,5 +274,5 @@ class RewardWrapper(gym.RewardWrapper):
                 rew = -1
             else:
                 scale_dist = min(distance / self.target_radius, 1)  # cannot be larger than 1
-                rew += (1 - scale_dist)**(0.4)
+                rew = rew*2 + (1 - scale_dist)**(0.4)
         return rew

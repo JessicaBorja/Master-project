@@ -1,23 +1,23 @@
-import sys
-
-from numpy.lib import utils
-from utils.img_utils import overlay_mask, viz_aff_centers_preds
 import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from sac_agent.sac import SAC
-from affordance_model.segmentator_centers import Segmentator
-from affordance_model.datasets import get_transforms
+import sys
 import os
 import cv2
-from sac_agent.sac_utils.utils import EpisodeStats, tt
 from omegaconf import OmegaConf
 import pybullet as p
 import math
 from sklearn.cluster import DBSCAN
 from matplotlib import cm
+
+from sac_agent.sac import SAC
+from sac_agent.sac_utils.utils import EpisodeStats, tt
+
+from affordance_model.segmentator_centers import Segmentator
+from affordance_model.datasets import get_transforms
+
 from utils.cam_projections import pixel2world
-from utils.img_utils import torch_to_numpy
+from utils.img_utils import torch_to_numpy, overlay_mask, viz_aff_centers_preds
 
 
 class Combined(SAC):
@@ -70,6 +70,7 @@ class Combined(SAC):
             print("Static cam aff. Path does not exist: %s" % path)
         return aff_net
 
+    # Env real target pos
     def _env_compute_target(self):
         # This should come from static cam affordance later on
         target_pos, _ = self.env.get_target_pos()
@@ -81,15 +82,16 @@ class Combined(SAC):
             + np.array([0, 0, 0.07])
 
         # Visualize targets
-        p.removeAllUserDebugItems()
-        p.addUserDebugText("target_0",
-                           textPosition=target_pos,
-                           textColorRGB=[0, 1, 0])
-        p.addUserDebugText("a_center",
-                           textPosition=area_center,
-                           textColorRGB=[0, 1, 0])
+        # p.removeAllUserDebugItems()
+        # p.addUserDebugText("target_0",
+        #                    textPosition=target_pos,
+        #                    textColorRGB=[0, 1, 0])
+        # p.addUserDebugText("a_center",
+        #                    textPosition=area_center,
+        #                    textColorRGB=[0, 1, 0])
         return area_center, target_pos
 
+    # Clustering
     def _aff_compute_target(self):
         # Predictions for current observation
         cam = self.env.cameras[self.cam_id]
@@ -197,6 +199,7 @@ class Combined(SAC):
             + np.array([0, 0, 0.05])
         return area_center, target_pos
 
+    # Aff-center model
     def _compute_target_centers(self):
         # Get environment observation
         cam = self.env.cameras[self.cam_id]
@@ -209,15 +212,17 @@ class Combined(SAC):
         img_obs = self.transforms(img_obs)
 
         # Predict affordances and centers
-        prediction = self.aff_net_static_cam.predict(img_obs)
-        _, aff_probs, _, object_centers, _, object_masks = prediction
+        _, aff_probs, aff_mask, center_dir = self.forward(img_obs)
+        aff_mask, center_dir, object_centers, object_masks = \
+            self.predict(aff_mask, center_dir)
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
         object_masks = torch_to_numpy(object_masks[0])  # H, W
 
         # Visualize predictions
-        viz_aff_centers_preds(orig_img, prediction)
+        # viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+        #                       object_centers, object_masks)
 
         # Plot different objects
         if(len(object_centers) > 0):
@@ -300,9 +305,9 @@ class Combined(SAC):
         self.env.current_target = target
         self.eval_env.current_target = target
 
-        p.addUserDebugText("a_center",
-                           textPosition=self.area_center,
-                           textColorRGB=[0, 0, 1])
+        # p.addUserDebugText("a_center",
+        #                    textPosition=self.area_center,
+        #                    textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
@@ -315,9 +320,9 @@ class Combined(SAC):
             tcp_pos = env.get_obs()["robot_obs"][:3]
             a = [self.area_center, self.target_orn, 1]
             self.move_to_target(env, dict_obs, tcp_pos, a)
-            p.addUserDebugText("target",
-                               textPosition=target,
-                               textColorRGB=[0, 0, 1])
+            # p.addUserDebugText("target",
+            #                    textPosition=target,
+            #                    textColorRGB=[0, 0, 1])
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
                  print_all_episodes=False, render=False, save_images=False):
@@ -370,7 +375,7 @@ class Combined(SAC):
               max_episode_length=None, n_eval_ep=5):
         if not isinstance(total_timesteps, int):   # auto
             total_timesteps = int(total_timesteps)
-        episode = 0
+        episode = 1
         s = self.env.reset()
         episode_return, episode_length = 0, 0
         best_return, best_eval_return = -np.inf, -np.inf
@@ -380,6 +385,11 @@ class Combined(SAC):
         plot_data = {"actor_loss": [],
                      "critic_loss": [],
                      "ent_coef_loss": [], "ent_coef": []}
+
+        _log_n_ep = log_interval//max_episode_length
+        if(_log_n_ep < 1):
+            _log_n_ep = 1
+
         # correct_every_ts = 20
         # Move to target position only one
         # Episode ends if outside of radius
@@ -390,8 +400,19 @@ class Combined(SAC):
                                    plot_data)
 
             # End episode
-            if(done or (max_episode_length and
-                        (episode_length >= max_episode_length))):
+            end_ep = done or (max_episode_length
+                              and (episode_length >= max_episode_length))
+
+            # Log interval (sac)
+            if((t % log_interval == 0 and not self._log_by_episodes)
+               or (self._log_by_episodes and end_ep
+                   and episode % _log_n_ep == 0)):
+                best_eval_return, plot_data = \
+                     self._eval_and_log(self.writer, t, episode,
+                                        plot_data, best_eval_return,
+                                        n_eval_ep, max_episode_length)
+
+            if(end_ep):
                 best_return = \
                     self._on_train_ep_end(self.writer, t, episode,
                                           total_timesteps, best_return,
@@ -401,10 +422,3 @@ class Combined(SAC):
                 episode_return, episode_length = 0, 0
                 s = self.env.reset()
                 self.correct_position(self.env, s)
-
-            # Log interval (sac)
-            if(t % log_interval == 0):
-                best_eval_return, plot_data = \
-                     self._eval_and_log(self.writer, t, episode,
-                                        plot_data, best_eval_return,
-                                        n_eval_ep, max_episode_length)

@@ -118,25 +118,26 @@ class Segmentator(pl.LightningModule):
         self.unet.train()
         self.center_direction_net.train()
 
+    # Affordance mask prediction
     def forward(self, x):
         # in lightning, forward defines the prediction/inference actions
         self.unet.encoder.eval()
         features = self.unet.encoder(x)
         decoder_output = self.unet.decoder(*features)
-        segmentation_logits = self.unet.segmentation_head(decoder_output)
+        aff_logits = self.unet.segmentation_head(decoder_output)
         center_direction_prediction = self.center_direction_net(decoder_output)
-        return segmentation_logits, center_direction_prediction
 
-    def predict(self, x):
+        # Affordance
+        aff_probs = self.act_fnc(aff_logits)  # Shape: [N x 3 x H x W]
+        aff_mask = torch.argmax(aff_probs, dim=1)  # Shape: [N x H x W]
+        return aff_logits, aff_probs, aff_mask, center_direction_prediction
+
+    # Center prediction
+    def predict(self, aff_mask, center_dir):
         # x.shape = (B, C, H, W)
         self.eval_mode()
 
         with torch.no_grad():
-            aff_logits, center_dir = self.forward(x)
-
-            # Affordance
-            aff_probs = self.act_fnc(aff_logits)  # Shape: [N x 3 x H x W]
-            aff_mask = torch.argmax(aff_probs, dim=1)  # Shape: [N x H x W]
 
             # Center direction
             center_dir /= torch.norm(center_dir,
@@ -152,14 +153,14 @@ class Segmentator(pl.LightningModule):
         object_centers = []
         for i in range(initial_masks.shape[0]):
             centers_padded = object_centers_padded[i]
-            centers_padded = centers_padded.permute((1, 0))[:, :num_objects[i]]
+            centers_padded = centers_padded.permute((1, 0))[:num_objects[i], :]
             for obj_center in centers_padded:
                 if(torch.norm(obj_center) > 0):
                     # cast to int for pixel
                     object_centers.append(obj_center.long())
 
         self.train_mode()
-        return aff_mask, aff_probs, center_dir, object_centers, aff_logits, initial_masks
+        return aff_mask, center_dir, object_centers, initial_masks
 
     def log_stats(self, split, max_batch, batch_idx, loss, miou):
         if(batch_idx >= max_batch - 1):
@@ -182,7 +183,7 @@ class Segmentator(pl.LightningModule):
 
         # B, N_classes, img_size, img_size
         # Forward pass
-        aff_logits, center_dir = self.forward(x)
+        aff_logits, _, _, center_dir = self.forward(x)
         preds = {"affordance_logits": aff_logits,
                  "center_dirs": center_dir}
 
@@ -205,9 +206,9 @@ class Segmentator(pl.LightningModule):
 
     def validation_step(self, val_batch, batch_idx):
         x, labels = val_batch
-        # _, _, center_dir, object_centers, aff_logits = self.predict(x)
         # Predictions
-        aff_logits, center_dir = self.forward(x)
+        aff_logits, _, aff_mask, directions = self.forward(x)
+        aff_mask, center_dir, _, _ = self.predict(aff_mask, directions)
         preds = {"affordance_logits": aff_logits,
                  "center_dirs": center_dir}
 

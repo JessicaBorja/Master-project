@@ -2,6 +2,7 @@
 import hydra
 import os
 import cv2
+from hydra.types import ObjectConf
 import torch
 import sys
 from omegaconf import OmegaConf
@@ -99,8 +100,9 @@ def viz(cfg):
         x = img_transform(x).cuda()
 
         # Predict affordance, centers and directions
-        fg_mask, aff_probs, directions, object_centers, aff_logits, object_masks = \
-            model.predict(x)
+        _, _, aff_mask, directions = model(x)
+        fg_mask, _, object_centers, object_masks = \
+            model.predict(aff_mask, directions)
 
         gt_transformed = mask_transforms(torch.Tensor(np.expand_dims(gt_mask, 0)).cuda())
         # print(compute_mIoU(aff_logits, gt_transformed))
@@ -135,6 +137,7 @@ def viz(cfg):
         mask = (np.transpose(mask, (1, 2, 0))*255).astype('uint8')
 
         # Resize to out_shape
+        obj_segmentation = cv2.resize(obj_segmentation, out_shape)
         orig_img = cv2.resize(orig_img, out_shape)
         flow_img = cv2.resize(flow_img, out_shape)
         mask = cv2.resize(mask, out_shape)

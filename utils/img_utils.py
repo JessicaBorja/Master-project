@@ -9,10 +9,8 @@ def torch_to_numpy(x):
     return x.detach().cpu().numpy()
 
 
-def viz_aff_centers_preds(img_obs, output):
-    mask, aff_probs, directions, object_centers, logits, object_masks = \
-        output
-
+def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
+                          object_centers, object_masks):
     # To numpy
     mask = torch_to_numpy(mask[0])  # H, W
     aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
@@ -35,6 +33,7 @@ def viz_aff_centers_preds(img_obs, output):
     obj_class = np.unique(object_masks)
     obj_class = obj_class[obj_class != 0]  # remove background class
     max_robustness = 0
+    target_px = None
     for i, o in enumerate(object_centers):
         # Mean prob of being class 1 (foreground)
         robustness = np.mean(aff_probs[object_masks == obj_class[i], 1])
@@ -47,17 +46,21 @@ def viz_aff_centers_preds(img_obs, output):
                                  markerType=cv2.MARKER_CROSS,
                                  markerSize=8,
                                  line_type=cv2.LINE_AA)
+    if(target_px is not None):
+        out_img = cv2.drawMarker(out_img, (target_px[1], target_px[0]),
+                                 (255, 0, 0),
+                                 markerType=cv2.MARKER_CROSS,
+                                 markerSize=12,
+                                 line_type=cv2.LINE_AA)
 
-    out_img = cv2.drawMarker(out_img, (target_px[1], target_px[0]),
-                             (255, 0, 0),
-                             markerType=cv2.MARKER_CROSS,
-                             markerSize=12,
-                             line_type=cv2.LINE_AA)
+    flow_img = cv2.resize(flow_img, (200, 200))
+    flow_over_img = cv2.resize(flow_over_img, (200, 200))
+    out_img = cv2.resize(out_img, (200, 200))
 
     cv2.imshow("flow_img", flow_img)
     cv2.imshow("flow_over_img", flow_over_img)
     cv2.imshow("preds", out_img)
-    cv2.waitKey(0)
+    cv2.waitKey(1)
 
 
 def visualize_np(mask, img, imshow=False, k=15):

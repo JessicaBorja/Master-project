@@ -114,17 +114,24 @@ class CNNPolicy(nn.Module):
     # return action scaled to env
     def act(self, curr_obs, deterministic=False, reparametrize=False):
         mu, sigma, gripper_action_logits = self.forward(curr_obs)
-        log_probs = None
+        log_probs, log_prob_a = None, None
         if(deterministic):
             action = torch.tanh(mu)
-            gripper_probs = F.softmax(gripper_action_logits)
+            if(len(gripper_action_logits.shape) == 1):
+                logits = gripper_action_logits.unsqueeze(0)
+            else:
+                logits = gripper_action_logits
+            gripper_probs = F.softmax(logits, dim=0)
             gripper_action = torch.argmax(gripper_probs)
         else:
             dist = Normal(mu, sigma)
             gripper_dist = GumbelSoftmax(0.5, logits=gripper_action_logits)
             if(reparametrize):
                 sample = dist.rsample()
+                # One hot encoded
                 gripper_action = gripper_dist.rsample()
+                # Single action
+                gripper_action = torch.argmax(gripper_action, -1)
             else:
                 sample = dist.sample()
                 gripper_action = gripper_dist.sample()
@@ -144,12 +151,15 @@ class CNNPolicy(nn.Module):
         # Gripper action is a integer, not a tensor, so unsqueeze to turn concat
         # Gripper action is in (0,1) -> needs to be scaled to -1 or 1
         gripper_action = gripper_action * 2 - 1
-        gripper_action = gripper_action.unsqueeze(0)
+        gripper_action = gripper_action.unsqueeze(-1)
         action = torch.cat((action, gripper_action), -1)
         action = self.scale_action(action)
 
         # add gripper action to log_probs
-        log_probs = log_probs + log_prob_a
+        if(log_probs is not None and log_prob_a is not None):
+            log_probs = log_probs + log_prob_a
+        else:
+            log_probs = None
         return action, log_probs
 
 

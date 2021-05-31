@@ -101,10 +101,10 @@ class CNNPolicy(nn.Module):
         x = F.elu(self.fc1(features))
         mu = self.mu(x)
         log_sigma = self.sigma(x)
-        gripper_a = F.softmax(self.gripper_action(x))
+        gripper_action_logits = self.gripper_action(x)
         # avoid log_sigma to go to infinity
         sigma = torch.clamp(log_sigma, -20, 2).exp()
-        return mu, sigma, gripper_a
+        return mu, sigma, gripper_action_logits
 
     def scale_action(self, action):
         slope = (self.action_high - self.action_low) / 2
@@ -113,38 +113,49 @@ class CNNPolicy(nn.Module):
 
     # return action scaled to env
     def act(self, curr_obs, deterministic=False, reparametrize=False):
-        mu, sigma, gripper = self.forward(curr_obs)  # .squeeze(0)
+        mu, sigma, gripper_action_logits = self.forward(curr_obs)
         log_probs = None
         if(deterministic):
             action = torch.tanh(mu)
-            gripper_a = torch.argmax(gripper)
+            gripper_probs = F.softmax(gripper_action_logits)
+            gripper_action = torch.argmax(gripper_probs)
         else:
             dist = Normal(mu, sigma)
-            gripper_dist = GumbelSoftmax(0.5)
+            gripper_dist = GumbelSoftmax(0.5, logits=gripper_action_logits)
             if(reparametrize):
                 sample = dist.rsample()
-                gripper_a = gripper_dist.rsample()
+                gripper_action = gripper_dist.rsample()
             else:
                 sample = dist.sample()
-                gripper_a = gripper_dist.sample()
+                gripper_action = gripper_dist.sample()
             action = torch.tanh(sample)
+
             # For updating policy, Apendix of SAC paper
             # unsqueeze because log_probs is of dim (batch_size, action_dim)
             # but the torch.log... is (batch_size)
             log_probs = dist.log_prob(sample) -\
                 torch.log((1 - action.square() + 1e-6))
             log_probs = log_probs.sum(-1)  # , keepdim=True)
-            log_prob_a = gripper_dist.log_prob(gripper_a)
 
-        # add gripper action
-        action = torch.cat((action, gripper_a), -1)
+            # Discrete part of the action
+            log_prob_a = gripper_dist.log_prob(gripper_action)
+
+        # Add gripper action
+        # Gripper action is a integer, not a tensor, so unsqueeze to turn concat
+        # Gripper action is in (0,1) -> needs to be scaled to -1 or 1
+        gripper_action = gripper_action * 2 - 1
+        gripper_action = gripper_action.unsqueeze(0)
+        action = torch.cat((action, gripper_action), -1)
         action = self.scale_action(action)
 
         # add gripper action to log_probs
-        log_probs = torch.cat((log_probs, log_prob_a), -1)
+        log_probs = log_probs + log_prob_a
         return action, log_probs
 
 
+# https://stackoverflow.com/questions/56226133/soft-actor-critic-with-discrete-action-space
+# https://github.com/kengz/SLM-Lab/blob/master/slm_lab/agent/algorithm/sac.py
+# https://github.com/kengz/SLM-Lab/blob/master/slm_lab/lib/distribution.py
 class GumbelSoftmax(RelaxedOneHotCategorical):
     '''
     A differentiable Categorical distribution using reparametrization trick with Gumbel-Softmax
@@ -160,6 +171,16 @@ class GumbelSoftmax(RelaxedOneHotCategorical):
         u = torch.empty(self.logits.size(), device=self.logits.device, dtype=self.logits.dtype).uniform_(0, 1)
         noisy_logits = self.logits - torch.log(-torch.log(u))
         return torch.argmax(noisy_logits, dim=-1)
+
+    def rsample(self, sample_shape=torch.Size()):
+        '''
+        Gumbel-softmax resampling using the Straight-Through trick.
+        Credit to Ian Temple for bringing this to our attention.
+        To see standalone code of how this works, refer to https://gist.github.com/yzh119/fd2146d2aeb329d067568a493b20172f
+        '''
+        rout = super().rsample(sample_shape)  # differentiable
+        out = F.one_hot(torch.argmax(rout, dim=-1), self.logits.shape[-1]).float()
+        return (out - rout).detach() + rout
 
     def log_prob(self, value):
         '''value is one-hot or relaxed'''

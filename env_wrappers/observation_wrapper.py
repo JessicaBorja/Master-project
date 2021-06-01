@@ -360,12 +360,12 @@ class ObservationWrapper(gym.ObservationWrapper):
         p.removeAllUserDebugItems()
         self.unwrapped.current_target = target_world
         # Maximum distance given the task
-        # for out_dict in cluster_outputs:
-        #     c = out_dict["center"]
-        #     # If aff detects closer target which is large enough
-        #     # and Detected affordance close to target
-        #     if(np.linalg.norm(self.unwrapped.current_target - c) < 0.05):
-        #         self.unwrapped.current_target = c
+        for out_dict in cluster_outputs:
+            c = out_dict["center"]
+            # If aff detects closer target which is large enough
+            # and Detected affordance close to target
+            if(np.linalg.norm(self.unwrapped.current_target - c) < 0.05):
+                self.unwrapped.current_target = c
 
         # See selected point
         p.addUserDebugText("target",

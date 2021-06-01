@@ -4,12 +4,8 @@ optim_res: False
 
 models_dir: ${project_path}/SAC/combined/hydra_outputs
 
-# banana_combined./2021-05-13/23-53-10/results/b_gripper-aff_static_pos_sparse_13-05_23-53
-# 2021-05-13/23-08-19/results/b_init07_fixed_angle_gripper-aff_pos_13-05_23-08
-
-model_name: "tabletop_gripper_tcp_30-05_22-07_best_eval"
-folder_name: ${test.models_dir}/pickup/2021-05-30/22-07-44
-
+model_name: "tabletop_gripper_tcp_31-05_22-45_best_eval"
+folder_name: ${test.models_dir}/pickup/2021-05-31/22-45-40
 eval_cfg:
   n_episodes: 5
   render: False

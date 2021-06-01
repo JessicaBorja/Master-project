@@ -19,8 +19,7 @@ class RewardWrapper(gym.RewardWrapper):
         super(RewardWrapper, self).__init__(env)
         self.env = env
         self.gripper_id, self.static_id = self.find_cam_ids()
-        if(self.affordance.gripper_cam.use
-           and self.affordance.gripper_cam.densify_reward):
+        if(self.affordance.gripper_cam.densify_reward):
             print("RewardWrapper: Gripper cam to shape reward")
 
     def find_cam_ids(self):
@@ -120,106 +119,9 @@ class RewardWrapper(gym.RewardWrapper):
         # cv2.waitKey(1)
         return cluster_outputs
 
-    # Aff-center 
-    def find_target_center(self, cam_id, orig_img, depth, obs):
-        """
-        Args:
-            orig_img: np array, RGB original resolution from camera
-                     shape = (1, cam.height, cam.width)
-                     range = 0 to 255
-                     Only used for vizualization purposes
-            obs: dictionary
-                - "img_obs":
-                - "gripper_aff": 
-                    affordance segmentation mask, range 0-1
-                    np.array(size=(1, img_size,img_size))
-                - "gripper_aff_probs":
-                    affordance activation function output
-                    np.array(size=(1, n_classes, img_size,img_size))
-                    range 0-1
-                - "gripper_center_dir": center direction predictions
-                    vectors in pixel space
-                    np.array(size=(1, 2, img_size,img_size))
-                np array, int64
-                  shape = (1, img_size, img_size)
-                  range = 0 to 1
-        return:
-            centers: list of 3d points (x, y, z)
-        """
-        aff_mask = obs["gripper_aff"]
-        aff_probs = obs["gripper_aff_probs"]
-        directions = obs["gripper_center_dir"]
-        cam = self.cameras[cam_id]
-
-        # Predict affordances and centers
-        aff_mask, center_dir, object_centers, object_masks = \
-            self.gripper_cam_aff_net.predict(tt(aff_mask), tt(directions))
-
-        # Visualize predictions
-        viz_aff_centers_preds(orig_img, aff_mask, tt(aff_probs), center_dir,
-                              object_centers, object_masks)
-
-        # Plot different objects
-        cluster_outputs = []
-        object_centers = [torch_to_numpy(o) for o in object_centers]
-        if(len(object_centers) > 0):
-            target_px = object_centers[0]
-        else:
-            return cluster_outputs
-
-        # To numpy
-        aff_probs = np.transpose(aff_probs[0], (1, 2, 0))  # H, W, 2
-        object_masks = torch_to_numpy(object_masks[0])  # H, W
-
-        max_robustness = 0
-        obj_class = np.unique(object_masks)[1:]
-        obj_class = obj_class[obj_class != 0]  # remove background class
-
-        # Look for most likely center
-        n_pixels = aff_mask.shape[1] * aff_mask.shape[2]
-        pred_shape = aff_probs.shape[:2]
-        orig_shape = depth.shape[:2]
-        for i, o in enumerate(object_centers):
-            # Mean prob of being class 1 (foreground)
-            cluster = aff_probs[object_masks == obj_class[i], 1]
-            robustness = np.mean(cluster)
-            pixel_count = cluster.shape[0] / n_pixels
-
-            # Convert back to observation size
-            o = (o * orig_shape / pred_shape).astype("int64")
-            v, u = o
-
-            world_pt = pixel2world(cam, u, v, depth)
-            c_out = {"center": world_pt,
-                     "pixel_count": pixel_count,
-                     "robustness": max_robustness}
-            cluster_outputs.append(c_out)
-            if(robustness > max_robustness):
-                max_robustness = robustness
-                target_px = o
-
-        # world cord
-        # v, u = target_px
-        # out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
-        #                          (u, v),
-        #                          (0, 255, 0),
-        #                          markerType=cv2.MARKER_CROSS,
-        #                          markerSize=12,
-        #                          line_type=cv2.LINE_AA)
-        # depth = cv2.drawMarker(np.array(depth),
-        #                        (u, v),
-        #                        (0, 255, 0),
-        #                        markerType=cv2.MARKER_CROSS,
-        #                        markerSize=12,
-        #                        line_type=cv2.LINE_AA)
-        # cv2.imshow("out_img", out_img)
-        # cv2.imshow("depth", depth)
-        return cluster_outputs
-
     def reward(self, rew):
         # modify rew
         if(self.task == "banana_combined" or self.task == "pickup"
-           and self.affordance.gripper_cam.use
            and self.affordance.gripper_cam.densify_reward):
             # set by observation wrapper so that
             # both have the same observation on
@@ -233,10 +135,13 @@ class RewardWrapper(gym.RewardWrapper):
             # Create positive reward relative to the distance
             # between the closest point detected by the affordances
             # and the end effector position
+            # p.addUserDebugText("target_reward",
+            #                    textPosition=self.unwrapped.current_target,
+            #                    textColorRGB=[0, 1, 0])
             distance = np.linalg.norm(tcp_pos - self.unwrapped.current_target)
             if(self.env.unwrapped._termination()):
                 rew = -1
             else:
                 scale_dist = min(distance / self.target_radius, 1)  # cannot be larger than 1
-                rew = rew*2 + (1 - scale_dist)**(0.4)
+                rew = rew*5 + (1 - scale_dist)**(0.4)
         return rew

@@ -112,8 +112,9 @@ class ObservationWrapper(gym.ObservationWrapper):
                     self.affordance = None
                     path = os.path.abspath(path)
                     print("obs_wrapper: Path does not exist: %s" % path)
-            elif(self.affordance.gripper_cam.use
-                 and cam_str == "gripper"):
+            elif(cam_str == "gripper" and
+                 (self.affordance.gripper_cam.use or
+                  self.affordance.gripper_cam.densify_reward)):
                 path = self.affordance.gripper_cam.model_path
 
                 # Configuration of the model

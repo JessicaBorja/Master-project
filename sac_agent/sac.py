@@ -287,7 +287,7 @@ class SAC():
             # End episode
             end_ep = done or (max_episode_length
                               and (episode_length >= max_episode_length))
-            
+
             # Log interval
             if((t % log_interval == 0 and not self._log_by_episodes)
                or (self._log_by_episodes and end_ep

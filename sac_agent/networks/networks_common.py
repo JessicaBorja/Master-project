@@ -6,11 +6,11 @@ import numpy as np
 import os
 
 
-def get_pos_shape(obs_space):
+def get_pos_shape(obs_space, key="robot_obs"):
     _obs_space_keys = list(obs_space.spaces.keys())
-    _position_shape = ("robot_obs" in _obs_space_keys)
-    if("robot_obs" in _obs_space_keys):
-        _position_shape = obs_space['robot_obs'].shape[-1]
+    _position_shape = (key in _obs_space_keys)
+    if(key in _obs_space_keys):
+        _position_shape = obs_space[key].shape[-1]
         return _position_shape
     return 0
 
@@ -44,7 +44,7 @@ def get_gripper_network(obs_space, out_feat, activation, affordance_cfg):
             _history_length, _img_size,
             out_feat=out_feat,
             activation=_activation_fn,
-            affordance=use_affordance)
+            use_affordance=use_affordance)
     return None
 
 
@@ -66,17 +66,18 @@ def get_img_network(obs_space, out_feat, activation, affordance_cfg):
             _history_length, _img_size,
             out_feat=out_feat,
             activation=_activation_fn,
-            affordance=use_affordance)
+            use_affordance=use_affordance)
     return None
 
 
-def get_concat_features(obs, cnn_img, cnn_depth=None, cnn_gripper=None):
+def get_concat_features(aff_cfg, obs, cnn_img,
+                        cnn_depth=None, cnn_gripper=None):
     features = []
 
     # Static image
     if("img_obs" in obs):
         img = obs['img_obs']
-        if("static_aff" in obs):
+        if("static_aff" in obs and aff_cfg.static_cam.use):
             mask = obs["static_aff"]
             if(len(img.shape) == 3):
                 img = img.unsqueeze(0)
@@ -89,7 +90,9 @@ def get_concat_features(obs, cnn_img, cnn_depth=None, cnn_gripper=None):
     # Gripper
     if("gripper_img_obs" in obs):
         img = obs['gripper_img_obs']
-        if("gripper_aff" in obs):
+        # Gripper_aff can be part of observation if
+        # shaping reward with gripper aff
+        if("gripper_aff" in obs and aff_cfg.gripper_cam.use):
             mask = obs["gripper_aff"]
             if(len(img.shape) == 3):
                 img = img.unsqueeze(0)
@@ -104,28 +107,27 @@ def get_concat_features(obs, cnn_img, cnn_depth=None, cnn_gripper=None):
 
     if("robot_obs" in obs):
         features.append(obs['robot_obs'])
+
+    if("detected_target_pos" in obs
+       and aff_cfg.gripper_cam.target_in_obs):
+        features.append(obs['detected_target_pos'])
     features = torch.cat(features, dim=-1)
     return features
 
 
 # cnn common takes the function directly, not the str
 class CNNCommon(nn.Module):
-    def __init__(self, in_channels, input_size, out_feat, affordance=None,
+    def __init__(self, in_channels, input_size, out_feat, use_affordance=False,
                  activation=F.relu):
         super(CNNCommon, self).__init__()
         w, h = self.calc_out_size(input_size, input_size, 8, 0, 4)
         w, h = self.calc_out_size(w, h, 4, 0, 2)
         w, h = self.calc_out_size(w, h, 3, 0, 1)
 
-        # self.conv1 = nn.Conv2d(in_channels, 32, 8, stride=4)
-        # self.conv2 = nn.Conv2d(32, 64, 4, stride=2)
-        # self.conv3 = nn.Conv2d(64, 64, 3, stride=1)
-        # self.fc1 = nn.Linear(w*h*64, out_feat)
-
         # Load affordance model
-        self._use_affordance = affordance
+        self._use_affordance = use_affordance
         aff_channels = 0
-        if(affordance):
+        if(use_affordance):
             aff_channels = 1  # Concatenate aff mask to inputs
 
         self.conv1 = nn.Conv2d(in_channels + aff_channels, 16, 8, stride=4)

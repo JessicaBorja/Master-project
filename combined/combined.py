@@ -42,8 +42,8 @@ class Combined(SAC):
         self.area_center, self.target = self._compute_target()
 
         # Target specifics
-        self.env.current_target = self.target
-        self.eval_env.current_target = self.target
+        self.env.unwrapped.current_target = self.target
+        self.eval_env.unwrapped.current_target = self.target
         self.radius = self.env.target_radius  # Distance in meters
 
     def _find_cam_id(self):
@@ -301,9 +301,10 @@ class Combined(SAC):
         self.area_center, self.target = \
             self._compute_target()
         target = self.target
+
         # Set current_target in each episode
-        self.env.current_target = target
-        self.eval_env.current_target = target
+        env.unwrapped.current_target = target
+        # self.eval_env.unwrapped.current_target = target
 
         # p.addUserDebugText("a_center",
         #                    textPosition=self.area_center,
@@ -323,6 +324,9 @@ class Combined(SAC):
             # p.addUserDebugText("target",
             #                    textPosition=target,
             #                    textColorRGB=[0, 0, 1])
+        # as we moved robot, need to update target and obs
+        # for rl policy
+        return env, env.observation(env.get_obs())
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
                  print_all_episodes=False, render=False, save_images=False):
@@ -335,7 +339,7 @@ class Combined(SAC):
             episode_length, episode_return = 0, 0
             done = False
             # Correct Position
-            self.correct_position(env, s)
+            env, s = self.correct_position(env, s)
             while(episode_length < max_episode_length and not done):
                 # sample action and scale it to action space
                 a, _ = self._pi.act(tt(s), deterministic=True)
@@ -393,7 +397,7 @@ class Combined(SAC):
         # correct_every_ts = 20
         # Move to target position only one
         # Episode ends if outside of radius
-        self.correct_position(self.env, s)
+        self.env, s = self.correct_position(self.env, s)
         for t in range(1, total_timesteps+1):
             s, done, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, t, episode_return, episode_length,
@@ -421,4 +425,4 @@ class Combined(SAC):
                 episode += 1
                 episode_return, episode_length = 0, 0
                 s = self.env.reset()
-                self.correct_position(self.env, s)
+                self.env, s = self.correct_position(self.env, s)

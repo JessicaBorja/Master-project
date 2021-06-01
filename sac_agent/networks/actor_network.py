@@ -65,7 +65,8 @@ class CNNPolicy(nn.Module):
         super(CNNPolicy, self).__init__()
         self.action_high = torch.tensor(action_space.high).cuda()
         self.action_low = torch.tensor(action_space.low).cuda()
-        _position_shape = get_pos_shape(obs_space)
+        _tcp_pos_shape = get_pos_shape(obs_space, "robot_obs")
+        _target_pos_shape = get_pos_shape(obs_space, "detected_target_pos")
         self.cnn_depth = get_depth_network(
                             obs_space,
                             out_feat=8,
@@ -84,16 +85,18 @@ class CNNPolicy(nn.Module):
         for net in [self.cnn_img, self.cnn_depth, self.cnn_gripper]:
             if(net is not None):
                 out_feat += 8
-        out_feat += _position_shape
+        out_feat += _tcp_pos_shape + _target_pos_shape
 
         self.fc1 = nn.Linear(out_feat, hidden_dim)
         # Last dimension of action_dim is gripper_action
         self.mu = nn.Linear(hidden_dim, action_dim - 1)
         self.sigma = nn.Linear(hidden_dim, action_dim - 1)
         self.gripper_action = nn.Linear(hidden_dim, 2)  # open / close
+        self.aff_cfg = affordance
 
     def forward(self, obs):
-        features = get_concat_features(obs,
+        features = get_concat_features(self.aff_cfg,
+                                       obs,
                                        self.cnn_img,
                                        self.cnn_depth,
                                        self.cnn_gripper)

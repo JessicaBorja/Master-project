@@ -28,7 +28,8 @@ class CNNCritic(nn.Module):
     def __init__(self, obs_space, action_dim, affordance=None,
                  hidden_dim=256, activation="relu"):
         super(CNNCritic, self).__init__()
-        _position_shape = get_pos_shape(obs_space)
+        _tcp_pos_shape = get_pos_shape(obs_space, "robot_obs")
+        _target_pos_shape = get_pos_shape(obs_space, "detected_target_pos")
         self.cnn_depth = get_depth_network(
                         obs_space,
                         out_feat=8,
@@ -47,14 +48,16 @@ class CNNCritic(nn.Module):
         for net in [self.cnn_img, self.cnn_depth, self.cnn_gripper]:
             if(net is not None):
                 out_feat += 8
-        out_feat += _position_shape + action_dim
+        out_feat += _tcp_pos_shape + _target_pos_shape + action_dim
 
         self._activation = activation
         self.fc1 = nn.Linear(out_feat, hidden_dim)
         self.q = nn.Linear(hidden_dim, 1)
+        self.aff_cfg = affordance
 
     def forward(self, states, actions):
-        features = get_concat_features(states,
+        features = get_concat_features(self.aff_cfg,
+                                       states,
                                        self.cnn_img,
                                        self.cnn_depth,
                                        self.cnn_gripper)

@@ -22,8 +22,6 @@ class RewardWrapper(gym.RewardWrapper):
         if(self.affordance.gripper_cam.use
            and self.affordance.gripper_cam.densify_reward):
             print("RewardWrapper: Gripper cam to shape reward")
-        # Combined model should initialize this (self.env.current_target)
-        self.current_target = None
 
     def find_cam_ids(self):
         gripper_id, static_id = None, None
@@ -35,7 +33,7 @@ class RewardWrapper(gym.RewardWrapper):
         return gripper_id, static_id
 
     # Clustering
-    def _find_target_center(self, cam_id, img_obs, depth, obs):
+    def _clusters_find_target_center(self, cam_id, img_obs, depth, obs):
         """
         Args:
             img_obs: np array, RGB original resolution from camera
@@ -158,8 +156,8 @@ class RewardWrapper(gym.RewardWrapper):
             self.gripper_cam_aff_net.predict(tt(aff_mask), tt(directions))
 
         # Visualize predictions
-        # viz_aff_centers_preds(orig_img, aff_mask, tt(aff_probs), center_dir,
-        #                       object_centers, object_masks)
+        viz_aff_centers_preds(orig_img, aff_mask, tt(aff_probs), center_dir,
+                              object_centers, object_masks)
 
         # Plot different objects
         cluster_outputs = []
@@ -230,46 +228,12 @@ class RewardWrapper(gym.RewardWrapper):
                 obs_dict = self.env.curr_raw_obs
             else:
                 obs_dict = self.get_obs()
-            # Cam resolution image
-            gripper_depth = obs_dict["depth_obs"][self.gripper_id]
-            gripper_img_orig = obs_dict["rgb_obs"][self.gripper_id]
-
-            # RL resolution (64x64). What the agent observes
-            # Preprocessed by obs_wrapper
-            if(self.env.curr_processed_obs is not None):
-                obs = self.env.curr_processed_obs
-            else:
-                obs = self.get_gripper_obs(obs_dict)
-
-            # px count amount of pixels in cluster relative to
-            # amount of pixels in img
-            clusters_outputs = self.find_target_center(self.gripper_id,
-                                                       gripper_img_orig,
-                                                       gripper_depth,
-                                                       obs)
             tcp_pos = obs_dict["robot_obs"][:3]
-
-            # p.removeAllUserDebugItems()
-            # p.addUserDebugText("target",
-            #                    textPosition=self.current_target,
-            #                    textColorRGB=[1, 0, 0])
-            # Maximum distance given the task
-            for out_dict in clusters_outputs:
-                c = out_dict["center"]
-                # If aff detects closer target which is large enough
-                # and Detected affordance close to target
-                if(np.linalg.norm(self.current_target - c) < 0.05):
-                    self.current_target = c
-
-            # See selected point
-            # p.addUserDebugText("target",
-            #                    textPosition=self.current_target,
-            #                    textColorRGB=[1, 0, 0])
 
             # Create positive reward relative to the distance
             # between the closest point detected by the affordances
             # and the end effector position
-            distance = np.linalg.norm(tcp_pos - self.current_target)
+            distance = np.linalg.norm(tcp_pos - self.unwrapped.current_target)
             if(self.env.unwrapped._termination()):
                 rew = -1
             else:

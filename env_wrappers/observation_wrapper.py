@@ -297,8 +297,8 @@ class ObservationWrapper(gym.ObservationWrapper):
             self.gripper_cam_aff_net.predict(tt(aff_mask), tt(directions))
 
         # Visualize predictions
-        viz_aff_centers_preds(orig_img, aff_mask, tt(aff_probs), center_dir,
-                              object_centers, object_masks)
+        # viz_aff_centers_preds(orig_img, aff_mask, tt(aff_probs), center_dir,
+        #                       object_centers, object_masks)
 
         # Plot different objects
         cluster_outputs = []
@@ -341,23 +341,24 @@ class ObservationWrapper(gym.ObservationWrapper):
                 target_world = world_pt
 
         # world cord
-        v, u = target_px
-        out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
-                                 (u, v),
-                                 (0, 255, 0),
-                                 markerType=cv2.MARKER_CROSS,
-                                 markerSize=12,
-                                 line_type=cv2.LINE_AA)
-        depth = cv2.drawMarker(np.array(depth),
-                               (u, v),
-                               (0, 255, 0),
-                               markerType=cv2.MARKER_CROSS,
-                               markerSize=12,
-                               line_type=cv2.LINE_AA)
-        cv2.imshow("out_img", out_img)
-        cv2.imshow("depth", depth)
+        # v, u = target_px
+        # out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
+        #                          (u, v),
+        #                          (0, 255, 0),
+        #                          markerType=cv2.MARKER_CROSS,
+        #                          markerSize=12,
+        #                          line_type=cv2.LINE_AA)
+        # depth = cv2.drawMarker(np.array(depth),
+        #                        (u, v),
+        #                        (0, 255, 0),
+        #                        markerType=cv2.MARKER_CROSS,
+        #                        markerSize=12,
+        #                        line_type=cv2.LINE_AA)
+        # cv2.imshow("out_img", out_img)
+        # cv2.imshow("depth", depth)
 
-        p.removeAllUserDebugItems()
+        # p.removeAllUserDebugItems()
+
         self.unwrapped.current_target = target_world
         # Maximum distance given the task
         for out_dict in cluster_outputs:
@@ -368,6 +369,6 @@ class ObservationWrapper(gym.ObservationWrapper):
                 self.unwrapped.current_target = c
 
         # See selected point
-        p.addUserDebugText("target",
-                           textPosition=self.unwrapped.current_target,
-                           textColorRGB=[1, 0, 0])
+        # p.addUserDebugText("target",
+        #                    textPosition=self.unwrapped.current_target,
+        #                    textColorRGB=[1, 0, 0])

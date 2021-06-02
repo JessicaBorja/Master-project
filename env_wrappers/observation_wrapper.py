@@ -82,7 +82,7 @@ class ObservationWrapper(gym.ObservationWrapper):
             if(self._use_robot_obs):
                 # *tcp_pos(3), *tcp_euler(3), gripper_opening_width(1),
                 obs_space_dict['robot_obs'] = gym.spaces.Box(
-                    low=-0.5, high=0.5, shape=(5,))
+                    low=-0.5, high=0.5, shape=(7,))
             if(self._use_gripper_img):
                 obs_space_dict['gripper_img_obs'] = gym.spaces.Box(
                     low=0,
@@ -216,10 +216,8 @@ class ObservationWrapper(gym.ObservationWrapper):
                                 obs_dict['depth_obs'][self.static_id])
                 obs["depth_obs"] = depth_obs
             if(self._use_robot_obs):
-                # *tcp_pos(3), *tcp_euler(1) z only, gripper_action(1),
-                obs["robot_obs"] = np.array([*obs_dict["robot_obs"][:3],
-                                             obs_dict["robot_obs"][5],
-                                             obs_dict["robot_obs"][-1]])
+                # *tcp_pos(3), *tcp_euler(3) , gripper_opening_width(1),
+                obs["robot_obs"] = obs_dict["robot_obs"][:7]
             self.obs_count += 1
         else:
             robot_obs, scene_obs = obs['robot_obs'], obs['scene_obs']
@@ -368,13 +366,13 @@ class ObservationWrapper(gym.ObservationWrapper):
 
         p.removeAllUserDebugItems()
 
-        self.unwrapped.current_target = target_world
+        # self.unwrapped.current_target = target_world
         # Maximum distance given the task
         for out_dict in cluster_outputs:
             c = out_dict["center"]
             # If aff detects closer target which is large enough
             # and Detected affordance close to target
-            if(np.linalg.norm(self.unwrapped.current_target - c) < 0.04):
+            if(np.linalg.norm(self.unwrapped.current_target - c) < 0.05):
                 self.unwrapped.current_target = c
 
         # See selected point

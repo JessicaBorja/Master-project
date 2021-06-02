@@ -303,8 +303,8 @@ class ObservationWrapper(gym.ObservationWrapper):
             self.gripper_cam_aff_net.predict(aff_mask, directions)
 
         # Visualize predictions
-        viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                              object_centers, object_masks)
+        # viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+        #                       object_centers, object_masks)
 
         # Plot different objects
         cluster_outputs = []
@@ -364,7 +364,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         # cv2.imshow("out_img", out_img)
         # cv2.imshow("depth", depth)
 
-        p.removeAllUserDebugItems()
+        # p.removeAllUserDebugItems()
 
         # self.unwrapped.current_target = target_world
         # Maximum distance given the task
@@ -376,6 +376,6 @@ class ObservationWrapper(gym.ObservationWrapper):
                 self.unwrapped.current_target = c
 
         # See selected point
-        p.addUserDebugText("target",
-                           textPosition=self.unwrapped.current_target,
-                           textColorRGB=[1, 0, 0])
+        # p.addUserDebugText("target",
+        #                    textPosition=self.unwrapped.current_target,
+        #                    textColorRGB=[1, 0, 0])

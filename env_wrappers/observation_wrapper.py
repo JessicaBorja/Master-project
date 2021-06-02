@@ -80,9 +80,9 @@ class ObservationWrapper(gym.ObservationWrapper):
                     low=0, high=255,
                     shape=(self.history_length, self.img_size, self.img_size))
             if(self._use_robot_obs):
-                # *tcp_pos(3), *tcp_euler(3),gripper_opening_width(1),
+                # *tcp_pos(3), *tcp_euler(3), gripper_opening_width(1),
                 obs_space_dict['robot_obs'] = gym.spaces.Box(
-                    low=-0.5, high=0.5, shape=(7,))
+                    low=-0.5, high=0.5, shape=(5,))
             if(self._use_gripper_img):
                 obs_space_dict['gripper_img_obs'] = gym.spaces.Box(
                     low=0,
@@ -91,7 +91,7 @@ class ObservationWrapper(gym.ObservationWrapper):
                 if(self.affordance.gripper_cam.use):
                     obs_space_dict['gripper_aff'] = gym.spaces.Box(
                         low=0,
-                        high=255,
+                        high=1,
                         shape=(self.history_length, self.img_size, self.img_size))
             if(self.affordance.gripper_cam.target_in_obs):
                 obs_space_dict['detected_target_pos'] = gym.spaces.Box(
@@ -189,9 +189,9 @@ class ObservationWrapper(gym.ObservationWrapper):
                 _, aff_probs, aff_mask, directions = \
                     self.gripper_cam_aff_net(obs_t)
                 mask = torch_to_numpy(aff_mask)  # foreground/affordance Mask
-                preds = {"gripper_aff": mask,
-                         "gripper_center_dir": torch_to_numpy(directions),
-                         "gripper_aff_probs": torch_to_numpy(aff_probs)}
+                preds = {"gripper_aff": aff_mask,
+                         "gripper_center_dir": directions,
+                         "gripper_aff_probs": aff_probs}
                 # Computes newest target
                 self.find_target_center(self.gripper_id,
                                         obs_dict['rgb_obs'][self.gripper_id],
@@ -216,8 +216,10 @@ class ObservationWrapper(gym.ObservationWrapper):
                                 obs_dict['depth_obs'][self.static_id])
                 obs["depth_obs"] = depth_obs
             if(self._use_robot_obs):
-                # *tcp_pos(3), *tcp_euler(3), gripper_opening_width(1),
-                obs["robot_obs"] = obs_dict["robot_obs"][:7]
+                # *tcp_pos(3), *tcp_euler(1) z only, gripper_action(1),
+                obs["robot_obs"] = np.array([*obs_dict["robot_obs"][:3],
+                                             obs_dict["robot_obs"][5],
+                                             obs_dict["robot_obs"][-1]])
             self.obs_count += 1
         else:
             robot_obs, scene_obs = obs['robot_obs'], obs['scene_obs']
@@ -300,11 +302,11 @@ class ObservationWrapper(gym.ObservationWrapper):
 
         # Predict affordances and centers
         aff_mask, center_dir, object_centers, object_masks = \
-            self.gripper_cam_aff_net.predict(tt(aff_mask), tt(directions))
+            self.gripper_cam_aff_net.predict(aff_mask, directions)
 
         # Visualize predictions
-        # viz_aff_centers_preds(orig_img, aff_mask, tt(aff_probs), center_dir,
-        #                       object_centers, object_masks)
+        viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+                              object_centers, object_masks)
 
         # Plot different objects
         cluster_outputs = []
@@ -315,6 +317,7 @@ class ObservationWrapper(gym.ObservationWrapper):
             return
 
         # To numpy
+        aff_probs = torch_to_numpy(aff_probs)
         aff_probs = np.transpose(aff_probs[0], (1, 2, 0))  # H, W, 2
         object_masks = torch_to_numpy(object_masks[0])  # H, W
 
@@ -363,7 +366,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         # cv2.imshow("out_img", out_img)
         # cv2.imshow("depth", depth)
 
-        # p.removeAllUserDebugItems()
+        p.removeAllUserDebugItems()
 
         self.unwrapped.current_target = target_world
         # Maximum distance given the task
@@ -371,10 +374,10 @@ class ObservationWrapper(gym.ObservationWrapper):
             c = out_dict["center"]
             # If aff detects closer target which is large enough
             # and Detected affordance close to target
-            if(np.linalg.norm(self.unwrapped.current_target - c) < 0.05):
+            if(np.linalg.norm(self.unwrapped.current_target - c) < 0.04):
                 self.unwrapped.current_target = c
 
         # See selected point
-        # p.addUserDebugText("target",
-        #                    textPosition=self.unwrapped.current_target,
-        #                    textColorRGB=[1, 0, 0])
+        p.addUserDebugText("target",
+                           textPosition=self.unwrapped.current_target,
+                           textColorRGB=[1, 0, 0])

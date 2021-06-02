@@ -35,3 +35,19 @@ class ThresholdMasks(object):
     def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         assert isinstance(tensor, torch.Tensor)
         return (tensor > self.threshold).long()
+
+
+class NormalizeVector(object):
+    """Normalize a tensor vector with mean and standard deviation."""
+
+    def __init__(self, mean=0.0, std=1.0):
+        self.std = torch.Tensor(std)
+        self.std[self.std == 0.0] = 1.0
+        self.mean = torch.Tensor(mean)
+
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+        assert isinstance(tensor, torch.Tensor)
+        return (tensor - self.mean) / self.std
+
+    def __repr__(self):
+        return self.__class__.__name__ + "(mean={0}, std={1})".format(self.mean, self.std)

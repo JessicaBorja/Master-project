@@ -71,9 +71,11 @@ class Combined(SAC):
         return aff_net
 
     # Env real target pos
-    def _env_compute_target(self):
+    def _env_compute_target(self, env=None):
+        if(not env):
+            env = self.env
         # This should come from static cam affordance later on
-        target_pos, _ = self.env.get_target_pos()
+        target_pos, _ = env.get_target_pos()
         # 2 cm deviation
         target_pos = np.array(target_pos)
         target_pos += np.random.normal(loc=0, scale=0.002,
@@ -299,7 +301,7 @@ class Combined(SAC):
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
         self.area_center, self.target = \
-            self._compute_target()
+            self._compute_target(env)
         target = self.target
 
         # Set current_target in each episode
@@ -334,8 +336,19 @@ class Combined(SAC):
                              episode_rewards=[],
                              validation_reward=[])
         im_lst = []
+        tasks, task_id = [], 0
+        if(env.task == "pickup"):
+            tasks = list(self.env.objects.keys())
+            tasks.remove("table")
+            tasks.remove("bin")
+            n_episodes = len(tasks)
+
+        # One episode per task
         for episode in range(n_episodes):
             s = env.reset()
+            if(env.task == "pickup"):
+                env.unwrapped.target = tasks[task_id]
+                task_id += 1
             episode_length, episode_return = 0, 0
             done = False
             # Correct Position

@@ -88,6 +88,11 @@ class ObservationWrapper(gym.ObservationWrapper):
                     low=0,
                     high=255,
                     shape=(self.history_length, self.img_size, self.img_size))
+                if(self.affordance.gripper_cam.use):
+                    obs_space_dict['gripper_aff'] = gym.spaces.Box(
+                        low=0,
+                        high=255,
+                        shape=(self.history_length, self.img_size, self.img_size))
             if(self.affordance.gripper_cam.target_in_obs):
                 obs_space_dict['detected_target_pos'] = gym.spaces.Box(
                     low=-1, high=1, shape=(3,))

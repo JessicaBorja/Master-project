@@ -214,7 +214,7 @@ class SAC():
         writer.add_scalar('train/episode_length',
                           episode_length, ts)
 
-        if(episode_return > best_return):
+        if(episode_return >= best_return):
             self.log.info("[%d] New best train ep. return!%.3f" %
                           (episode, episode_return))
             self.save(self.trained_path + "_best_train.pth")

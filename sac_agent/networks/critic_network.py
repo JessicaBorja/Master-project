@@ -32,26 +32,27 @@ class CNNCritic(nn.Module):
         _target_pos_shape = get_pos_shape(obs_space, "detected_target_pos")
         self.cnn_depth = get_depth_network(
                         obs_space,
-                        out_feat=8,
+                        out_feat=16,
                         activation=activation)
         self.cnn_img = get_img_network(
                             obs_space,
-                            out_feat=8,
+                            out_feat=16,
                             activation=activation,
                             affordance_cfg=affordance)
         self.cnn_gripper = get_gripper_network(
                             obs_space,
-                            out_feat=8,
+                            out_feat=16,
                             activation=activation,
                             affordance_cfg=affordance)
         out_feat = 0
         for net in [self.cnn_img, self.cnn_depth, self.cnn_gripper]:
             if(net is not None):
-                out_feat += 8
+                out_feat += 16
         out_feat += _tcp_pos_shape + _target_pos_shape + action_dim
 
         self._activation = activation
         self.fc1 = nn.Linear(out_feat, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.q = nn.Linear(hidden_dim, 1)
         self.aff_cfg = affordance
 
@@ -63,5 +64,6 @@ class CNNCritic(nn.Module):
                                        self.cnn_gripper)
         x = torch.cat((features, actions), -1)
         x = F.elu(self.fc1(x))
+        x = F.elu(self.fc2(x))
         x = self.q(x).squeeze()
         return x

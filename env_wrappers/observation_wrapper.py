@@ -80,9 +80,9 @@ class ObservationWrapper(gym.ObservationWrapper):
                     low=0, high=255,
                     shape=(self.history_length, self.img_size, self.img_size))
             if(self._use_robot_obs):
-                # *tcp_pos(3), *tcp_euler(3), gripper_opening_width(1),
+                # *tcp_pos(3), *tcp_euler(1), gripper_action(1),
                 obs_space_dict['robot_obs'] = gym.spaces.Box(
-                    low=-0.5, high=0.5, shape=(7,))
+                    low=-0.5, high=0.5, shape=(5,))
             if(self._use_gripper_img):
                 obs_space_dict['gripper_img_obs'] = gym.spaces.Box(
                     low=0,
@@ -216,8 +216,10 @@ class ObservationWrapper(gym.ObservationWrapper):
                                 obs_dict['depth_obs'][self.static_id])
                 obs["depth_obs"] = depth_obs
             if(self._use_robot_obs):
-                # *tcp_pos(3), *tcp_euler(3) , gripper_opening_width(1),
-                obs["robot_obs"] = obs_dict["robot_obs"][:7]
+                # *tcp_pos(3), *tcp_euler(1) z angle , gripper_opening_width(1),
+                obs["robot_obs"] = np.array([*obs_dict["robot_obs"][:3],
+                                             obs_dict["robot_obs"][5],
+                                             obs_dict["robot_obs"][-1]])
             self.obs_count += 1
         else:
             robot_obs, scene_obs = obs['robot_obs'], obs['scene_obs']

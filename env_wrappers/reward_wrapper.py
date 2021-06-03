@@ -144,5 +144,5 @@ class RewardWrapper(gym.RewardWrapper):
                 distance = np.linalg.norm(tcp_pos - self.unwrapped.current_target)
                 # cannot be larger than 1
                 scale_dist = min(distance / self.target_radius, 1)
-                rew += 1 - scale_dist
+                rew += (1 - scale_dist)**0.4
         return rew

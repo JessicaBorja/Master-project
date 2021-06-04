@@ -22,7 +22,7 @@ def get_name(cfg, model_name):
 def main(cfg):
     # Auto generate names given dense, aff-mask, aff-target
     cfg.model_name = get_name(cfg, cfg.model_name)
-
+    print("model: %s" % cfg.model_name)
     training_env = gym.make("VREnv-v0", **cfg.env).env
     training_env = wrap_env(training_env, train=True,
                             affordance=cfg.affordance,

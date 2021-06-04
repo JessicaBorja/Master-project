@@ -8,8 +8,18 @@ models_dir: ${project_path}/SAC/combined/hydra_outputs
 # 2021-06-01/13-55-02/results/tabletop_gripper-aff_tcp_target_pos_densify_01-06_13-55
 # 2021-06-01/13-48-46/results/tabletop_gripper_tcp_sparse_01-06_13-48
 
-model_name: "tabletop_gripper_tcp_target_pos_densify_01-06_13-53_best_eval"
-folder_name: ${test.models_dir}/pickup/2021-06-01/13-53-12
+# Baseline
+# 01-27-21/results/rewB_gripper_tcp_sparse_04-06_01-27
+
+# Modelos que funcionan
+# 01-28-51/results/rewB_gripper-aff_tcp_dense_04-06_01-29
+# 01-31-43/results/rewB_gripper-aff_tcp_target_pos_sparse_04-06_01-31
+
+# Este es sparse pero me equivoque de nombre
+# 01-32-56/results/rewB_gripper_tcp_target_dense_04-06_01-33
+
+model_name: "rewB_gripper_tcp_sparse_04-06_01-27_best_eval"
+folder_name: ${test.models_dir}/pickup/2021-06-04/01-27-21
 eval_cfg:
   n_episodes: 5
   render: False

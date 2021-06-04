@@ -6,8 +6,23 @@ from combined.combined import Combined
 register_env()
 
 
+def get_name(cfg, model_name):
+    if(cfg.affordance.gripper_cam.target_in_obs):
+        model_name += "_target"
+    if(cfg.affordance.gripper_cam.use):
+        model_name += "_affMask"
+    if(cfg.affordance.gripper_cam.densify_reward):
+        model_name += "_dense"
+    else:
+        model_name += "_sparse"
+    return model_name
+
+
 @hydra.main(config_path="./config", config_name="cfg_combined")
 def main(cfg):
+    # Auto generate names given dense, aff-mask, aff-target
+    cfg.model_name = get_name(cfg, cfg.model_name)
+
     training_env = gym.make("VREnv-v0", **cfg.env).env
     training_env = wrap_env(training_env, train=True,
                             affordance=cfg.affordance,

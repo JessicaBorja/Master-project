@@ -11,7 +11,6 @@ from combined.combined import Combined
 from utils.utils import load_cfg, register_env
 register_env()
 
-
 @hydra.main(config_path="../config", config_name="cfg_combined")
 def main(cfg):
     test_cfg = cfg.test

@@ -16,6 +16,7 @@ models_dir: ${project_path}/SAC/combined/hydra_outputs
 # 01-31-43/results/rewB_gripper-aff_tcp_target_pos_sparse_04-06_01-31
 
 # Este es sparse pero me equivoque de nombre
+#rewB_affMask_target_sparse
 # 01-32-56/results/rewB_gripper_tcp_target_dense_04-06_01-33
 
 model_name: "rewB_gripper_tcp_sparse_04-06_01-27_best_eval"

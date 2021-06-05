@@ -10,8 +10,8 @@ from gym import spaces
 
 import pybullet as p
 
-from sac_agent.sac_utils.utils import tt
 from affordance_model.segmentator_centers import Segmentator
+from affordance_model.utils.transforms import DistanceTransform
 from utils.cam_projections import pixel2world
 from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
 
@@ -42,6 +42,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         self._cur_img_obs = None
         # Cameras defaults
         self.static_id, self.gripper_id = self.find_cam_ids()
+
         # Parameters to define observation
         self.affordance = affordance
         self._use_img_obs = use_static_cam
@@ -49,6 +50,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         self._use_depth = use_depth
         self._use_gripper_img = use_gripper_cam
         self.observation_space = self.get_obs_space()
+        self._mask_transforms = DistanceTransform()
         self._training = train
         # Parameters to store affordance
         self.gripper_cam_aff_net = self.init_aff_net('gripper')
@@ -80,9 +82,9 @@ class ObservationWrapper(gym.ObservationWrapper):
                     low=0, high=255,
                     shape=(self.history_length, self.img_size, self.img_size))
             if(self._use_robot_obs):
-                # *tcp_pos(3), *tcp_euler(1), gripper_action(1),
+                # *tcp_pos(3), *tcp_euler(1), gripper_width, gripper_action(1),
                 obs_space_dict['robot_obs'] = gym.spaces.Box(
-                    low=-0.5, high=0.5, shape=(5,))
+                    low=-0.5, high=0.5, shape=(6,))
             if(self._use_gripper_img):
                 obs_space_dict['gripper_img_obs'] = gym.spaces.Box(
                     low=0,
@@ -92,7 +94,8 @@ class ObservationWrapper(gym.ObservationWrapper):
                     obs_space_dict['gripper_aff'] = gym.spaces.Box(
                         low=0,
                         high=1,
-                        shape=(self.history_length, self.img_size, self.img_size))
+                        shape=(self.history_length,
+                               self.img_size, self.img_size))
             if(self.affordance.gripper_cam.target_in_obs):
                 obs_space_dict['detected_target_pos'] = gym.spaces.Box(
                     low=-1, high=1, shape=(3,))
@@ -188,7 +191,8 @@ class ObservationWrapper(gym.ObservationWrapper):
                 # aff_logits, aff_probs, aff_mask, directions
                 _, aff_probs, aff_mask, directions = \
                     self.gripper_cam_aff_net(obs_t)
-                mask = torch_to_numpy(aff_mask)  # foreground/affordance Mask
+                mask = self._mask_transforms(aff_mask)
+                mask = torch_to_numpy(mask)  # foreground/affordance Mask
                 preds = {"gripper_aff": aff_mask,
                          "gripper_center_dir": directions,
                          "gripper_aff_probs": aff_probs}
@@ -216,9 +220,10 @@ class ObservationWrapper(gym.ObservationWrapper):
                                 obs_dict['depth_obs'][self.static_id])
                 obs["depth_obs"] = depth_obs
             if(self._use_robot_obs):
-                # *tcp_pos(3), *tcp_euler(1) z angle , gripper_opening_width(1),
+                # *tcp_pos(3), *tcp_euler(1) z angle ,
+                # gripper_opening_width(1), gripper_action
                 obs["robot_obs"] = np.array([*obs_dict["robot_obs"][:3],
-                                             obs_dict["robot_obs"][5],
+                                             *obs_dict["robot_obs"][5:7],
                                              obs_dict["robot_obs"][-1]])
             self.obs_count += 1
         else:
@@ -269,7 +274,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         self._cur_img_obs = np.concatenate(self._cur_img_obs, 0)
         return self._cur_img_obs
 
-    # Aff-center 
+    # Aff-center
     def find_target_center(self, cam_id, orig_img, depth, obs):
         """
         Args:
@@ -279,7 +284,7 @@ class ObservationWrapper(gym.ObservationWrapper):
                      Only used for vizualization purposes
             obs: dictionary
                 - "img_obs":
-                - "gripper_aff": 
+                - "gripper_aff":
                     affordance segmentation mask, range 0-1
                     np.array(size=(1, img_size,img_size))
                 - "gripper_aff_probs":

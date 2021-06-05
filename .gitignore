@@ -12,3 +12,7 @@ affordance_model/hough_voting/build/
 affordance_model/hough_voting/hough_voting.egg-info/
 affordance_model/hough_voting/dist/
 affordance_model/hough_voting/error.txt
+analysis/figures/
+analysis/results_csv/
+results/figures/
+results/figures/Dense + affordance mask.png

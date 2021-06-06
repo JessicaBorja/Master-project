@@ -129,15 +129,15 @@ def paste_img(im1, im2, mask):
 
 def overlay_mask(mask, img, color):
     '''
-        mask:
+        mask: np.array
             - shape: (H, W)
             - range: 0 - 255.0
             - float32
-        img:
+        img: np.array
             - shape: (H, W, 3)
             - range: 0 - 255
             - uint8
-        color:
+        color: tuple
             - tuple size 3 RGB
             - range: 0 - 255
     '''

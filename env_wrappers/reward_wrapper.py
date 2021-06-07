@@ -15,10 +15,12 @@ from utils.img_utils import torch_to_numpy, overlay_mask, viz_aff_centers_preds
 
 # As it wraps the environment, inherits its attributes
 class RewardWrapper(gym.RewardWrapper):
-    def __init__(self, env):
+    def __init__(self, env, max_ts=100):
         super(RewardWrapper, self).__init__(env)
         self.env = env
         self.gripper_id, self.static_id = self.find_cam_ids()
+        self.ts_counter = 0
+        self.max_ts = max_ts
         if(self.affordance.gripper_cam.densify_reward):
             print("RewardWrapper: Gripper cam to shape reward")
 
@@ -145,4 +147,10 @@ class RewardWrapper(gym.RewardWrapper):
                 # cannot be larger than 1
                 scale_dist = min(distance / self.target_radius, 1)
                 rew += (1 - scale_dist)**0.4
+                self.ts_counter += 1
+            else:
+                # If episode was successful
+                if(rew >= 1):
+                    rew += self.max_ts - self.ts_counter
+                self.ts_counter = 0
         return rew

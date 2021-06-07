@@ -23,9 +23,10 @@ def main(cfg):
     # Auto generate names given dense, aff-mask, aff-target
     cfg.model_name = get_name(cfg, cfg.model_name)
     print("model: %s" % cfg.model_name)
+    max_ts = cfg.agent.learn_config.max_episode_length
     training_env = gym.make("VREnv-v0", **cfg.env).env
-    training_env = wrap_env(training_env, train=True,
-                            affordance=cfg.affordance,
+    training_env = wrap_env(training_env, max_ts,
+                            train=True, affordance=cfg.affordance,
                             **cfg.env_wrapper)
 
     # eval_env = gym.make("VREnv-v0", **cfg.eval_env).env

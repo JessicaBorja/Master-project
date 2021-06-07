@@ -57,8 +57,8 @@ class ObservationWrapper(gym.ObservationWrapper):
         self.static_cam_aff_net = self.init_aff_net('static')
         self.curr_raw_obs = None
         self.curr_processed_obs = None
-        # 0-2 -> position , 3 -> yaw angle, gripper width, 4 gripper action
-        _action_space = np.ones(6)
+        # 0-2 -> position , 3 -> yaw angle 4 gripper action
+        _action_space = np.ones(5)
         self.action_space = spaces.Box(_action_space * -1, _action_space)
 
     def find_cam_ids(self):

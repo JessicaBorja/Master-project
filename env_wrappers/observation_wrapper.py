@@ -84,7 +84,7 @@ class ObservationWrapper(gym.ObservationWrapper):
             if(self._use_robot_obs):
                 # *tcp_pos(3), *tcp_euler(1), gripper_width, gripper_action(1),
                 obs_space_dict['robot_obs'] = gym.spaces.Box(
-                    low=-0.5, high=0.5, shape=(6,))
+                    low=-0.5, high=0.5, shape=(5,))
             if(self._use_gripper_img):
                 obs_space_dict['gripper_img_obs'] = gym.spaces.Box(
                     low=0,
@@ -191,7 +191,7 @@ class ObservationWrapper(gym.ObservationWrapper):
                 # aff_logits, aff_probs, aff_mask, directions
                 _, aff_probs, aff_mask, directions = \
                     self.gripper_cam_aff_net(obs_t)
-                # aff_mask = self._mask_transforms(aff_mask).cuda()
+                # mask = self._mask_transforms(aff_mask)
                 mask = torch_to_numpy(aff_mask)  # foreground/affordance Mask
                 preds = {"gripper_aff": aff_mask,
                          "gripper_center_dir": directions,
@@ -223,8 +223,8 @@ class ObservationWrapper(gym.ObservationWrapper):
                 # *tcp_pos(3), *tcp_euler(1) z angle ,
                 # gripper_opening_width(1), gripper_action
                 obs["robot_obs"] = np.array([*obs_dict["robot_obs"][:3],
-                                             *obs_dict["robot_obs"][5:7],
-                                             obs_dict["robot_obs"][-1]])
+                                             *obs_dict["robot_obs"][5:7]])  # ,
+                                             # obs_dict["robot_obs"][-1]])
             self.obs_count += 1
         else:
             robot_obs, scene_obs = obs['robot_obs'], obs['scene_obs']

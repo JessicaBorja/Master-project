@@ -191,7 +191,7 @@ class ObservationWrapper(gym.ObservationWrapper):
                 # aff_logits, aff_probs, aff_mask, directions
                 _, aff_probs, aff_mask, directions = \
                     self.gripper_cam_aff_net(obs_t)
-                # aff_mask = self._mask_transforms(aff_mask)
+                # aff_mask = self._mask_transforms(aff_mask).cuda()
                 mask = torch_to_numpy(aff_mask)  # foreground/affordance Mask
                 preds = {"gripper_aff": aff_mask,
                          "gripper_center_dir": directions,

@@ -23,27 +23,28 @@ def main(cfg):
     # Auto generate names given dense, aff-mask, aff-target
     cfg.model_name = get_name(cfg, cfg.model_name)
     print("model: %s" % cfg.model_name)
-    training_env = gym.make("VREnv-v0", **cfg.env).env
-    training_env = wrap_env(training_env, train=True,
-                            affordance=cfg.affordance,
-                            **cfg.env_wrapper)
+    for i in range(cfg.repeat_training):
+        training_env = gym.make("VREnv-v0", **cfg.env).env
+        training_env = wrap_env(training_env, train=True,
+                                affordance=cfg.affordance,
+                                **cfg.env_wrapper)
 
-    # eval_env = gym.make("VREnv-v0", **cfg.eval_env).env
-    # eval_env = wrap_env(eval_env,
-    #                     affordance=cfg.affordance,
-    #                     **cfg.env_wrapper)
+        # eval_env = gym.make("VREnv-v0", **cfg.eval_env).env
+        # eval_env = wrap_env(eval_env,
+        #                     affordance=cfg.affordance,
+        #                     **cfg.env_wrapper)
 
-    sac_cfg = {"env": training_env,
-               "eval_env": None,
-               "model_name": cfg.model_name,
-               "save_dir": cfg.agent.save_dir,
-               "net_cfg": cfg.agent.net_cfg,
-               **cfg.agent.hyperparameters}
+        sac_cfg = {"env": training_env,
+                   "eval_env": None,
+                   "model_name": cfg.model_name,
+                   "save_dir": cfg.agent.save_dir,
+                   "net_cfg": cfg.agent.net_cfg,
+                   **cfg.agent.hyperparameters}
 
-    model = Combined(cfg, sac_cfg=sac_cfg)
-    model.learn(**cfg.agent.learn_config)
-    training_env.close()
-    # eval_env.close()
+        model = Combined(cfg, sac_cfg=sac_cfg)
+        model.learn(**cfg.agent.learn_config)
+        training_env.close()
+        # eval_env.close()
 
 
 if __name__ == "__main__":

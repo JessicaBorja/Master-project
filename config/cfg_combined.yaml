@@ -5,6 +5,7 @@ model_name: "full"
 task: pickup
 euler_obs: true
 img_size: 64
+repeat_training: 1
 
 env_wrapper:
   use_depth: False

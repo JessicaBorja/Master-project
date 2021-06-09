@@ -231,7 +231,7 @@ def collect_dataset_close_open(cfg):
     past_action = 1
     frame_idx = 0
     episode = 0
-    # Will segment 40 frames
+    # Will segment 45 frames
     back_frames_max = 50
     back_frames_min = 5
     for idx, filename in enumerate(tqdm.tqdm(files)):

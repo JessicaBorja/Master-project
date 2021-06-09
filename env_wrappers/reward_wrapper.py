@@ -142,7 +142,8 @@ class RewardWrapper(gym.RewardWrapper):
             #                    textColorRGB=[0, 1, 0])
 
             # If episode is not done because of moving to far away
-            if(not self.env.unwrapped._termination()):
+            if(not self.env.unwrapped._termination()
+               and self.ts_counter <= self.max_ts):
                 distance = np.linalg.norm(tcp_pos - self.unwrapped.current_target)
                 # cannot be larger than 1
                 scale_dist = min(distance / self.target_radius, 1)

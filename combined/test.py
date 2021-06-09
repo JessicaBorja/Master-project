@@ -21,8 +21,10 @@ def main(cfg):
     run_cfg.eval_env.show_gui = cfg.env.show_gui
     run_cfg.eval_env.cameras = cfg.env.cameras
 
+    max_ts = cfg.agent.learn_config.max_episode_length
+
     env = gym.make("VREnv-v0", **run_cfg.eval_env).env
-    env = wrap_env(env,
+    env = wrap_env(env, max_ts,
                    affordance=run_cfg.affordance,
                    **env_wrapper)
 

@@ -10,8 +10,8 @@ In conda_env.yml, we set cudatoolkit=10.1 by default. Set the CUDA toolkit versi
 
 - Install the Hough voting layer:
 The hough voting layer implementation was taken from [uois2d repo](https://github.com/chrisdxie/uois/tree/uois2d). Please refer to their repository for more information about it.
-..* To install the voting layer first install [Eigen] (https://eigen.tuxfamily.org/index.php?title=Main_Page)
 
+To install the voting layer first install [Eigen] (https://eigen.tuxfamily.org/index.php?title=Main_Page)
 ```
 git clone https://github.com/eigenteam/eigen-git-mirror.git
 cd eigen-git-mirror/

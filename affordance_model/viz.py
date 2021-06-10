@@ -2,7 +2,7 @@
 import hydra
 import os
 import cv2
-from hydra.types import ObjectConf
+from hydra.utils import get_original_cwd, to_absolute_path
 import torch
 import sys
 from omegaconf import OmegaConf
@@ -27,9 +27,10 @@ def get_filenames(data_dir):
     np_comprez = False
     if(isinstance(data_dir, ListConfig)):
         for dir_i in data_dir:
-            path = os.path.abspath(dir_i)
-            if(not os.path.exists(path)):
-                print("Path does not exist: %s" % path)
+            dir_i = to_absolute_path(dir_i)
+            dir_i = os.path.abspath(dir_i)
+            if(not os.path.exists(dir_i)):
+                print("Path does not exist: %s" % dir_i)
                 continue
             files += get_files(dir_i, "npz")
             if(len(files) > 0):
@@ -37,9 +38,10 @@ def get_filenames(data_dir):
             files += get_files(dir_i, "jpg")
             files += get_files(dir_i, "png")
     else:
-        path = os.path.abspath(data_dir)
-        if(not os.path.exists(path)):
-            print("Path does not exist: %s" % path)
+        data_dir = to_absolute_path(data_dir)
+        data_dir = os.path.abspath(data_dir)
+        if(not os.path.exists(data_dir)):
+            print("Path does not exist: %s" % data_dir)
             return
         files += get_files(data_dir, "npz")
         if(len(files) > 0):

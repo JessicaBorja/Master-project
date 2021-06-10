@@ -1,32 +1,33 @@
 # Installation
 - Setup a conda environment by running:
-<code>
-<br> git clone https://github.com/JessicaBorja/Master-project.git
-<br> cd Master-project/
-<br> conda env create -f conda_env.yml
-</code>
+```
+git clone https://github.com/JessicaBorja/Master-project.git
+cd Master-project/
+conda env create -f conda_env.yml
+```
 
 In conda_env.yml, we set cudatoolkit=10.2 by default. Set the CUDA toolkit version to match the native CUDA version (in /usr/local/cuda/), since you must compile the hough voting code with corresponding CUDA compiler (nvcc is not provided with the conda cudatoolkit distribution). This can be checked with: nvcc --version.
 
- - Install the Hough voting layer:
+- Install the Hough voting layer:
+The hough voting layer implementation was taken from [uois2d repo](https://github.com/chrisdxie/uois/tree/uois2d). Please refer to their repository for more information about it.
 ..* To install the voting layer first install [Eigen] (https://eigen.tuxfamily.org/index.php?title=Main_Page)
-<code>
-<br> git clone https://github.com/eigenteam/eigen-git-mirror.git
-<br> cd eigen-git-mirror/
-<br> mkdir build/
-<br> cd build/
-<br> cmake ..
-<br> sudo make install
-</code>
 
-Go to the directory of the voting layer and run [setup.py](./affordance_model/hough_voting/setup.py). If you do not have sudo priviledges, don't run `sudo make install` instead change the diretory in "include_dirs" to match where the eigen-git-mirror repo was downloaded, then run: 
+```
+git clone https://github.com/eigenteam/eigen-git-mirror.git
+cd eigen-git-mirror/
+mkdir build/
+cd build/
+cmake ..
+sudo make install
+```
 
-<code>
-<br> conda activate Master-Project
-<br> cd /ROOT_DIR/affordance_model/hough_voting/
-<br> python setup.py install
-</code>
-``
+Go to the directory of the voting layer and run [setup.py](./affordance_model/hough_voting/setup.py). If you do not have sudo privileges, don't run `sudo make install` instead change the diretory in "include_dirs" to match where the eigen-git-mirror repo was downloaded, then run: 
+
+```
+conda activate Master-Project
+cd /ROOT_DIR/affordance_model/hough_voting/
+python setup.py install
+```
 
 # Running experiments
 ## Reinforcement Learning policy

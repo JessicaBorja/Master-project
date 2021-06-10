@@ -57,7 +57,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         self.static_cam_aff_net = self.init_aff_net('static')
         self.curr_raw_obs = None
         self.curr_processed_obs = None
-        # 0-2 -> position , 3 -> yaw angle, 4 gripper action
+        # 0-2 -> position , 3 -> yaw angle 4 gripper action
         _action_space = np.ones(5)
         self.action_space = spaces.Box(_action_space * -1, _action_space)
 
@@ -191,8 +191,8 @@ class ObservationWrapper(gym.ObservationWrapper):
                 # aff_logits, aff_probs, aff_mask, directions
                 _, aff_probs, aff_mask, directions = \
                     self.gripper_cam_aff_net(obs_t)
-                mask = self._mask_transforms(aff_mask)
-                mask = torch_to_numpy(mask)  # foreground/affordance Mask
+                # aff_mask = self._mask_transforms(aff_mask).cuda()
+                mask = torch_to_numpy(aff_mask)  # foreground/affordance Mask
                 preds = {"gripper_aff": aff_mask,
                          "gripper_center_dir": directions,
                          "gripper_aff_probs": aff_probs}

@@ -8,10 +8,9 @@ conda env create -f conda_env.yml
 
 In conda_env.yml, we set cudatoolkit=10.1 by default. Set the CUDA toolkit version to match the native CUDA version (in /usr/local/cuda/), since you must compile the hough voting code with corresponding CUDA compiler (nvcc is not provided with the conda cudatoolkit distribution). This can be checked with: nvcc --version.
 
-- Install the Hough voting layer:
-The hough voting layer implementation was taken from [uois2d repo](https://github.com/chrisdxie/uois/tree/uois2d). Please refer to their repository for more information about it.
+- Install the Hough voting layer
 
-To install the voting layer first install [Eigen] (https://eigen.tuxfamily.org/index.php?title=Main_Page)
+The hough voting layer implementation was taken from [uois2d repo](https://github.com/chrisdxie/uois/tree/uois2d). Please refer to their repository for more information about it. To install the voting layer first install [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page).
 ```
 git clone https://github.com/eigenteam/eigen-git-mirror.git
 cd eigen-git-mirror/

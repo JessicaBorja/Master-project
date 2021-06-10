@@ -6,7 +6,7 @@ cd Master-project/
 conda env create -f conda_env.yml
 ```
 
-In conda_env.yml, we set cudatoolkit=10.2 by default. Set the CUDA toolkit version to match the native CUDA version (in /usr/local/cuda/), since you must compile the hough voting code with corresponding CUDA compiler (nvcc is not provided with the conda cudatoolkit distribution). This can be checked with: nvcc --version.
+In conda_env.yml, we set cudatoolkit=10.1 by default. Set the CUDA toolkit version to match the native CUDA version (in /usr/local/cuda/), since you must compile the hough voting code with corresponding CUDA compiler (nvcc is not provided with the conda cudatoolkit distribution). This can be checked with: nvcc --version.
 
 - Install the Hough voting layer:
 The hough voting layer implementation was taken from [uois2d repo](https://github.com/chrisdxie/uois/tree/uois2d). Please refer to their repository for more information about it.

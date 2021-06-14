@@ -38,12 +38,17 @@ def plot_eval_data(files, task, top_row=-1, show=True, save=True,
         n_eval_ep = 10
 
     min_data_axs = min([d.shape[0] for d in data])
-    data = [d[:min_data_axs] for d in data]
+    x_label = np.arange(0, min_data_axs*10, 10)
+    # Change timesteps by episodes -> x axis will show every n episodes result
+    data = [np.transpose(
+               np.vstack((x_label, d[:min_data_axs, -1]))) for d in data]
+
+    # data = [d[:min_data_axs] for d in data]
     fig, ax = plt.subplots(1, 1, figsize=(10, 6), sharey=True)
     data = np.stack(data, axis=0)
     ax.set_title("Evaluation")
     ax = plot_data(data, ax, stats_axis=0)
-    ax.set_xlabel("Timesteps")
+    ax.set_xlabel("Episodes")
     ax.set_ylabel("Mean %s over %s episodes" % (metric, n_eval_ep))
     fig.suptitle("%s %s" % (task.title(), metric.title()))
 
@@ -119,27 +124,21 @@ def plot_metric(task="slide", top_row=-1, show=True,
 
 
 def main(plot_dict, csv_dir="./results_csv/"):
+    # metrics = ["return", "episode length"]
+    metrics = ["return"]
     for k_name, plot_name in plot_dict.items():
-        plot_metric(k_name,
-                    top_row=90,
-                    show=True,
-                    save=True,
-                    save_name=plot_name,
-                    csv_folder=csv_dir,
-                    metric="return")
-        # plot_metric(k_name,
-        #             top_row=90,
-        #             show=True,
-        #             save=True,
-        #             save_name=plot_name,
-        #             csv_folder=csv_dir,
-        #             metric="episode length")
+        for metric in metrics:
+            plot_metric(k_name,
+                        show=True,
+                        save=True,
+                        save_name=plot_name,
+                        csv_folder=csv_dir,
+                        metric=metric)
 
 
 if __name__ == "__main__":
-    plot_dict = {"rewB_sparse": "Baseline",
-                 "rewB_target_affMask_sparse": "Sparse + detected target + affordance mask",
-                 "rewB_target_dense": "Dense + detected target ",
-                 "rewB_affMask_dense": "Dense + affordance mask",
-                 "rewB_target_affMask_dense": "Dense + detected target + affordance mask"}
-    main(plot_dict, csv_dir="./analysis/results_csv/pickup/")
+    plot_dict = {"master_sparse": "Baseline",
+                 "master_target_affMask_sparse": "Sparse + detected target + affordance mask",
+                 "master_target_dense": "Dense + detected target ",
+                 "master_target_affMask_dense": "Dense + detected target + affordance mask"}
+    main(plot_dict, csv_dir="./analysis/results_csv/pickup_bin_mask/")

@@ -67,7 +67,8 @@ class Combined(SAC):
         else:
             self.affordance = None
             path = os.path.abspath(path)
-            print("Static cam aff. Path does not exist: %s" % path)
+            raise TypeError(
+                "target_search_aff.model_path does not exist: %s" % path)
         return aff_net
 
     # Env real target pos
@@ -271,7 +272,7 @@ class Combined(SAC):
             + np.array([0, 0, 0.03])
         return area_center, target_pos
 
-    def move_to_target(self, env, dict_obs, tcp_pos, a):
+    def move_to_target(self, env, tcp_pos, a, dict_obs=True):
         target = a[0]
         # env.robot.apply_action(a)
         last_pos = target
@@ -289,6 +290,28 @@ class Combined(SAC):
                 tcp_pos = env.get_obs()["robot_obs"][:3]
             else:
                 tcp_pos = env.get_obs()[:3]
+
+    def move_to_box(self, env):
+        # Box does not move
+        r_obs = env.get_obs()["robot_obs"]
+        tcp_pos, _ = r_obs[:3], r_obs[3:7]
+        box_pos = [0.67, 0.65, 0.6]
+
+        # Close gripper and move to box
+        up_target = [*tcp_pos[:2], box_pos[2] + 0.2]
+        a = [up_target, self.target_orn, -1]  # -1 means closed
+        self.move_to_target(env, tcp_pos, a, dict_obs=True)
+
+        box_pos = [*box_pos[:2], up_target[-1]]
+        a = [box_pos, self.target_orn, -1]  # -1 means closed
+        tcp_pos = env.get_obs()["robot_obs"][:3]
+        self.move_to_target(env, tcp_pos, a, dict_obs=True)
+
+        # Get new position and orientation
+        # pos, z angle, action = open gripper
+        a = [0, 0, 0, 0, 1]  # drop object
+        for i in range(8):
+            o, r, d, info = env.step(a)
 
     def correct_position(self, env, s):
         dict_obs = False
@@ -317,18 +340,32 @@ class Combined(SAC):
                          self.area_center[2] + 0.20]
             # Move up
             a = [up_target, self.target_orn, 1]
-            self.move_to_target(env, dict_obs, tcp_pos, a)
+            self.move_to_target(env, tcp_pos, a, dict_obs)
 
             # Move to target
             tcp_pos = env.get_obs()["robot_obs"][:3]
             a = [self.area_center, self.target_orn, 1]
-            self.move_to_target(env, dict_obs, tcp_pos, a)
+            self.move_to_target(env, tcp_pos, a, dict_obs)
             # p.addUserDebugText("target",
             #                    textPosition=target,
             #                    textColorRGB=[0, 0, 1])
         # as we moved robot, need to update target and obs
         # for rl policy
         return env, env.observation(env.get_obs())
+
+    def eval_grasp_success(self, env):
+        targetPos, _ = env.get_target_pos()
+        box_pos = env.objects["bin"]["initial_pos"]
+
+        # x range
+        x_range, y_range, z_range = False, False, False
+        if(targetPos[0] > box_pos[0] and targetPos[0] <= box_pos[0] + 0.23):
+            x_range = True
+        if(targetPos[1] <= box_pos[1] and targetPos[1] > box_pos[1] - 0.35):
+            y_range = True
+        if(targetPos[1] <= env.objects[env.target]["initial_pos"][2] + 0.05):
+            z_range = True
+        return x_range and y_range and z_range
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
                  print_all_episodes=False, render=False, save_images=False):
@@ -343,6 +380,7 @@ class Combined(SAC):
             tasks.remove("bin")
             n_episodes = len(tasks)
 
+        ep_success = []
         # One episode per task
         for episode in range(n_episodes):
             s = env.reset()
@@ -366,10 +404,17 @@ class Combined(SAC):
                 s = ns
                 episode_return += r
                 episode_length += 1
+            if(episode_return >= 200):
+                self.move_to_box(env)
+                success = self.eval_grasp_success(env)
+            else:
+                success = False
+            ep_success.append(success)
             stats.episode_rewards.append(episode_return)
             stats.episode_lengths.append(episode_length)
             if(print_all_episodes):
-                print("Episode %d, Return: %.3f" % (episode, episode_return))
+                print("Episode %d, Return: %.3f, Success: %s"
+                      % (episode, episode_return, str(success)))
 
         # Save images
         if(save_images):
@@ -383,10 +428,64 @@ class Combined(SAC):
         length_std = np.std(stats.episode_lengths)
 
         self.log.info(
+            "Success: %d/%d " % (np.sum(ep_success), len(ep_success)) +
             "Mean return: %.3f +/- %.3f, " % (mean_reward, reward_std) +
             "Mean length: %.3f +/- %.3f, over %d episodes" %
             (mean_length, length_std, n_episodes))
-        return mean_reward, mean_length
+        return mean_reward, mean_length, ep_success
+
+    # One single training timestep
+    # Take one step in the environment and update the networks
+    def training_step(self, s, ts, ep_return, ep_length, plot_data):
+        # sample action and scale it to action space
+        a, _ = self._pi.act(tt(s), deterministic=False)
+        a = a.cpu().detach().numpy()
+        ns, r, done, info = self.env.step(a)
+
+        # check if it actually earned the reward
+        success = False
+        if(r >= 200):
+            self.move_to_box(self.env)
+            success = self.eval_grasp_success(self.env)
+            # If lifted incorrectly get no reward
+            if(not success):
+                r = 0
+
+        self._replay_buffer.add_transition(s, a, r, ns, done)
+        s = ns
+        ep_return += r
+        ep_length += 1
+
+        # Replay buffer has enough data
+        if(self._replay_buffer.__len__() >= self.batch_size
+           and not done and ts > self.learning_starts):
+
+            sample = self._replay_buffer.sample(self.batch_size)
+            batch_states, batch_actions, batch_rewards,\
+                batch_next_states, batch_terminal_flags = sample
+
+            with torch.no_grad():
+                next_actions, log_probs = self._pi.act(
+                                                batch_next_states,
+                                                deterministic=False,
+                                                reparametrize=False)
+
+                target_qvalue = torch.min(
+                    self._q1_target(batch_next_states, next_actions),
+                    self._q2_target(batch_next_states, next_actions))
+
+                td_target = \
+                    batch_rewards \
+                    + (1 - batch_terminal_flags) * self._gamma * \
+                    (target_qvalue - self.ent_coef * log_probs)
+
+            # ----------------  Networks update -------------#
+            new_data = self._update(td_target,
+                                    batch_states,
+                                    batch_actions)
+            for k, v in plot_data.items():
+                v.append(new_data[k])
+        return s, done, success, ep_return, ep_length, plot_data, info
 
     def learn(self, total_timesteps=10000, log_interval=100,
               max_episode_length=None, n_eval_ep=5):
@@ -396,6 +495,7 @@ class Combined(SAC):
         s = self.env.reset()
         episode_return, episode_length = 0, 0
         best_return, best_eval_return = -np.inf, -np.inf
+        most_tasks = 0
         if(max_episode_length is None):
             max_episode_length = sys.maxsize  # "infinite"
 
@@ -412,7 +512,7 @@ class Combined(SAC):
         # Episode ends if outside of radius
         self.env, s = self.correct_position(self.env, s)
         for t in range(1, total_timesteps+1):
-            s, done, episode_return, episode_length, plot_data, info = \
+            s, done, success, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, t, episode_return, episode_length,
                                    plot_data)
 
@@ -433,9 +533,43 @@ class Combined(SAC):
                 best_return = \
                     self._on_train_ep_end(self.writer, t, episode,
                                           total_timesteps, best_return,
-                                          episode_length, episode_return)
+                                          episode_length, episode_return,
+                                          success)
                 # Reset everything
                 episode += 1
                 episode_return, episode_length = 0, 0
                 s = self.env.reset()
                 self.env, s = self.correct_position(self.env, s)
+
+        # Evaluate at end of training
+        best_eval_return, plot_data = \
+            self._eval_and_log(self.writer, t, episode,
+                               plot_data, most_tasks, best_eval_return,
+                               n_eval_ep, max_episode_length)
+
+    def _on_train_ep_end(self, writer, ts, episode, total_ts,
+                         best_return, episode_length, episode_return, success):
+        self.log.info(
+            "Success: %s " % str(success) +
+            "Episode %d: %d Steps," % (episode, episode_length) +
+            "Return: %.3f, total timesteps: %d/%d" %
+            (episode_return, ts, total_ts))
+
+        # Summary Writer
+        # log everything on timesteps to get the same scale
+        writer.add_scalar('train/success',
+                          success, ts)
+        writer.add_scalar('train/episode_return',
+                          episode_return, ts)
+        writer.add_scalar('train/episode_length',
+                          episode_length, ts)
+
+        if(episode_return >= best_return):
+            self.log.info("[%d] New best train ep. return!%.3f" %
+                          (episode, episode_return))
+            self.save(self.trained_path + "_best_train.pth")
+            best_return = episode_return
+
+        # Always save last model(last training episode)
+        self.save(self.trained_path + "_last.pth")
+        return best_return

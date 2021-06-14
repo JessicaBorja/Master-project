@@ -119,7 +119,7 @@ class ObservationWrapper(gym.ObservationWrapper):
                 else:
                     self.affordance = None
                     path = os.path.abspath(path)
-                    print("obs_wrapper: Path does not exist: %s" % path)
+                    raise TypeError("Path does not exist: %s" % path)
             elif(cam_str == "gripper" and
                  (self.affordance.gripper_cam.use or
                   self.affordance.gripper_cam.densify_reward)):
@@ -139,7 +139,7 @@ class ObservationWrapper(gym.ObservationWrapper):
                 else:
                     self.affordance = None
                     path = os.path.abspath(path)
-                    print("obs_wrapper: Path does not exist: %s" % path)
+                    raise TypeError("Path does not exist: %s" % path)
         return aff_net
 
     def get_static_obs(self, obs_dict):

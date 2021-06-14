@@ -10,22 +10,22 @@ def change_project_path(cfg, run_cfg):
     # Change affordance path to match current system
     static_cam_aff_path = net_cfg.affordance.static_cam.model_path
     static_cam_aff_path = static_cam_aff_path.replace(
-        run_cfg.project_path,
-        cfg.project_path)
+        run_cfg.models_path,
+        cfg.models_path)
     net_cfg.affordance.static_cam.model_path = static_cam_aff_path
 
     # Gripper cam
     gripper_cam_aff_path = net_cfg.affordance.gripper_cam.model_path
     gripper_cam_aff_path = gripper_cam_aff_path.replace(
-        run_cfg.project_path,
-        cfg.project_path)
+        run_cfg.models_path,
+        cfg.models_path)
     net_cfg.affordance.gripper_cam.model_path = gripper_cam_aff_path
 
     # Static cam target_search
     target_search_aff = run_cfg.target_search_aff.model_path
     target_search_aff = target_search_aff.replace(
-        run_cfg.project_path,
-        cfg.project_path)
+        run_cfg.models_path,
+        cfg.models_path)
     run_cfg.target_search_aff.model_path = target_search_aff
 
     # VREnv data path

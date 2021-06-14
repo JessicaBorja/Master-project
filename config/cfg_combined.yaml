@@ -20,7 +20,7 @@ env_wrapper:
 
 # path to load affordance models either gripper_cam 
 # or static_cam
-models_path: "${project_path}/SAC/trained_models/"
+models_path: "${project_path}/Master-project/trained_models/"
 
 # Static cam affordance model to detect the targets
 target_search_aff:

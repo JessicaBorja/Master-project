@@ -226,7 +226,7 @@ class SAC():
 
     # Evaluate model and log plot_data to writter
     # Returns: Reseted plot_data and newest best_eval_reward
-    def _eval_and_log(self, writer, t, episode, plot_data,
+    def _eval_and_log(self, writer, t, episode, plot_data, most_tasks,
                       best_eval_return, n_eval_ep, max_ep_length):
         # Log plot_data to writer
         for key, value in plot_data.items():
@@ -243,16 +243,26 @@ class SAC():
                      "ent_coef_loss": [], "ent_coef": []}
 
         # Evaluate agent for n_eval_ep with max_ep_length
-        mean_return, mean_length = \
+        mean_return, mean_length, success = \
             self.evaluate(self.eval_env, max_ep_length,
                           n_episodes=n_eval_ep)
 
         # Log results to writer
+        n_success = np.sum(success)
         if(mean_return > best_eval_return):
             self.log.info("[%d] New best eval avg. return!%.3f" %
                           (episode, mean_return))
             self.save(self.trained_path+"_best_eval.pth")
             best_eval_return = mean_return
+
+        if(n_success > most_tasks):
+            self.log.info("[%d] New most successful! %d/%d" %
+                          (episode, len(success), n_success))
+            self.save(self.trained_path+"_best_eval.pth")
+            best_eval_return = mean_return
+
+        writer.add_scalar('eval/success(%dep)' %
+                          (len(success)), n_success, t)
         writer.add_scalar('eval/mean_return(%dep)' %
                           (n_eval_ep), mean_return, t)
         writer.add_scalar('eval/mean_ep_length(%dep)' %
@@ -403,5 +413,4 @@ class SAC():
             print("load done")
             return True
         else:
-            print("no path " + path)
-            return False
+            raise TypeError("Cannot find path " + path)

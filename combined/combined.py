@@ -526,7 +526,8 @@ class Combined(SAC):
                    and episode % _log_n_ep == 0)):
                 best_eval_return, plot_data = \
                      self._eval_and_log(self.writer, t, episode,
-                                        plot_data, best_eval_return,
+                                        plot_data, most_tasks,
+                                        best_eval_return,
                                         n_eval_ep, max_episode_length)
 
             if(end_ep):

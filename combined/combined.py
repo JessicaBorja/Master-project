@@ -551,8 +551,8 @@ class Combined(SAC):
     def _on_train_ep_end(self, writer, ts, episode, total_ts,
                          best_return, episode_length, episode_return, success):
         self.log.info(
-            "Success: %s " % str(success) +
             "Episode %d: %d Steps," % (episode, episode_length) +
+            "Success: %s " % str(success) +
             "Return: %.3f, total timesteps: %d/%d" %
             (episode_return, ts, total_ts))
 

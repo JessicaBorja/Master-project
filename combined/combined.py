@@ -574,3 +574,55 @@ class Combined(SAC):
         # Always save last model(last training episode)
         self.save(self.trained_path + "_last.pth")
         return best_return
+
+    # Evaluate model and log plot_data to writter
+    # Returns: Reseted plot_data and newest best_eval_reward
+    def _eval_and_log(self, writer, t, episode, plot_data, most_tasks,
+                      best_eval_return, n_eval_ep, max_ep_length):
+        # Log plot_data to writer
+        for key, value in plot_data.items():
+            if value:  # not empty
+                if(key == "critic_loss"):
+                    data = np.mean(value[-1])
+                else:
+                    data = value[-1]  # np.mean(value)
+                writer.add_scalar("train/%s" % key, data, t)
+
+        # Reset plot_data
+        plot_data = {"actor_loss": [],
+                     "critic_loss": [],
+                     "ent_coef_loss": [], "ent_coef": []}
+
+        # Evaluate agent for n_eval_ep with max_ep_length
+        if(self.eval_env.task == "pickup"):
+            tasks = list(self.eval_env.objects.keys())
+            tasks.remove("table")
+            tasks.remove("bin")
+            n_eval_ep = len(tasks)
+
+        mean_return, mean_length, success_lst = \
+            self.evaluate(self.eval_env, max_ep_length,
+                          n_episodes=n_eval_ep)
+
+        # Log results to writer
+        n_success = np.sum(success_lst)
+        if(mean_return > best_eval_return):
+            self.log.info("[%d] New best eval avg. return!%.3f" %
+                          (episode, mean_return))
+            self.save(self.trained_path+"_best_eval.pth")
+            best_eval_return = mean_return
+
+        if(n_success > most_tasks):
+            self.log.info("[%d] New most successful! %d/%d" %
+                          (episode, n_success, len(success_lst)))
+            self.save(self.trained_path+"_most_tasks.pth")
+            best_eval_return = mean_return
+
+        writer.add_scalar('eval/success(%dep)' %
+                          (len(success_lst)), n_success, t)
+        writer.add_scalar('eval/mean_return(%dep)' %
+                          (n_eval_ep), mean_return, t)
+        writer.add_scalar('eval/mean_ep_length(%dep)' %
+                          (n_eval_ep), mean_length, t)
+
+        return best_eval_return, plot_data

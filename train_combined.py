@@ -1,5 +1,7 @@
 import hydra
 import gym
+import logging
+
 from env_wrappers.env_wrapper import wrap_env
 from utils.utils import register_env
 from combined.combined import Combined
@@ -21,8 +23,8 @@ def get_name(cfg, model_name):
 @hydra.main(config_path="./config", config_name="cfg_combined")
 def main(cfg):
     # Auto generate names given dense, aff-mask, aff-target
+    log = logging.getLogger(__name__)
     cfg.model_name = get_name(cfg, cfg.model_name)
-    print("model: %s" % cfg.model_name)
     max_ts = cfg.agent.learn_config.max_episode_length
     for i in range(cfg.repeat_training):
         training_env = gym.make("VREnv-v0", **cfg.env).env
@@ -40,8 +42,10 @@ def main(cfg):
                    "model_name": cfg.model_name,
                    "save_dir": cfg.agent.save_dir,
                    "net_cfg": cfg.agent.net_cfg,
+                   "log": log,
                    **cfg.agent.hyperparameters}
 
+        log.info("model: %s" % cfg.model_name)
         model = Combined(cfg, sac_cfg=sac_cfg)
         model.learn(**cfg.agent.learn_config)
         training_env.close()

@@ -65,7 +65,7 @@ class SAC():
         self.learning_starts = learning_starts
 
         policy_net, critic_net, obs_space, action_dim = \
-            get_nets(_img_obs, obs_space, env.action_space)
+            get_nets(_img_obs, obs_space, env.action_space, self.log)
         self._pi = policy_net(obs_space, action_dim,
                               action_space=env.action_space,
                               **net_cfg).cuda()
@@ -243,26 +243,17 @@ class SAC():
                      "ent_coef_loss": [], "ent_coef": []}
 
         # Evaluate agent for n_eval_ep with max_ep_length
-        mean_return, mean_length, success_lst = \
+        mean_return, mean_length = \
             self.evaluate(self.eval_env, max_ep_length,
                           n_episodes=n_eval_ep)
 
         # Log results to writer
-        n_success = np.sum(success_lst)
         if(mean_return > best_eval_return):
             self.log.info("[%d] New best eval avg. return!%.3f" %
                           (episode, mean_return))
             self.save(self.trained_path+"_best_eval.pth")
             best_eval_return = mean_return
 
-        if(n_success > most_tasks):
-            self.log.info("[%d] New most successful! %d/%d" %
-                          (episode, len(success_lst), n_success))
-            self.save(self.trained_path+"_most_tasks.pth")
-            best_eval_return = mean_return
-
-        writer.add_scalar('eval/success(%dep)' %
-                          (len(success_lst)), n_success, t)
         writer.add_scalar('eval/mean_return(%dep)' %
                           (n_eval_ep), mean_return, t)
         writer.add_scalar('eval/mean_ep_length(%dep)' %

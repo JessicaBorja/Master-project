@@ -43,10 +43,10 @@ def set_init_pos(task, init_pos):
     return init_pos
 
 
-def get_nets(img_obs, obs_space, action_space):
+def get_nets(img_obs, obs_space, action_space, log):
     action_dim = action_space.shape[0]
     if(img_obs):
-        print("SAC get_nets using: %s" % str([k for k in obs_space]))
+        log.info("SAC get_nets using: %s" % str([k for k in obs_space]))
         policy = "CNNPolicy"
         critic = "CNNCritic"
         # policy = "legacy_CNNPolicy"
@@ -62,7 +62,7 @@ def get_nets(img_obs, obs_space, action_space):
     critic_net = getattr(
         importlib.import_module("sac_agent.networks.critic_network"),
         critic)
-    print("SAC get_nets: %s, \t%s" % (policy, critic))
+    log.info("SAC get_nets: %s, \t%s" % (policy, critic))
     return policy_net, critic_net, obs_space, action_dim
 
 

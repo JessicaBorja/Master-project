@@ -177,5 +177,5 @@ defaults:
   - agent: default
   - test: test_combined
   - transforms: img_transforms
-  - hydra/job_logging: colorlog
-  - hydra/hydra_logging: colorlog
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog

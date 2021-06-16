@@ -47,13 +47,14 @@ trainer:
   max_epochs: ${n_epochs}
   num_sanity_val_steps: 1
 
+#-- Hydra config --#
+hydra:
+  run:
+    dir: ${save_dir}./${now:%Y-%m-%d}/${now:%H-%M-%S} # Output directory for normal runs
+
 defaults:
   - optim: aff_optim
   - transforms@dataset.transforms: img_transforms #Load from folder image_transforms, as dataset.transforms
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
 
-#-- Hydra config --#
-hydra:
-  run:
-    dir: ${save_dir}./${now:%Y-%m-%d}/${now:%H-%M-%S} # Output directory for normal runs

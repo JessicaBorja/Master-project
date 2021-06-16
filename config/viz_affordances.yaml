@@ -56,14 +56,15 @@ model_cfg:
     percentage_threshold: 0.3
     object_center_kernel_radius: 10
 
-defaults:
-  - transforms: img_transforms
-  - hydra/job_logging: colorlog
-  - hydra/hydra_logging: colorlog
-
 #-- Hydra config --#
 # hydra output will be stored to save_dir
 save_dir: ../../tmp/
 hydra:
   run:
     dir: ${save_dir}/viz # Output directory for normal runs
+
+defaults:
+  - transforms: img_transforms
+  - hydra/job_logging: colorlog
+  - hydra/hydra_logging: colorlog
+

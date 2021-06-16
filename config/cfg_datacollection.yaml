@@ -13,13 +13,6 @@ output_dir: ${project_path}/datasets/fulldata_directions_200px/
 
 viz: True
 
-defaults:
-  - env: env
-  - scene@env.scene: clutter_tabletop
-  - camera_conf@env: play_data_tabletop
-  - hydra/job_logging: colorlog
-  - hydra/hydra_logging: colorlog
-
 # save_dir: ../tmp/
 all_cameras:
   play_data_tabletop:
@@ -54,6 +47,14 @@ all_cameras:
     width: 200
     height: 200
     gripper_cam_link: 12 # TODO do not hardcode this, use robot property? e.g. ${robot.camera_link_id}
+
 hydra:
   run:
     dir: ../tmp/datacollection/${now:%Y-%m-%d}_${now:%H-%M-%S}
+
+defaults:
+  - env: env
+  - scene@env.scene: clutter_tabletop
+  - camera_conf@env: play_data_tabletop
+  - hydra/job_logging: colorlog
+  - hydra/hydra_logging: colorlog

@@ -102,8 +102,8 @@ class Combined(SAC):
             self.aff_net_static_cam.predict(aff_mask, center_dir)
 
         # Visualize predictions
-        viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                              object_centers, object_masks)
+        # viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+        #                       object_centers, object_masks)
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
@@ -141,8 +141,8 @@ class Combined(SAC):
                                  markerType=cv2.MARKER_CROSS,
                                  markerSize=12,
                                  line_type=cv2.LINE_AA)
-        cv2.imshow("out_img", out_img)
-        cv2.waitKey()
+        # cv2.imshow("out_img", out_img)
+        # cv2.waitKey()
         # Compute depth
         target_pos = pixel2world(cam, u, v, depth_obs)
 
@@ -210,9 +210,9 @@ class Combined(SAC):
         env.unwrapped.current_target = target
         # self.eval_env.unwrapped.current_target = target
 
-        p.addUserDebugText("a_center",
-                           textPosition=self.area_center,
-                           textColorRGB=[0, 0, 1])
+        # p.addUserDebugText("a_center",
+        #                    textPosition=self.area_center,
+        #                    textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
@@ -225,9 +225,9 @@ class Combined(SAC):
             tcp_pos = env.get_obs()["robot_obs"][:3]
             a = [self.area_center, self.target_orn, 1]
             self.move_to_target(env, tcp_pos, a, dict_obs)
-            p.addUserDebugText("target",
-                               textPosition=target,
-                               textColorRGB=[0, 0, 1])
+            # p.addUserDebugText("target",
+            #                    textPosition=target,
+            #                    textColorRGB=[0, 0, 1])
         # as we moved robot, need to update target and obs
         # for rl policy
         return env, env.observation(env.get_obs())

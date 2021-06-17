@@ -34,6 +34,6 @@ hydra:
     dir: ${save_dir}/viz # Output directory for normal runs
 
 defaults:
-  - transforms: img_transforms
+  - transforms: aff_transforms
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog

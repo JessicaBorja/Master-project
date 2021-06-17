@@ -29,7 +29,7 @@ class Combined(SAC):
         self.writer = SummaryWriter(self.writer_name)
         self.cam_id = self._find_cam_id()
         self.transforms = get_transforms(
-            cfg.transforms.validation,
+            cfg.affordance.transforms.validation,
             self.affordance.img_size)
         # initial angle
         self.target_orn = np.array([- math.pi, 0, - math.pi / 2])

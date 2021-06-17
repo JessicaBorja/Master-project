@@ -53,7 +53,6 @@ env_wrapper:
   history_length: 1
   skip_frames: 0
   img_size: ${img_size}
-  transforms: ${transforms}
 
 # Affordance configuration for RL agent observation inputs
 affordance:
@@ -180,6 +179,7 @@ defaults:
   - camera_conf: tabletop_topview
   - agent: default
   - test: test_combined
-  - transforms: img_transforms
+  - transforms@affordance.transforms: aff_transforms
+  - transforms@env_wrapper.transforms: rl_transforms
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog

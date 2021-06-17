@@ -24,10 +24,16 @@ class ObservationWrapper(gym.ObservationWrapper):
         self.env = env
         self.img_size = img_size
         shape = (1, img_size, img_size)
-        if(transforms):
-            self._transforms_cfg =\
-                transforms["train"] if train else transforms["validation"]
-            self.transforms, shape = self.get_transforms()
+
+        # Prepreocessing for affordance model
+        _transforms_cfg =\
+            affordance.transforms["train"] if train else affordance.transforms["validation"]
+        self.aff_transforms, _ = self.get_transforms(_transforms_cfg)
+
+        # Preprocessing for RL policy obs
+        _transforms_cfg =\
+            transforms["train"] if train else transforms["validation"]
+        self.rl_transforms, shape = self.get_transforms(_transforms_cfg)
 
         # History length
         self.skip_frames = skip_frames
@@ -154,10 +160,11 @@ class ObservationWrapper(gym.ObservationWrapper):
             obs["%s_depth_obs" % cam_type] = depth_obs
         if(obs_cfg.use_img):
             # Transform rgb to grayscale
-            grayscale_obs = self.img_preprocessing(
-                                obs_dict['rgb_obs'][cam_id])
+            img_obs = self.img_preprocessing(
+                                obs_dict['rgb_obs'][cam_id],
+                                self.rl_transforms)
             # 1, W, H
-            obs["%s_img_obs" % cam_type] = grayscale_obs
+            obs["%s_img_obs" % cam_type] = img_obs
 
         get_gripper_target = cam_type == "gripper" and (
                     self.affordance.gripper_cam.densify_reward or
@@ -166,7 +173,8 @@ class ObservationWrapper(gym.ObservationWrapper):
         if(aff_net is not None and (aff_cfg.use or get_gripper_target)):
             # Np array 1, H, W
             grayscale_obs = self.img_preprocessing(
-                        obs_dict['rgb_obs'][cam_id])
+                        obs_dict['rgb_obs'][cam_id],
+                        self.aff_transforms)
             with torch.no_grad():
                 # 1, 1, H, W in range [-1, 1]
                 obs_t = torch.tensor(grayscale_obs).unsqueeze(0)
@@ -233,9 +241,9 @@ class ObservationWrapper(gym.ObservationWrapper):
         new_frame = np.expand_dims(new_frame, axis=0)
         return new_frame
 
-    def get_transforms(self):
+    def get_transforms(self, transforms_cfg):
         transforms_lst = []
-        for cfg in self._transforms_cfg:
+        for cfg in transforms_cfg:
             transforms_lst.append(hydra.utils.instantiate(cfg))
         apply_transforms = transforms.Compose(transforms_lst)
         test_tensor = torch.zeros((3, self.img_size, self.img_size))
@@ -245,10 +253,10 @@ class ObservationWrapper(gym.ObservationWrapper):
             test_tensor = test_tensor.unsqueeze(0)
         return apply_transforms, test_tensor.shape
 
-    def img_preprocessing(self, frame):
+    def img_preprocessing(self, frame, transforms):
         # obs is from 0-255, (img_size, img_size, 3)
         frame = torch.from_numpy(frame).permute(2, 0, 1)
-        frame = self.transforms(frame)
+        frame = transforms(frame)
         frame = frame.cpu().detach().numpy()
 
         # History length

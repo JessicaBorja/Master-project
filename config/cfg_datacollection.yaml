@@ -56,5 +56,5 @@ defaults:
   - env: env
   - scene@env.scene: clutter_tabletop
   - camera_conf@env: play_data_tabletop
-  - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
+  - override hydra/job_logging: colorlog

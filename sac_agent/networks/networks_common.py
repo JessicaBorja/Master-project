@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from sac_agent.sac_utils.utils import get_activation_fn
 import numpy as np
 import os
-
+import cv2
 
 def get_pos_shape(obs_space, key="robot_obs"):
     _obs_space_keys = list(obs_space.spaces.keys())
@@ -47,7 +47,7 @@ def get_img_network(obs_space, out_feat, activation, affordance_cfg, cam_type):
         use_affordance = \
             os.path.exists(affordance_cfg.model_path)\
             and affordance_cfg.use
-        print("Networks: Using %s cam affordance: %s" % (cam_type, use_affordance))
+        # print("Networks: Using %s cam affordance: %s" % (cam_type, use_affordance))
 
         # Build network
         return CNNCommon(
@@ -56,7 +56,7 @@ def get_img_network(obs_space, out_feat, activation, affordance_cfg, cam_type):
             activation=_activation_fn,
             use_affordance=use_affordance)
     else:
-        print("No image input for %s camera" % cam_type)
+        # print("No image input for %s camera" % cam_type)
         return None
 
 
@@ -91,9 +91,9 @@ def get_concat_features(aff_cfg, obs, cnn_img=None, cnn_gripper=None):
             if(len(mask.shape) == 3):
                 mask = mask.unsqueeze(0)
             cnn_input.append(mask)
-        cnn_input = torch.cat(cnn_input, 1)
-        features.append(cam_net(cnn_input))
-
+        if(len(cnn_input) > 0):
+            cnn_input = torch.cat(cnn_input, 1)
+            features.append(cam_net(cnn_input))
     if("robot_obs" in obs):
         features.append(obs['robot_obs'])
 

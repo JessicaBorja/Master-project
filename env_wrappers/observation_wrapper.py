@@ -144,17 +144,18 @@ class ObservationWrapper(gym.ObservationWrapper):
                     raise TypeError("Path does not exist: %s" % path)
         return aff_net
 
-    def get_cam_obs(self, obs_dict, cam_type, aff_net, obs_cfg, aff_cfg):
+    def get_cam_obs(self, obs_dict, cam_type, aff_net,
+                    obs_cfg, aff_cfg, cam_id):
         obs = {}
         if(obs_cfg.use_depth):
             # Resize
             depth_obs = self.depth_preprocessing(
-                            obs_dict['depth_obs'][self.static_id])
+                            obs_dict['depth_obs'][cam_id])
             obs["%s_depth_obs" % cam_type] = depth_obs
         if(obs_cfg.use_img):
             # Transform rgb to grayscale
             grayscale_obs = self.img_preprocessing(
-                                obs_dict['rgb_obs'][self.gripper_id])
+                                obs_dict['rgb_obs'][cam_id])
             # 1, W, H
             obs["%s_img_obs" % cam_type] = grayscale_obs
 
@@ -165,7 +166,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         if(aff_net is not None and (aff_cfg.use or get_gripper_target)):
             # Np array 1, H, W
             grayscale_obs = self.img_preprocessing(
-                        obs_dict['rgb_obs'][self.gripper_id])
+                        obs_dict['rgb_obs'][cam_id])
             with torch.no_grad():
                 # 1, 1, H, W in range [-1, 1]
                 obs_t = torch.tensor(grayscale_obs).unsqueeze(0)
@@ -175,8 +176,7 @@ class ObservationWrapper(gym.ObservationWrapper):
                 # aff_logits, aff_probs, aff_mask, directions
                 _, aff_probs, aff_mask, directions = aff_net(obs_t)
                 # aff_mask = self._mask_transforms(aff_mask).cuda()
-                mask = torch_to_numpy(aff_mask)  # foreground/affordance Mask
-
+                mask = torch_to_numpy(aff_mask)  # foreground/affordance Mask                
                 if(get_gripper_target):
                     preds = {"%s_aff" % cam_type: aff_mask,
                              "%s_center_dir" % cam_type: directions,
@@ -189,6 +189,8 @@ class ObservationWrapper(gym.ObservationWrapper):
                                             preds)
                     obs["detected_target_pos"] = self.unwrapped.current_target
             if(aff_cfg.use):
+                # m = np.transpose(mask * 255,(1, 2, 0)).astype('uint8')
+                # cv2.imshow("%s_aff" % cam_type, m)
                 obs["%s_aff" % cam_type] = mask
         return obs
 
@@ -200,11 +202,13 @@ class ObservationWrapper(gym.ObservationWrapper):
         obs = {**self.get_cam_obs(obs_dict, "gripper",
                                   self.gripper_cam_aff_net,
                                   self.gripper_cam_cfg,
-                                  self.affordance.gripper_cam),
+                                  self.affordance.gripper_cam,
+                                  self.gripper_id),
                **self.get_cam_obs(obs_dict, "static",
                                   self.static_cam_aff_net,
                                   self.static_cam_cfg,
-                                  self.affordance.static_cam)}
+                                  self.affordance.static_cam,
+                                  self.static_id)}
         if(self._use_robot_obs):
             if(self.unwrapped.task == "pickup"):
                 # *tcp_pos(3), *tcp_euler(1) z angle ,

@@ -55,5 +55,5 @@ hydra:
 defaults:
   - optim: aff_optim
   - transforms@dataset.transforms: img_transforms #Load from folder image_transforms, as dataset.transforms
-  # - override hydra/job_logging: colorlog
-  # - override hydra/hydra_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+  - override hydra/job_logging: colorlog

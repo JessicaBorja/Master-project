@@ -2,6 +2,8 @@ import hydra
 import gym
 import logging
 
+from segmentation_models_pytorch.unet import model
+
 from env_wrappers.env_wrapper import wrap_env
 from utils.utils import register_env
 from combined.combined import Combined
@@ -9,6 +11,10 @@ register_env()
 
 
 def get_name(cfg, model_name):
+    if(cfg.env_wrapper.gripper_cam.use_img):
+        model_name += "_grayImg"
+    if(cfg.env_wrapper.gripper_cam.use_depth):
+        model_name += "_depth"
     if(cfg.affordance.gripper_cam.target_in_obs):
         model_name += "_target"
     if(cfg.affordance.gripper_cam.use):

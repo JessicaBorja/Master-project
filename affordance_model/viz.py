@@ -102,7 +102,7 @@ def viz(cfg):
         x = img_transform(x).cuda()
 
         # Predict affordance, centers and directions
-        _, _, aff_mask, directions = model(x)
+        aff_logits, _, aff_mask, directions = model(x)
         fg_mask, _, object_centers, object_masks = \
             model.predict(aff_mask, directions)
 

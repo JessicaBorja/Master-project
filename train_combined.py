@@ -12,7 +12,7 @@ register_env()
 
 def get_name(cfg, model_name):
     if(cfg.env_wrapper.gripper_cam.use_img):
-        model_name += "_grayImg"
+        model_name += "_img"
     if(cfg.env_wrapper.gripper_cam.use_depth):
         model_name += "_depth"
     if(cfg.affordance.gripper_cam.target_in_obs):

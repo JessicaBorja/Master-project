@@ -72,7 +72,7 @@ affordance:
         decoder_channels: [128, 64, 32]
     static_cam:
       use: False
-      model_path: ${models_path}/static_cam_1ce_5dice.ckpt
+      model_path: ${models_path}/static_cam_center_preds_1.ckpt
     gripper_cam:
       use: False  # Use affordance in observation
       densify_reward: False  # Use affordance to shape the reward function
@@ -123,14 +123,14 @@ all_cameras:
   tabletop_topview:
     _target_: vr_env.camera.static_camera.StaticCamera
     name: tabletop_topview
-    fov: 75
+    fov: 45
     aspect: 1
     nearval: 0.01
     farval: 2
-    width: 300
-    height: 300
-    look_at: [0.3, 0.8, 0.5]
-    look_from: [0.3, 0.6, 1.5]
+    width: 200
+    height: 200
+    look_at: [0.2753056585788727, 0.4048122465610504, 0.04299933835864067]
+    look_from: [0.2753049433231638, 1.551965045589526, 1.681303648001446]
   static:
     _target_: vr_env.camera.static_camera.StaticCamera
     name: static
@@ -177,5 +177,3 @@ defaults:
   - agent: default
   - test: test_combined
   - transforms: img_transforms
-  - override hydra/hydra_logging: colorlog
-  - override hydra/job_logging: colorlog

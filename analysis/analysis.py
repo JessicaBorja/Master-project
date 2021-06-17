@@ -42,7 +42,7 @@ def merge_by_timesteps(data, min_data_axs):
             list, each element is a different seed
             data[i].shape = [n_evaluations, 2] (timestep, value)
     '''
-    idxs = np.arange(60) * 1000  # 0, 1k, 2k ... 90k
+    idxs = np.arange(40) * 1000  # 0, 1k, 2k ... 90k
     data_copy = []
     for d in data:
         run_values = np.zeros(shape=(len(idxs), d.shape[-1]))

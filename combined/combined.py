@@ -17,7 +17,8 @@ from affordance_model.segmentator_centers import Segmentator
 from affordance_model.datasets import get_transforms
 
 from utils.cam_projections import pixel2world
-from utils.img_utils import torch_to_numpy, overlay_mask, viz_aff_centers_preds
+from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
+from env_wrappers.env_wrapper import EGLWrapper
 
 
 class Combined(SAC):
@@ -32,12 +33,9 @@ class Combined(SAC):
             self.affordance.img_size)
         # initial angle
         self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
-        # self.env.get_obs()["robot_obs"][3:6]
 
         # Search for targets
-        # Make target slightly(5cm) above actual target
         self._compute_target = self._env_compute_target
-        # self._compute_target = self._aff_compute_target
         # self._compute_target = self._compute_target_centers
         self.area_center, self.target = self._compute_target()
 
@@ -79,134 +77,17 @@ class Combined(SAC):
         target_pos, _ = env.get_target_pos()
         # 2 cm deviation
         target_pos = np.array(target_pos)
-        target_pos += np.random.normal(loc=0, scale=0.002,
+        target_pos += np.random.normal(loc=0, scale=0.01,
                                        size=(len(target_pos)))
         area_center = np.array(target_pos) \
             + np.array([0, 0, 0.07])
-
-        # Visualize targets
-        # p.removeAllUserDebugItems()
-        # p.addUserDebugText("target_0",
-        #                    textPosition=target_pos,
-        #                    textColorRGB=[0, 1, 0])
-        # p.addUserDebugText("a_center",
-        #                    textPosition=area_center,
-        #                    textColorRGB=[0, 1, 0])
-        return area_center, target_pos
-
-    # Clustering
-    def _aff_compute_target(self):
-        # Predictions for current observation
-        cam = self.env.cameras[self.cam_id]
-        obs = self.env.get_obs()
-        img_obs = obs["rgb_obs"][self.cam_id]
-        depth_obs = obs["depth_obs"][self.cam_id]
-        cv2.imshow("img_obs", img_obs[:, :, ::-1])
-        cv2.waitKey(1)
-        orig_H, orig_W = img_obs.shape[:2]
-
-        # Prediction from aff_model
-        processed_obs = self.transforms(
-                            torch.tensor(img_obs).permute(2, 0, 1))
-        processed_obs = processed_obs.unsqueeze(1).cuda()
-        aff_preds, probs, logits = self.aff_net_static_cam(processed_obs)
-        aff_preds = aff_preds.cpu().detach().numpy()
-        # (img_size, img_size, 1)
-        aff_preds = np.transpose(aff_preds[0], (1, 2, 0))
-        probs = probs[0].cpu().detach().numpy()
-        probs = np.transpose(probs, (1, 2, 0))
-
-        # Clustering
-        # Predictions are between 0 and 1
-        dbscan = DBSCAN(eps=3, min_samples=3)
-        positives = np.argwhere(aff_preds > 0.3)
-        cluster_outputs = []
-        if(positives.shape[0] > 0):
-            labels = dbscan.fit_predict(positives)
-        else:
-            return [0, 0, 0], [0, 0, 0]  # area_center, target_pos
-
-        cluster_ids = np.unique(labels)
-
-        # For printing the clusters
-        colors = cm.jet(np.linspace(0, 1, len(cluster_ids)))
-        colors = (colors * 255).astype("int")
-        out_mask = np.zeros((orig_H, orig_W, 3))  # (64, 64, 3)
-
-        # Find approximate center
-        max_robustness = 0
-        px_target = (0, 0)
-        n_pixels = aff_preds.shape[0] * aff_preds.shape[1]
-        out_img = img_obs[:, :, ::-1]
-        for idx, c in enumerate(cluster_ids):
-            cluster = positives[np.argwhere(labels == c).squeeze()]  # N, 3
-            if(len(cluster.shape) == 1):
-                cluster = np.expand_dims(cluster, 0)
-            pixel_count = cluster.shape[0] / n_pixels
-
-            # Visualize all cluster
-            curr_mask = np.zeros((*aff_preds.shape[:2], 1))
-            curr_mask[cluster[:, 0], cluster[:, 1]] = 255
-            curr_mask = cv2.resize(curr_mask, (orig_H, orig_W))
-            out_img = overlay_mask(curr_mask, out_img, tuple(colors[idx][:3]))
-
-            # img size is 300 then we need int64 to cover all pixels
-            scaled_cluster = np.argwhere(curr_mask > 0)
-            mid_point = np.mean(scaled_cluster, 0).astype('int')
-            u, v = mid_point[1], mid_point[0]
-            # u = int(u * orig_W / aff_preds.shape[0])
-            # v = int(v * orig_W / aff_preds.shape[0])
-            # Unprojection
-            world_pt = pixel2world(cam, u, v, depth_obs)
-
-            # Softmax output from predicted affordances
-            robustness = np.mean(probs[cluster[:, 0], cluster[:, 1]])
-
-            if(robustness > max_robustness):
-                target_pos = world_pt
-                px_target = (u, v)
-            c_out = {"px_center": (u, v),
-                     "pixel_count": pixel_count,
-                     "robustness": robustness}
-            cluster_outputs.append(c_out)
-
-        # Viz imgs
-        for c in cluster_outputs:
-            center = c["px_center"]
-            out_img = cv2.drawMarker(out_img, center,
-                                     (0, 0, 0),
-                                     markerType=cv2.MARKER_CROSS,
-                                     markerSize=5,
-                                     line_type=cv2.LINE_AA)
-
-        out_img = cv2.drawMarker(out_img, px_target,
-                                 (0, 255, 0),
-                                 markerType=cv2.MARKER_CROSS,
-                                 markerSize=5,
-                                 line_type=cv2.LINE_AA)
-
-        depth_obs = cv2.drawMarker(depth_obs, px_target,
-                                 (0, 255, 0),
-                                 markerType=cv2.MARKER_CROSS,
-                                 markerSize=5,
-                                 line_type=cv2.LINE_AA)
-        cv2.imshow("depth", depth_obs)
-        cv2.imshow("clusters", out_img)
-        cv2.waitKey(1)
-
-        # 2 cm deviation
-        target_pos = np.array(target_pos)
-        target_pos += np.random.normal(loc=0, scale=0.002,
-                                       size=(len(target_pos)))
-        area_center = np.array(target_pos) \
-            + np.array([0, 0, 0.05])
         return area_center, target_pos
 
     # Aff-center model
-    def _compute_target_centers(self):
+    def _compute_target_centers(self, env=None):
         # Get environment observation
-        cam = self.env.cameras[self.cam_id]
-        obs = self.env.get_obs()
+        cam = env.cameras[self.cam_id]
+        obs = env.get_obs()
         depth_obs = obs["depth_obs"][self.cam_id]
         orig_img = obs["rgb_obs"][self.cam_id]
 
@@ -215,17 +96,18 @@ class Combined(SAC):
         img_obs = self.transforms(img_obs)
 
         # Predict affordances and centers
-        _, aff_probs, aff_mask, center_dir = self.forward(img_obs)
+        _, aff_probs, aff_mask, center_dir = \
+            self.aff_net_static_cam.forward(img_obs)
         aff_mask, center_dir, object_centers, object_masks = \
-            self.predict(aff_mask, center_dir)
+            self.aff_net_static_cam.predict(aff_mask, center_dir)
+
+        # Visualize predictions
+        viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+                              object_centers, object_masks)
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
         object_masks = torch_to_numpy(object_masks[0])  # H, W
-
-        # Visualize predictions
-        # viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-        #                       object_centers, object_masks)
 
         # Plot different objects
         if(len(object_centers) > 0):
@@ -253,23 +135,20 @@ class Combined(SAC):
 
         # world cord
         v, u = target_px
-        # out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
-        #                          (u, v),
-        #                          (0, 255, 0),
-        #                          markerType=cv2.MARKER_CROSS,
-        #                          markerSize=12,
-        #                          line_type=cv2.LINE_AA)
-        # cv2.imshow("out_img", out_img)
-
+        out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
+                                 (u, v),
+                                 (0, 255, 0),
+                                 markerType=cv2.MARKER_CROSS,
+                                 markerSize=12,
+                                 line_type=cv2.LINE_AA)
+        cv2.imshow("out_img", out_img)
+        cv2.waitKey()
         # Compute depth
         target_pos = pixel2world(cam, u, v, depth_obs)
 
-        # 2 cm deviation
         target_pos = np.array(target_pos)
-        target_pos += np.random.normal(loc=0, scale=0.002,
-                                       size=(len(target_pos)))
         area_center = np.array(target_pos) \
-            + np.array([0, 0, 0.03])
+            + np.array([0, 0, 0.05])
         return area_center, target_pos
 
     def move_to_target(self, env, tcp_pos, a, dict_obs=True):
@@ -331,9 +210,9 @@ class Combined(SAC):
         env.unwrapped.current_target = target
         # self.eval_env.unwrapped.current_target = target
 
-        # p.addUserDebugText("a_center",
-        #                    textPosition=self.area_center,
-        #                    textColorRGB=[0, 0, 1])
+        p.addUserDebugText("a_center",
+                           textPosition=self.area_center,
+                           textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
@@ -346,9 +225,9 @@ class Combined(SAC):
             tcp_pos = env.get_obs()["robot_obs"][:3]
             a = [self.area_center, self.target_orn, 1]
             self.move_to_target(env, tcp_pos, a, dict_obs)
-            # p.addUserDebugText("target",
-            #                    textPosition=target,
-            #                    textColorRGB=[0, 0, 1])
+            p.addUserDebugText("target",
+                               textPosition=target,
+                               textColorRGB=[0, 0, 1])
         # as we moved robot, need to update target and obs
         # for rl policy
         return env, env.observation(env.get_obs())
@@ -391,7 +270,7 @@ class Combined(SAC):
             done = False
             # Correct Position
             env, s = self.correct_position(env, s)
-            while(episode_length < max_episode_length and not done):
+            while(episode_length < max_episode_length // 2 and not done):
                 # sample action and scale it to action space
                 a, _ = self._pi.act(tt(s), deterministic=True)
                 a = a.cpu().detach().numpy()
@@ -626,3 +505,42 @@ class Combined(SAC):
                           (n_eval_ep), mean_length, t)
 
         return best_eval_return, plot_data
+
+    def tidy_up(self, env, max_episode_length=100):
+        tasks = []
+        # get from static cam affordance
+        self._compute_target = self._compute_target_centers
+        if(env.task == "pickup"):
+            tasks = list(self.env.objects.keys())
+            tasks.remove("table")
+            tasks.remove("bin")
+            n_tasks = len(tasks)
+
+        ep_success = []
+        total_ts = 0
+        s = env.reset()
+        # Set total timeout to timeout per task times all tasks + 1
+        while(total_ts <= max_episode_length * (n_tasks + 1)):
+            episode_length, episode_return = 0, 0
+            done = False
+            # Search affordances and correct position:
+            env, s = self.correct_position(env, s)
+            while(episode_length < max_episode_length and not done):
+                # sample action and scale it to action space
+                a, _ = self._pi.act(tt(s), deterministic=True)
+                a = a.cpu().detach().numpy()
+                ns, r, _, info = env.step(a)
+                done = r >= 200
+                s = ns
+                episode_return += r
+                episode_length += 1
+                total_ts += 1
+            if(episode_return >= 200):
+                self.move_to_box(env)
+                success = self.eval_grasp_success(env)
+            else:
+                success = False
+            ep_success.append(success)
+
+        self.log.info("Success: %d/%d " % (np.sum(ep_success), len(ep_success)))
+        return ep_success

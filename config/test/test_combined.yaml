@@ -19,9 +19,9 @@ models_dir: ${project_path}/Master-project/combined/hydra_outputs
 #rewB_affMask_target_sparse
 # 01-32-56/results/rewB_gripper_tcp_target_dense_04-06_01-33
 
-# 2021-06-09/18-11-28/results/master_target_affMask_dense_11-06_05-08
-model_name: "master_target_affMask_dense_11-06_05-08_best_eval"
-folder_name: ${test.models_dir}/pickup/2021-06-09/18-11-28
+# 2021-06-15/22-41-47/results/master_target_dense_15-06_22-41
+model_name: "master_target_dense_15-06_22-41_most_tasks"
+folder_name: ${test.models_dir}/pickup/2021-06-15/22-41-47
 eval_cfg:
   n_episodes: 5
   render: False

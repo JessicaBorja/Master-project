@@ -41,7 +41,8 @@ def main(cfg):
             test_cfg.model_name)
     success = model.load(path)
     if(success):
-        model.evaluate(env, **cfg.test.eval_cfg)
+        # model.evaluate(env, **cfg.test.eval_cfg)
+        model.tidy_up(env)
     env.close()
 
 

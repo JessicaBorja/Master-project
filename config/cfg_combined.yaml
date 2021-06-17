@@ -7,16 +7,6 @@ euler_obs: true
 img_size: 64
 repeat_training: 1
 
-# Define types of input to the RL agent
-env_wrapper:
-  use_depth: False
-  use_pos: True
-  use_static_cam: False
-  use_gripper_cam: True
-  history_length: 1
-  skip_frames: 0
-  img_size: ${img_size}
-  transforms: ${transforms}
 
 # path to load affordance models either gripper_cam 
 # or static_cam
@@ -51,7 +41,21 @@ target_search_aff:
     unet_cfg:
       decoder_channels: [128, 64, 32]
 
-# RL agent
+# Define types of observation input to the RL agent
+env_wrapper:
+  gripper_cam:
+    use_img: False
+    use_depth: True
+  static_cam:
+    use_img: False
+    use_depth: True
+  use_pos: True
+  history_length: 1
+  skip_frames: 0
+  img_size: ${img_size}
+  transforms: ${transforms}
+
+# Affordance configuration for RL agent observation inputs
 affordance:
     hyperparameters:
       n_classes: 2

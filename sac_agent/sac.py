@@ -32,7 +32,8 @@ class SAC():
             self.eval_env = env
 
         # Replay buffer
-        _cnn_policy_cond = ["depth_obs", "gripper_img_obs", "img_obs"]
+        _cnn_policy_cond = ["gripper_depth_obs", "gripper_img_obs",
+                            "static_depth_obs", "static_img_obs"]
         _img_obs = False
         obs_space = env.observation_space
         if(isinstance(obs_space, gym.spaces.Dict) and

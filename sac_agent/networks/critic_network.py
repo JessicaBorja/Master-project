@@ -3,8 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from sac_agent.sac_utils.utils import get_activation_fn
 from sac_agent.networks.networks_common import \
-     get_pos_shape, get_depth_network, get_img_network, \
-     get_gripper_network, get_concat_features
+     get_pos_shape, get_img_network, get_concat_features
 
 
 # q function
@@ -30,22 +29,20 @@ class CNNCritic(nn.Module):
         super(CNNCritic, self).__init__()
         _tcp_pos_shape = get_pos_shape(obs_space, "robot_obs")
         _target_pos_shape = get_pos_shape(obs_space, "detected_target_pos")
-        self.cnn_depth = get_depth_network(
-                        obs_space,
-                        out_feat=16,
-                        activation=activation)
         self.cnn_img = get_img_network(
                             obs_space,
                             out_feat=16,
                             activation=activation,
-                            affordance_cfg=affordance)
-        self.cnn_gripper = get_gripper_network(
+                            affordance_cfg=affordance.static_cam,
+                            cam_type="static")
+        self.cnn_gripper = get_img_network(
                             obs_space,
                             out_feat=16,
                             activation=activation,
-                            affordance_cfg=affordance)
+                            affordance_cfg=affordance.gripper_cam,
+                            cam_type="gripper")
         out_feat = 0
-        for net in [self.cnn_img, self.cnn_depth, self.cnn_gripper]:
+        for net in [self.cnn_img, self.cnn_gripper]:
             if(net is not None):
                 out_feat += 16
         out_feat += _tcp_pos_shape + _target_pos_shape + action_dim
@@ -60,7 +57,6 @@ class CNNCritic(nn.Module):
         features = get_concat_features(self.aff_cfg,
                                        states,
                                        self.cnn_img,
-                                       self.cnn_depth,
                                        self.cnn_gripper)
         x = torch.cat((features, actions), -1)
         x = F.elu(self.fc1(x))

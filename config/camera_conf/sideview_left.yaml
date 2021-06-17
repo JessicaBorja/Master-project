@@ -1,4 +1,4 @@
-# @package _group_
+
 cameras:
   - '${all_cameras.sideview_left}'
   - '${all_cameras.gripper}'

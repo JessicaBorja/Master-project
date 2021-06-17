@@ -1,4 +1,4 @@
-# @package _group_
+
 train:
   - _target_: torchvision.transforms.Resize
     size: ${img_size}

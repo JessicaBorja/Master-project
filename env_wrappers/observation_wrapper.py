@@ -300,8 +300,8 @@ class ObservationWrapper(gym.ObservationWrapper):
             self.gripper_cam_aff_net.predict(aff_mask, directions)
 
         # Visualize predictions
-        viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                              object_centers, object_masks)
+        # viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+        #                       object_centers, object_masks)
 
         # Plot different objects
         cluster_outputs = []

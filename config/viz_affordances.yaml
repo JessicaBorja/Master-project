@@ -65,5 +65,5 @@ hydra:
 
 defaults:
   - transforms: img_transforms
-  - override hydra/job_logging: colorlog
-  - override hydra/hydra_logging: colorlog
+  # - override hydra/job_logging: colorlog
+  # - override hydra/hydra_logging: colorlog

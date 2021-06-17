@@ -524,8 +524,8 @@ class Combined(SAC):
             episode_length, episode_return = 0, 0
             done = False
             # Search affordances and correct position:
-            env, s = self.correct_position(env, s)
-            while(episode_length < max_episode_length and not done):
+            env, s = self.correct_position(env, self.env.get_obs())
+            while(episode_length < max_episode_length // 2 and not done):
                 # sample action and scale it to action space
                 a, _ = self._pi.act(tt(s), deterministic=True)
                 a = a.cpu().detach().numpy()

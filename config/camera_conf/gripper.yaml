@@ -1,3 +1,0 @@
-
-cameras:
-  - '${all_cameras.gripper}'

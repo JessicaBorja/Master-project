@@ -1,4 +1,4 @@
-# @package _group_
+
 cameras:
   - '${all_cameras.play_data_large_handles}'
   - '${all_cameras.gripper}'

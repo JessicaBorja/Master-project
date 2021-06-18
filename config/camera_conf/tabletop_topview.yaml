@@ -1,4 +1,5 @@
-# @package _group_
+
 cameras:
   - '${all_cameras.tabletop_topview}'
   - '${all_cameras.gripper}'
+  - '${all_cameras.test}'

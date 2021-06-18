@@ -1,4 +1,4 @@
-# @package _group_
+
 max_budget: 100
 min_budget: 5
 n_iterations: 4

@@ -113,12 +113,12 @@ class Combined(SAC):
             self.aff_net_static_cam.predict(aff_mask, center_dir)
 
         # Visualize predictions
-        img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                                         object_centers, object_masks,
-                                         "static", self.global_obs_it,
-                                         self.env.save_images)
-        self.static_cam_imgs.update(img_dict)
-        self.global_obs_it += 1
+        # img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+        #                                  object_centers, object_masks,
+        #                                  "static", self.global_obs_it,
+        #                                  self.env.save_images)
+        # self.static_cam_imgs.update(img_dict)
+        # self.global_obs_it += 1
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2

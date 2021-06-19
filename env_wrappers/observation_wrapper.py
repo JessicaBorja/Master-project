@@ -317,11 +317,11 @@ class ObservationWrapper(gym.ObservationWrapper):
             self.gripper_cam_aff_net.predict(aff_mask, directions)
 
         # Visualize predictions
-        im_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                                        object_centers, object_masks,
-                                        "gripper", self.obs_it,
-                                        save_images=self.save_images)
-        self.gripper_cam_imgs.update(im_dict)
+        # im_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+        #                                 object_centers, object_masks,
+        #                                 "gripper", self.obs_it,
+        #                                 save_images=self.save_images)
+        # self.gripper_cam_imgs.update(im_dict)
 
         # Plot different objects
         cluster_outputs = []

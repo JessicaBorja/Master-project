@@ -346,7 +346,6 @@ class SAC():
 
         # Save images
         if(save_images):
-            import cv2
             os.makedirs("./frames/")
             for idx, im in enumerate(im_lst):
                 cv2.imwrite("./frames/image_%04d.jpg" % idx, im)

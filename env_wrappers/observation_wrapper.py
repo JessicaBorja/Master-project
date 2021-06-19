@@ -211,40 +211,31 @@ class ObservationWrapper(gym.ObservationWrapper):
 
     def observation(self, obs):
         # "rgb_obs", "depth_obs", "robot_obs","scene_obs"
-        if(self._use_img_obs or self._use_gripper_img):
-            obs = {}
-            self.curr_raw_obs = self.get_obs()
-            obs_dict = self.curr_raw_obs
-            obs = {**self.get_cam_obs(obs_dict, "gripper",
-                                      self.gripper_cam_aff_net,
-                                      self.gripper_cam_cfg,
-                                      self.affordance.gripper_cam,
-                                      self.gripper_id),
-                   **self.get_cam_obs(obs_dict, "static",
-                                      self.static_cam_aff_net,
-                                      self.static_cam_cfg,
-                                      self.affordance.static_cam,
-                                      self.static_id)}
-            if(self._use_depth):
-                depth_obs = self.depth_preprocessing(
-                                obs_dict['depth_obs'][self.static_id])
-                obs["depth_obs"] = depth_obs
-            if(self._use_robot_obs):
-                if(self.unwrapped.task == "pickup"):
-                    # *tcp_pos(3), *tcp_euler(1) z angle ,
-                    # gripper_opening_width(1), gripper_action
-                    obs["robot_obs"] = np.array([*obs_dict["robot_obs"][:3],
-                                                *obs_dict["robot_obs"][5:7],
-                                                obs_dict["robot_obs"][-1]])
-                else:
-                    # *tcp_pos(3), *tcp_euler(3),
-                    # gripper_opening_width(1), gripper_action
-                    obs["robot_obs"] = np.array([*obs_dict["robot_obs"][:7],
-                                                obs_dict["robot_obs"][-1]])
-        else:
-            robot_obs, scene_obs = obs['robot_obs'], obs['scene_obs']
-            obs = np.concatenate((robot_obs[:7],  # only pos and euler orn
-                                  scene_obs[:3]))  # only doors states
+        obs = {}
+        self.curr_raw_obs = self.get_obs()
+        obs_dict = self.curr_raw_obs
+        obs = {**self.get_cam_obs(obs_dict, "gripper",
+                                  self.gripper_cam_aff_net,
+                                  self.gripper_cam_cfg,
+                                  self.affordance.gripper_cam,
+                                  self.gripper_id),
+               **self.get_cam_obs(obs_dict, "static",
+                                  self.static_cam_aff_net,
+                                  self.static_cam_cfg,
+                                  self.affordance.static_cam,
+                                  self.static_id)}
+        if(self._use_robot_obs):
+            if(self.unwrapped.task == "pickup"):
+                # *tcp_pos(3), *tcp_euler(1) z angle ,
+                # gripper_opening_width(1), gripper_action
+                obs["robot_obs"] = np.array([*obs_dict["robot_obs"][:3],
+                                            *obs_dict["robot_obs"][5:7],
+                                            obs_dict["robot_obs"][-1]])
+            else:
+                # *tcp_pos(3), *tcp_euler(3),
+                # gripper_opening_width(1), gripper_action
+                obs["robot_obs"] = np.array([*obs_dict["robot_obs"][:7],
+                                            obs_dict["robot_obs"][-1]])
         self.curr_processed_obs = obs
         self.obs_it += 1
         return obs

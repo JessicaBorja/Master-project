@@ -16,7 +16,7 @@ sys.path.insert(0, parent_dir+"/VREnv/")
 # Keep points in a distance larger than radius from new_point
 # Do not keep fixed points more than 100 frames
 def update_fixed_points(fixed_points, new_point,
-                        current_frame_idx, radius=0.15):
+                        current_frame_idx, radius=0.1):
     x = []
     for frame_idx, p in fixed_points:
         if np.linalg.norm(new_point - p) > radius:
@@ -115,7 +115,7 @@ def label_gripper(cam_properties, img_hist, point, viz,
             if(viz):
                 cv2.imshow("Gripper", out_img)
                 cv2.imshow('Gripper flow_img', flow_over_img)
-                cv2.imshow('Gripperreal flow', flow_img)
+                cv2.imshow('Gripper real flow', flow_img)
                 cv2.waitKey(1)
 
             save_dict[im_id] = {
@@ -123,7 +123,8 @@ def label_gripper(cam_properties, img_hist, point, viz,
                 "mask": mask,
                 "centers": np.stack([center_px]),
                 "directions": directions,
-                "viz_out": out_img}
+                "viz_out": out_img,
+                "viz_dir": flow_over_img}
     return save_dict
 
 
@@ -180,6 +181,7 @@ def label_static(static_cam, static_hist, back_min, back_max,
         out_img = overlay_mask(static_mask, img, (0, 0, 255))
         flow_img = flowlib.flow_to_image(directions)[:, :, ::-1]
         flow_over_img = overlay_flow(flow_img, img, static_mask)
+
         if(viz):
             cv2.imshow("Separate", out_separate)
             cv2.imshow("Real", out_img)
@@ -197,7 +199,8 @@ def label_static(static_cam, static_hist, back_min, back_max,
             "mask": static_mask,
             "centers": centers,
             "directions": directions,
-            "viz_out": out_separate}
+            "viz_out": out_img,
+            "viz_dir": flow_over_img}
     return save_dict
 
 

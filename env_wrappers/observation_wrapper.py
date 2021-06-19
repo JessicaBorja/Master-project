@@ -17,7 +17,7 @@ from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
 
 
 class ObservationWrapper(gym.ObservationWrapper):
-    def __init__(self, env, history_length, skip_frames, img_size,
+    def __init__(self, env, history_length, skip_frames, img_size, save_images=False,
                  use_static_cam=False, use_depth=False, use_gripper_cam=False,
                  use_pos=False, transforms=None, train=False, affordance=None):
         super(ObservationWrapper, self).__init__(env)
@@ -42,6 +42,8 @@ class ObservationWrapper(gym.ObservationWrapper):
         self._cur_img_obs = None
         # Cameras defaults
         self.static_id, self.gripper_id = self.find_cam_ids()
+        self.obs_it = 0
+        self.save_images = save_images
 
         # Parameters to define observation
         self.affordance = affordance
@@ -66,8 +68,10 @@ class ObservationWrapper(gym.ObservationWrapper):
         for i, cam in enumerate(self.cameras):
             if "gripper" in cam.name:
                 gripper_id = i
-            else:
+            elif "static" in cam.name:
                 static_id = i
+            elif "test" in cam.name:
+                self.test_cam_id = i
         return static_id, gripper_id
 
     def get_obs_space(self):
@@ -231,6 +235,7 @@ class ObservationWrapper(gym.ObservationWrapper):
             obs = np.concatenate((robot_obs[:7],  # only pos and euler orn
                                   scene_obs[:3]))  # only doors states
         self.curr_processed_obs = obs
+        self.obs_it += 1
         return obs
 
     def depth_preprocessing(self, frame):
@@ -311,7 +316,9 @@ class ObservationWrapper(gym.ObservationWrapper):
 
         # Visualize predictions
         viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                              object_centers, object_masks)
+                              object_centers, object_masks,
+                              "gripper", self.obs_it,
+                              save_images=self.save_images)
 
         # Plot different objects
         cluster_outputs = []

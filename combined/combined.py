@@ -7,8 +7,6 @@ import cv2
 from omegaconf import OmegaConf
 import pybullet as p
 import math
-from sklearn.cluster import DBSCAN
-from matplotlib import cm
 
 from sac_agent.sac import SAC
 from sac_agent.sac_utils.utils import EpisodeStats, tt
@@ -16,13 +14,13 @@ from sac_agent.sac_utils.utils import EpisodeStats, tt
 from affordance_model.segmentator_centers import Segmentator
 from affordance_model.datasets import get_transforms
 
-from utils.cam_projections import pixel2world
+from utils.cam_projections import pixel2world, world2pixel
 from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
 from env_wrappers.env_wrapper import EGLWrapper
 
 
 class Combined(SAC):
-    def __init__(self, cfg, sac_cfg=None):
+    def __init__(self, cfg, save_images=False, sac_cfg=None):
         super(Combined, self).__init__(**sac_cfg)
         self.affordance = cfg.target_search_aff
         self.aff_net_static_cam = self._init_static_cam_aff_net()
@@ -44,9 +42,14 @@ class Combined(SAC):
         self.eval_env.unwrapped.current_target = self.target
         self.radius = self.env.target_radius  # Distance in meters
 
+        # To enumerate static cam preds on target search
+        self.global_obs_it = 0
+        self.box_mask = self.get_box_pos_mask(self.env)
+        self.im_lst = []  # to save images
+
     def _find_cam_id(self):
         for i, cam in enumerate(self.env.cameras):
-            if "gripper" not in cam.name:
+            if "static" in cam.name:
                 return i
         return 0
 
@@ -84,7 +87,7 @@ class Combined(SAC):
         return area_center, target_pos
 
     # Aff-center model
-    def _compute_target_centers(self, env=None):
+    def _compute_target_centers(self, env=None, save_images=False, img_it=0):
         # Get environment observation
         cam = env.cameras[self.cam_id]
         obs = env.get_obs()
@@ -98,12 +101,17 @@ class Combined(SAC):
         # Predict affordances and centers
         _, aff_probs, aff_mask, center_dir = \
             self.aff_net_static_cam.forward(img_obs)
+        aff_mask = aff_mask - self.box_mask
         aff_mask, center_dir, object_centers, object_masks = \
             self.aff_net_static_cam.predict(aff_mask, center_dir)
 
         # Visualize predictions
-        viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                              object_centers, object_masks)
+        img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+                                         object_centers, object_masks,
+                                         "static", self.global_obs_it,
+                                         self.env.save_images)
+        self.im_dict.update(img_dict)
+        self.global_obs_it += 1
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
@@ -141,8 +149,12 @@ class Combined(SAC):
                                  markerType=cv2.MARKER_CROSS,
                                  markerSize=12,
                                  line_type=cv2.LINE_AA)
-        cv2.imshow("out_img", out_img)
-        cv2.waitKey()
+        # cv2.imshow("out_img", out_img)
+        # cv2.waitKey(1)
+        if(self.env.save_images):
+            cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
+                        out_img)
+
         # Compute depth
         target_pos = pixel2world(cam, u, v, depth_obs)
 
@@ -170,6 +182,36 @@ class Combined(SAC):
             else:
                 tcp_pos = env.get_obs()[:3]
 
+            if(self.env.save_images):
+                im = env.render('rgb_array')
+                self.im_lst.append(im)
+                self.global_obs_it += 1
+
+    def get_box_pos_mask(self, env):
+        box_pos = self.env.objects["bin"]["initial_pos"]
+        x, y, z = box_pos
+        box_top_left = [x, y + 0.05, z + 0.05, 1]
+        box_bott_right = [x + 0.23, y - 0.35, z, 1]
+
+        # Static camera 
+        cam = env.cameras[self.cam_id]
+
+        u1, v1 = world2pixel(np.array(box_top_left), cam)
+        u2, v2 = world2pixel(np.array(box_bott_right), cam)
+
+        shape = (cam.width, cam.height)
+        mask = np.zeros(shape, np.uint8)
+        mask[v1:v2, u1:u2] = 1
+
+        shape = (self.affordance.img_size, self.affordance.img_size)
+        mask = cv2.resize(mask, shape)
+        # cv2.imshow("box_mask", mask)
+        # cv2.waitKey()
+
+        # 1, H, W
+        mask = torch.tensor(mask).unsqueeze(0).cuda()
+        return mask
+
     def move_to_box(self, env):
         # Box does not move
         r_obs = env.get_obs()["robot_obs"]
@@ -188,9 +230,17 @@ class Combined(SAC):
 
         # Get new position and orientation
         # pos, z angle, action = open gripper
-        a = [0, 0, 0, 0, 1]  # drop object
-        for i in range(8):
-            o, r, d, info = env.step(a)
+        tcp_pos = env.get_obs()["robot_obs"][:3]
+        a = [*tcp_pos, *self.target_orn, 1]  # drop object
+        for i in range(8):  # 8 steps
+            for i in range(8):  # 1 rl steps
+                env.p.stepSimulation()
+                env.fps_controller.step()
+            if(self.env.save_images):
+                im = env.render('rgb_array')
+                cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it,
+                            im)
+                self.global_obs_it += 1
 
     def correct_position(self, env, s):
         dict_obs = False
@@ -210,9 +260,9 @@ class Combined(SAC):
         env.unwrapped.current_target = target
         # self.eval_env.unwrapped.current_target = target
 
-        p.addUserDebugText("a_center",
-                           textPosition=self.area_center,
-                           textColorRGB=[0, 0, 1])
+        # p.addUserDebugText("a_center",
+        #                    textPosition=self.area_center,
+        #                    textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
@@ -225,9 +275,9 @@ class Combined(SAC):
             tcp_pos = env.get_obs()["robot_obs"][:3]
             a = [self.area_center, self.target_orn, 1]
             self.move_to_target(env, tcp_pos, a, dict_obs)
-            p.addUserDebugText("target",
-                               textPosition=target,
-                               textColorRGB=[0, 0, 1])
+            # p.addUserDebugText("target",
+            #                    textPosition=target,
+            #                    textColorRGB=[0, 0, 1])
         # as we moved robot, need to update target and obs
         # for rl policy
         return env, env.observation(env.get_obs())
@@ -251,7 +301,6 @@ class Combined(SAC):
         stats = EpisodeStats(episode_lengths=[],
                              episode_rewards=[],
                              validation_reward=[])
-        im_lst = []
         tasks, task_id = [], 0
         if(env.task == "pickup"):
             tasks = list(self.env.objects.keys())
@@ -279,7 +328,7 @@ class Combined(SAC):
                     img = env.render()
                 if(save_images):
                     # img, _ = self.find_target_center(env)
-                    im_lst.append(img)
+                    self.im_lst.append(img)
                 s = ns
                 episode_return += r
                 episode_length += 1
@@ -298,7 +347,7 @@ class Combined(SAC):
         # Save images
         if(save_images):
             os.makedirs("./frames/")
-            for idx, im in enumerate(im_lst):
+            for idx, im in enumerate(self.im_lst):
                 cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
         # mean and print
         mean_reward = np.mean(stats.episode_rewards)
@@ -520,7 +569,7 @@ class Combined(SAC):
         total_ts = 0
         s = env.reset()
         # Set total timeout to timeout per task times all tasks + 1
-        while(total_ts <= max_episode_length * (n_tasks + 1)):
+        while(total_ts <= max_episode_length // 2 * (n_tasks + 1)):
             episode_length, episode_return = 0, 0
             done = False
             # Search affordances and correct position:
@@ -535,12 +584,17 @@ class Combined(SAC):
                 episode_return += r
                 episode_length += 1
                 total_ts += 1
+                if(self.env.save_images):
+                    im = env.render('rgb_array')
+                    self.im_lst.append(im)
+                    self.global_obs_it += 1
             if(episode_return >= 200):
                 self.move_to_box(env)
                 success = self.eval_grasp_success(env)
             else:
                 success = False
             ep_success.append(success)
-
+        for idx, im in enumerate(self.im_lst):
+            cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
         self.log.info("Success: %d/%d " % (np.sum(ep_success), len(ep_success)))
         return ep_success

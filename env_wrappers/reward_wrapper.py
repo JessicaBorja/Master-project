@@ -10,7 +10,7 @@ from matplotlib import cm
 
 from sac_agent.sac_utils.utils import tt
 from utils.cam_projections import pixel2world
-from utils.img_utils import torch_to_numpy, overlay_mask, viz_aff_centers_preds
+from utils.img_utils import overlay_mask
 
 
 # As it wraps the environment, inherits its attributes

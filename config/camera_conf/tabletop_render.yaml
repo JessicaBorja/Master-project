@@ -1,0 +1,6 @@
+
+cameras:
+  - '${all_cameras.tabletop_test}'
+  - '${all_cameras.gripper}'
+  - '${all_cameras.tabletop_topview}'
+

@@ -10,7 +10,8 @@ def torch_to_numpy(x):
 
 
 def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
-                          object_centers, object_masks):
+                          object_centers, object_masks,
+                          cam_type="", obs_it=0, save_images=False):
     # To numpy
     mask = torch_to_numpy(mask[0])  # H, W
     aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
@@ -61,6 +62,12 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
     cv2.imshow("flow_over_img", flow_over_img)
     cv2.imshow("preds", out_img)
     cv2.waitKey(1)
+
+    if(save_images):
+        return {"./%s_aff/img_%04d.jpg" % (cam_type, obs_it): out_img,
+                "./%s_dirs/img_%04d.jpg" % (cam_type, obs_it): flow_over_img}
+    else:
+        return {}
 
 
 def visualize_np(mask, img, imshow=False, k=15):

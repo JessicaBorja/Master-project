@@ -55,10 +55,14 @@ def make_videos(path, cam, val_dir=False):
 
 
 if __name__ == "__main__":
-    pred_folder = "/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/SAC/affordance_model/predictions"
+    pred_folder = "/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/full_outputs/2021-06-18/19-52-16/"
     path = [
-        "%s/aff_centers_dir" % pred_folder,
-        "%s/aff_centers_dir_static" % pred_folder,
+        # "%s/apple" % pred_folder,
+        # "%s/milk" % pred_folder,
+        # "%s/tea" % pred_folder,
+        # "%s/cup" % pred_folder,
+        # "%s/cup_2" % pred_folder,
+        "%s/frames" % pred_folder
         ]
     val_dir = False
-    make_videos(path, "gripper", val_dir)
+    make_videos(path, "", val_dir)

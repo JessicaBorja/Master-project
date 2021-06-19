@@ -111,16 +111,34 @@ def create_dirs(root_dir, sub_dir, directory_lst):
 # Save a directory wtih frames, masks, viz_out
 def save_data(data_dict, directory, sub_dir, save_viz=True):
     if(save_viz):
-        data_dir, viz_out_dir = \
-            create_dirs(directory, sub_dir, ['data', 'viz_out'])
+        data_dir, viz_dir, viz_frames, viz_aff = \
+            create_dirs(directory, sub_dir, ['data',
+                                             'viz_direction',
+                                             'viz_frames',
+                                             'viz_affordance'])
     else:
         data_dir = create_dirs(directory, sub_dir, ['data'])
     for img_id, img_dict in data_dict.items():
         # Write vizualization output
         if(save_viz):
-            img_filename = os.path.join(viz_out_dir, img_id) + ".jpg"
-            cv2.imwrite(img_filename, img_dict['viz_out'])  # Save images
+            aff_viz_filname = os.path.join(viz_aff, img_id) + ".jpg"
+            dir_viz_filname = os.path.join(viz_dir, img_id) + ".jpg"
+            frame_viz_filname = os.path.join(viz_frames, img_id) + ".jpg"
+
+            affordance = img_dict['viz_out']
+            directions = img_dict['viz_dir']
+            orig_frame = img_dict['frame']
+
+            if(sub_dir == "static_cam"):
+                affordance = cv2.resize(affordance, (300, 300))
+                directions = cv2.resize(directions, (300, 300))
+                orig_frame = cv2.resize(orig_frame, (300, 300))
+
+            cv2.imwrite(aff_viz_filname, affordance)
+            cv2.imwrite(dir_viz_filname, directions)
+            cv2.imwrite(frame_viz_filname, orig_frame)
             img_dict.pop('viz_out')
+            img_dict.pop('viz_dir')
 
         # img_dict = {"frame":np.array, "mask":np.array, "centers": np.array}
         # frame is in BGR

@@ -21,12 +21,20 @@ def main(cfg):
 
     run_cfg.eval_env.show_gui = cfg.env.show_gui
     run_cfg.eval_env.cameras = cfg.env.cameras
+    run_cfg.all_cameras = cfg.all_cameras
 
     max_ts = cfg.agent.learn_config.max_episode_length
 
+    save_images = cfg.test.eval_cfg.save_images
+    dirs = ["frames", "gripper_aff", "static_aff",
+            "gripper_dirs", "static_dirs", "static_centers"]
+    if(save_images):
+        for d in dirs:
+            os.makedirs("./%s/" % d)
     env = gym.make("VREnv-v0", **run_cfg.eval_env).env
     env = wrap_env(env, max_ts,
                    affordance=run_cfg.affordance,
+                   save_images=save_images,
                    **env_wrapper)
 
     sac_cfg = {"env": env,
@@ -40,6 +48,7 @@ def main(cfg):
             test_cfg.folder_name,
             test_cfg.model_name)
     success = model.load(path)
+
     if(success):
         # model.evaluate(env, **cfg.test.eval_cfg)
         model.tidy_up(env)

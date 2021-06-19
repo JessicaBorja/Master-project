@@ -1,4 +1,0 @@
-
-cameras:
-  - '${all_cameras.opposing}'
-  - '${all_cameras.gripper}'

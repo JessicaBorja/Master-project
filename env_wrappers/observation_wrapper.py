@@ -63,6 +63,9 @@ class ObservationWrapper(gym.ObservationWrapper):
         _action_space = np.ones(5)
         self.action_space = spaces.Box(_action_space * -1, _action_space)
 
+        # Save images
+        self.gripper_cam_imgs = {}
+
     def find_cam_ids(self):
         static_id, gripper_id = 0, 1
         for i, cam in enumerate(self.cameras):
@@ -315,10 +318,11 @@ class ObservationWrapper(gym.ObservationWrapper):
             self.gripper_cam_aff_net.predict(aff_mask, directions)
 
         # Visualize predictions
-        viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                              object_centers, object_masks,
-                              "gripper", self.obs_it,
-                              save_images=self.save_images)
+        im_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+                                        object_centers, object_masks,
+                                        "gripper", self.obs_it,
+                                        save_images=self.save_images)
+        self.gripper_cam_imgs.update(im_dict)
 
         # Plot different objects
         cluster_outputs = []

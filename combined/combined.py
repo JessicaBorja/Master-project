@@ -7,7 +7,6 @@ import cv2
 from omegaconf import OmegaConf
 import pybullet as p
 import math
-
 from sac_agent.sac import SAC
 from sac_agent.sac_utils.utils import EpisodeStats, tt
 
@@ -20,7 +19,7 @@ from env_wrappers.env_wrapper import EGLWrapper
 
 
 class Combined(SAC):
-    def __init__(self, cfg, save_images=False, sac_cfg=None):
+    def __init__(self, cfg, sac_cfg=None):
         super(Combined, self).__init__(**sac_cfg)
         self.affordance = cfg.target_search_aff
         self.aff_net_static_cam = self._init_static_cam_aff_net()
@@ -30,12 +29,13 @@ class Combined(SAC):
             cfg.transforms.validation,
             self.affordance.img_size)
         # initial angle
+        self.initial_pos = self.env.get_obs()["robot_obs"][:3]
         self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
 
         # Search for targets
         self._compute_target = self._env_compute_target
         # self._compute_target = self._compute_target_centers
-        self.area_center, self.target = self._compute_target()
+        self.area_center, self.target, _ = self._compute_target()
 
         # Target specifics
         self.env.unwrapped.current_target = self.target
@@ -44,8 +44,12 @@ class Combined(SAC):
 
         # To enumerate static cam preds on target search
         self.global_obs_it = 0
-        self.box_mask = self.get_box_pos_mask(self.env)
-        self.im_lst = []  # to save images
+        self.no_detected_target = 0
+        self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(self.env)
+
+        # to save images
+        self.im_lst = []
+        self.static_cam_imgs = {}
 
     def _find_cam_id(self):
         for i, cam in enumerate(self.env.cameras):
@@ -84,7 +88,10 @@ class Combined(SAC):
                                        size=(len(target_pos)))
         area_center = np.array(target_pos) \
             + np.array([0, 0, 0.07])
-        return area_center, target_pos
+
+        # always returns a target position
+        no_target = False
+        return area_center, target_pos, no_target
 
     # Aff-center model
     def _compute_target_centers(self, env=None, save_images=False, img_it=0):
@@ -110,7 +117,7 @@ class Combined(SAC):
                                          object_centers, object_masks,
                                          "static", self.global_obs_it,
                                          self.env.save_images)
-        self.im_dict.update(img_dict)
+        self.static_cam_imgs.update(img_dict)
         self.global_obs_it += 1
 
         # To numpy
@@ -118,10 +125,15 @@ class Combined(SAC):
         object_masks = torch_to_numpy(object_masks[0])  # H, W
 
         # Plot different objects
+        no_target = False
         if(len(object_centers) > 0):
             target_px = object_centers[0]
         else:
-            return [0, 0, 0], [0, 0, 0]  # No center detected
+            # No center detected
+            self.no_detected_target += 1
+            default = self.initial_pos
+            no_target = True
+            return np.array(default), np.array(default), no_target
 
         max_robustness = 0
         obj_class = np.unique(object_masks)[1:]
@@ -161,7 +173,7 @@ class Combined(SAC):
         target_pos = np.array(target_pos)
         area_center = np.array(target_pos) \
             + np.array([0, 0, 0.05])
-        return area_center, target_pos
+        return area_center, target_pos, no_target
 
     def move_to_target(self, env, tcp_pos, a, dict_obs=True):
         target = a[0]
@@ -186,6 +198,7 @@ class Combined(SAC):
                 im = env.render('rgb_array')
                 self.im_lst.append(im)
                 self.global_obs_it += 1
+        return tcp_pos  # end pos
 
     def get_box_pos_mask(self, env):
         box_pos = self.env.objects["bin"]["initial_pos"]
@@ -210,20 +223,29 @@ class Combined(SAC):
 
         # 1, H, W
         mask = torch.tensor(mask).unsqueeze(0).cuda()
-        return mask
+        return mask, (box_top_left, box_bott_right)
 
     def move_to_box(self, env):
         # Box does not move
         r_obs = env.get_obs()["robot_obs"]
         tcp_pos, _ = r_obs[:3], r_obs[3:7]
-        box_pos = [0.67, 0.65, 0.6]
+        top_left, bott_right = self.box_3D_end_points
+        x_pos = np.random.uniform(top_left[0] + 0.05, bott_right[0] - 0.05)
+        y_pos = np.random.uniform(top_left[1] - 0.05, bott_right[1] + 0.05)
+        box_pos = [x_pos, y_pos, 0.6]
 
-        # Close gripper and move to box
+        # Move up
         up_target = [*tcp_pos[:2], box_pos[2] + 0.2]
         a = [up_target, self.target_orn, -1]  # -1 means closed
-        self.move_to_target(env, tcp_pos, a, dict_obs=True)
+        tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs=True)
 
-        box_pos = [*box_pos[:2], up_target[-1]]
+        # Move to obj up
+        up_target = [*box_pos[:2], tcp_pos[-1]]
+        a = [up_target, self.target_orn, -1]  # -1 means closed
+        tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs=True)
+
+        # Move down
+        box_pos = [*box_pos[:2], tcp_pos[-1] - 0.05]
         a = [box_pos, self.target_orn, -1]  # -1 means closed
         tcp_pos = env.get_obs()["robot_obs"][:3]
         self.move_to_target(env, tcp_pos, a, dict_obs=True)
@@ -252,7 +274,7 @@ class Combined(SAC):
 
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
-        self.area_center, self.target = \
+        self.area_center, self.target, no_target = \
             self._compute_target(env)
         target = self.target
 
@@ -266,13 +288,17 @@ class Combined(SAC):
         if(np.linalg.norm(tcp_pos - target) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
-                         self.area_center[2] + 0.20]
+                         self.area_center[2] + 0.1]
             # Move up
             a = [up_target, self.target_orn, 1]
-            self.move_to_target(env, tcp_pos, a, dict_obs)
+            tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
+
+            # Move to target up
+            up_target = [*self.area_center[:2], tcp_pos[-1]]
+            a = [up_target, self.target_orn, 1]
+            tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
 
             # Move to target
-            tcp_pos = env.get_obs()["robot_obs"][:3]
             a = [self.area_center, self.target_orn, 1]
             self.move_to_target(env, tcp_pos, a, dict_obs)
             # p.addUserDebugText("target",
@@ -280,7 +306,7 @@ class Combined(SAC):
             #                    textColorRGB=[0, 0, 1])
         # as we moved robot, need to update target and obs
         # for rl policy
-        return env, env.observation(env.get_obs())
+        return env, env.observation(env.get_obs()), no_target
 
     def eval_grasp_success(self, env):
         targetPos, _ = env.get_target_pos()
@@ -318,7 +344,7 @@ class Combined(SAC):
             episode_length, episode_return = 0, 0
             done = False
             # Correct Position
-            env, s = self.correct_position(env, s)
+            env, s, _ = self.correct_position(env, s)
             while(episode_length < max_episode_length // 2 and not done):
                 # sample action and scale it to action space
                 a, _ = self._pi.act(tt(s), deterministic=True)
@@ -438,7 +464,7 @@ class Combined(SAC):
         # correct_every_ts = 20
         # Move to target position only one
         # Episode ends if outside of radius
-        self.env, s = self.correct_position(self.env, s)
+        self.env, s, _ = self.correct_position(self.env, s)
         for t in range(1, total_timesteps+1):
             s, done, success, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, t, episode_return, episode_length,
@@ -468,7 +494,7 @@ class Combined(SAC):
                 episode += 1
                 episode_return, episode_length = 0, 0
                 s = self.env.reset()
-                self.env, s = self.correct_position(self.env, s)
+                self.env, s, _ = self.correct_position(self.env, s)
 
         # Evaluate at end of training
         best_eval_return, plot_data = \
@@ -569,12 +595,21 @@ class Combined(SAC):
         total_ts = 0
         s = env.reset()
         # Set total timeout to timeout per task times all tasks + 1
-        while(total_ts <= max_episode_length // 2 * (n_tasks + 1)):
+        while(total_ts <= max_episode_length // 2 * n_tasks
+              and self.no_detected_target < 3):
             episode_length, episode_return = 0, 0
             done = False
             # Search affordances and correct position:
-            env, s = self.correct_position(env, self.env.get_obs())
-            while(episode_length < max_episode_length // 2 and not done):
+            env, s, no_target = self.correct_position(env, self.env.get_obs())
+            if(no_target):
+                # If no target model will move to initial position.
+                # Search affordance from this position again
+                self.correct_position(env, self.env.get_obs())
+
+            # If it did not find a target again, terminate everything
+            while(episode_length < max_episode_length // 2
+                  and self.no_detected_target < 3
+                  and not done):
                 # sample action and scale it to action space
                 a, _ = self._pi.act(tt(s), deterministic=True)
                 a = a.cpu().detach().numpy()
@@ -594,7 +629,16 @@ class Combined(SAC):
             else:
                 success = False
             ep_success.append(success)
-        for idx, im in enumerate(self.im_lst):
-            cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
+        self.save_images(env)
         self.log.info("Success: %d/%d " % (np.sum(ep_success), len(ep_success)))
         return ep_success
+
+    def save_images(self, env):
+        # Write all images
+        if(env.save_images):
+            for idx, im in enumerate(self.im_lst):
+                cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
+            for name, im in self.static_cam_imgs.items():
+                cv2.imwrite(name, im)
+            for name, im in env.gripper_cam_imgs.items():
+                cv2.imwrite(name, im)

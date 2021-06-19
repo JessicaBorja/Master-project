@@ -7,7 +7,6 @@ from segmentation_models_pytorch.unet import model
 from env_wrappers.env_wrapper import wrap_env
 from utils.utils import register_env
 from combined.combined import Combined
-register_env()
 
 
 def get_name(cfg, model_name):
@@ -28,6 +27,7 @@ def get_name(cfg, model_name):
 
 @hydra.main(config_path="./config", config_name="cfg_combined")
 def main(cfg):
+    register_env()
     # Auto generate names given dense, aff-mask, aff-target
     log = logging.getLogger(__name__)
     cfg.model_name = get_name(cfg, cfg.model_name)

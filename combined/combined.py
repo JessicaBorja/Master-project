@@ -51,6 +51,12 @@ class Combined(SAC):
         self.im_lst = []
         self.static_cam_imgs = {}
 
+        # Wrap environments with EGL
+        # device = self.aff_net_static_cam.device
+        # self.env = EGLWrapper(self.env, device)
+        # self.eval_env = EGLWrapper(self.eval_env, device)
+
+
     def _find_cam_id(self):
         for i, cam in enumerate(self.env.cameras):
             if "static" in cam.name:

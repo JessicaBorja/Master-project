@@ -122,15 +122,17 @@ all_cameras:
     look_from: [0.2, 0.05, 1.3]
   tabletop_topview:
     _target_: vr_env.camera.static_camera.StaticCamera
-    name: tabletop_topview
-    fov: 45
+    name: tabletop_static
+    fov: 75
     aspect: 1
     nearval: 0.01
     farval: 2
-    width: 200
-    height: 200
-    look_at: [0.2753056585788727, 0.4048122465610504, 0.04299933835864067]
-    look_from: [0.2753049433231638, 1.551965045589526, 1.681303648001446]
+    width: 300  # 200
+    height: 300  # 200
+    look_at: [0.3, 0.8, 0.5]
+    look_from: [0.3, 0.6, 1.5]
+    # look_at: [0.2753056585788727, 0.4048122465610504, 0.04299933835864067]
+    # look_from: [0.2753049433231638, 1.551965045589526, 1.681303648001446]
   static:
     _target_: vr_env.camera.static_camera.StaticCamera
     name: static
@@ -151,18 +153,18 @@ all_cameras:
     farval: 2
     width: 300
     height: 300
-    gripper_cam_link: 12 # TODO do not hardcode this, use robot property? e.g. ${robot.camera_link_id}
-  opposing:
+    gripper_cam_link: 12
+  tabletop_test:
     _target_: vr_env.camera.static_camera.StaticCamera
-    name: opposing
+    name: tidy_up_test
     fov: 75
     aspect: 1
     nearval: 0.01
     farval: 2
-    width: 300
-    height: 300
-    look_at: [ 0.4, 0.5, 0.6 ]
-    look_from: [ 0.4, 1.5, 0.9 ]
+    width: 760
+    height: 760
+    look_at: [0.2773292660713196, 0.7766451239585876, 0.20271989703178406]
+    look_from: [-0.21922546214082672, 0.22516583397073475, 1.1457490759304818]
 
 hydra:
   run:

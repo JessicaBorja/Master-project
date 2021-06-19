@@ -9,7 +9,7 @@ mask_on_close: True
 play_data_dir: ${project_path}/datasets/play_data_tabletop/
 
 #Output directory where dataset will be stored
-output_dir: ${project_path}/datasets/fulldata_directions_200px/
+output_dir: ${project_path}/datasets/tabletop_viz_200px/
 
 viz: True
 

@@ -129,11 +129,6 @@ def save_data(data_dict, directory, sub_dir, save_viz=True):
             directions = img_dict['viz_dir']
             orig_frame = img_dict['frame']
 
-            if(sub_dir == "static_cam"):
-                affordance = cv2.resize(affordance, (300, 300))
-                directions = cv2.resize(directions, (300, 300))
-                orig_frame = cv2.resize(orig_frame, (300, 300))
-
             cv2.imwrite(aff_viz_filname, affordance)
             cv2.imwrite(dir_viz_filname, directions)
             cv2.imwrite(frame_viz_filname, orig_frame)

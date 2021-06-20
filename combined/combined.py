@@ -200,10 +200,11 @@ class Combined(SAC):
             else:
                 tcp_pos = env.get_obs()[:3]
 
-            if(self.env.save_images):
-                im = env.render('rgb_array')
-                self.im_lst.append(im)
-                self.global_obs_it += 1
+            # if(self.env.save_images):
+            #     im = env.render()
+            #     # self.im_lst.append(im)
+            #     cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it, im)
+            #     self.global_obs_it += 1
         return tcp_pos  # end pos
 
     def get_box_pos_mask(self, env):
@@ -236,9 +237,9 @@ class Combined(SAC):
         r_obs = env.get_obs()["robot_obs"]
         tcp_pos, _ = r_obs[:3], r_obs[3:7]
         top_left, bott_right = self.box_3D_end_points
-        x_pos = np.random.uniform(top_left[0] + 0.05, bott_right[0] - 0.05)
-        y_pos = np.random.uniform(top_left[1] - 0.05, bott_right[1] + 0.05)
-        box_pos = [x_pos, y_pos, 0.6]
+        x_pos = np.random.uniform(top_left[0] + 0.07, bott_right[0] - 0.07)
+        y_pos = np.random.uniform(top_left[1] - 0.07, bott_right[1] + 0.07)
+        box_pos = [x_pos, y_pos, 0.65]
 
         # Move up
         up_target = [*tcp_pos[:2], box_pos[2] + 0.2]
@@ -251,7 +252,7 @@ class Combined(SAC):
         tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs=True)
 
         # Move down
-        box_pos = [*box_pos[:2], tcp_pos[-1] - 0.05]
+        box_pos = [*box_pos[:2], tcp_pos[-1] - 0.12]
         a = [box_pos, self.target_orn, -1]  # -1 means closed
         tcp_pos = env.get_obs()["robot_obs"][:3]
         self.move_to_target(env, tcp_pos, a, dict_obs=True)
@@ -265,11 +266,11 @@ class Combined(SAC):
             for i in range(8):  # 1 rl steps
                 env.p.stepSimulation()
                 env.fps_controller.step()
-            if(self.env.save_images):
-                im = env.render('rgb_array')
-                cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it,
-                            im)
-                self.global_obs_it += 1
+            # if(self.env.save_images):
+            #     im = env.render()
+            #     cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it,
+            #                 im)
+            #     self.global_obs_it += 1
 
     def correct_position(self, env, s):
         dict_obs = False
@@ -617,10 +618,11 @@ class Combined(SAC):
                 episode_return += r
                 episode_length += 1
                 total_ts += 1
-                if(self.env.save_images):
-                    im = env.render('rgb_array')
-                    self.im_lst.append(im)
-                    self.global_obs_it += 1
+                # if(self.env.save_images):
+                #     im = env.render()
+                #     # self.im_lst.append(im)
+                #     cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it, im)
+                #     self.global_obs_it += 1
             if(episode_return >= 200):
                 self.move_to_box(env)
                 success = self.eval_grasp_success(env)
@@ -634,8 +636,8 @@ class Combined(SAC):
     def save_images(self, env):
         # Write all images
         if(env.save_images):
-            for idx, im in enumerate(self.im_lst):
-                cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
+            # for idx, im in enumerate(self.im_lst):
+            #     cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
             for name, im in self.static_cam_imgs.items():
                 cv2.imwrite(name, im)
             for name, im in env.gripper_cam_imgs.items():

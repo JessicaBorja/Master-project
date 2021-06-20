@@ -246,7 +246,7 @@ class Combined(SAC):
         tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs=True)
 
         # Move down
-        box_pos = [*box_pos[:2], tcp_pos[-1] - 0.05]
+        box_pos = [*box_pos[:2], tcp_pos[-1] - 0.12]
         a = [box_pos, self.target_orn, -1]  # -1 means closed
         tcp_pos = env.get_obs()["robot_obs"][:3]
         self.move_to_target(env, tcp_pos, a, dict_obs=True)

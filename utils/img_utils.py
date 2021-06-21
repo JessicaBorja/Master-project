@@ -24,9 +24,14 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
     flow_img = flowlib.flow_to_image(directions)  # RGB
     flow_img = flow_img[:, :, ::-1]  # BGR
 
-    im_size = mask.shape[:2]
-    orig_img = cv2.resize(img_obs, im_size)[:, :, ::-1]
+    mask_shape = mask.shape[:2]
+    im_shape = img_obs.shape[:2]
+    orig_img = img_obs[:, :, ::-1]
+
+    # Reshape mask and directions
     mask = (mask*255).astype('uint8')
+    mask = cv2.resize(mask, im_shape)
+    flow_img = cv2.resize(flow_img, im_shape)
     flow_over_img = overlay_flow(flow_img, orig_img, mask)
     out_img = overlay_mask(mask, orig_img, (0, 0, 255))
 
@@ -41,22 +46,29 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
         if(robustness > max_robustness):
             max_robustness = robustness
             target_px = o
-        v, u = o
-        out_img = cv2.drawMarker(out_img, (u, v),
-                                 (0, 0, 0),
-                                 markerType=cv2.MARKER_CROSS,
-                                 markerSize=8,
-                                 line_type=cv2.LINE_AA)
-    if(target_px is not None):
-        out_img = cv2.drawMarker(out_img, (target_px[1], target_px[0]),
-                                 (255, 0, 0),
-                                 markerType=cv2.MARKER_CROSS,
-                                 markerSize=12,
-                                 line_type=cv2.LINE_AA)
 
-    flow_img = cv2.resize(flow_img, (200, 200))
-    flow_over_img = cv2.resize(flow_over_img, (200, 200))
-    out_img = cv2.resize(out_img, (200, 200))
+        reshaped_center = o * im_shape // mask_shape
+        v, u = reshaped_center
+        flow_over_img = cv2.drawMarker(flow_over_img, (u, v),
+                                       (255, 255, 255),
+                                       markerType=cv2.MARKER_CROSS,
+                                       markerSize=15,
+                                       thickness=2,
+                                       line_type=cv2.LINE_AA)
+
+    if(target_px is not None):
+        reshaped_center = target_px * im_shape // mask_shape
+        v, u = reshaped_center
+        flow_over_img = cv2.drawMarker(flow_over_img, (u, v),
+                                       (0, 0, 0),
+                                       markerType=cv2.MARKER_CROSS,
+                                       markerSize=15,
+                                       thickness=3,
+                                       line_type=cv2.LINE_AA)
+
+    # flow_over_img = cv2.resize(flow_over_img, out_shape)
+    # flow_img = cv2.resize(flow_img, out_shape)
+    # out_img = cv2.resize(out_img, out_shape)
 
     cv2.imshow("flow_img", flow_img)
     cv2.imshow("flow_over_img", flow_over_img)

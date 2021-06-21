@@ -595,7 +595,8 @@ class Combined(SAC):
         s = env.reset()
         # Set total timeout to timeout per task times all tasks + 1
         while(total_ts <= max_episode_length // 2 * n_tasks
-              and self.no_detected_target < 3):
+              and self.no_detected_target < 3
+              and not self.all_objs_in_box(env)):
             episode_length, episode_return = 0, 0
             done = False
             # Search affordances and correct position:
@@ -632,6 +633,13 @@ class Combined(SAC):
         self.save_images(env)
         self.log.info("Success: %d/%d " % (np.sum(ep_success), len(ep_success)))
         return ep_success
+
+    def all_objs_in_box(self, env):
+        for obj_name, obj in env.table_objs.items():
+            if(not env.obj_in_box(obj)):
+                return False
+        return True
+
 
     def save_images(self, env):
         # Write all images

@@ -9,7 +9,7 @@ sys.path.insert(0, parent_dir)
 from file_manipulation import get_files
 
 
-def make_video(files, fps=30, video_name="v"):
+def make_video(files, fps=60, video_name="v"):
     h, w, c = cv2.imread(files[0]).shape
     video = cv2.VideoWriter(
                 video_name,
@@ -51,18 +51,19 @@ def make_videos(path, cam, val_dir=False):
             video_name = os.path.join(
                     os.path.dirname(img_folder),
                     os.path.basename(img_folder) + ".mp4")
-            make_video(files, fps=30, video_name=video_name)
+            make_video(files, fps=10, video_name=video_name)
 
 
 if __name__ == "__main__":
-    pred_folder = "/mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/full_outputs/2021-06-18/19-52-16/"
-    path = [
-        # "%s/apple" % pred_folder,
-        # "%s/milk" % pred_folder,
-        # "%s/tea" % pred_folder,
-        # "%s/cup" % pred_folder,
-        # "%s/cup_2" % pred_folder,
-        "%s/frames" % pred_folder
-        ]
+    pred_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/tmp/2021-06-21/19-52-03/gripper_dirs"
+    path = ['%s/obj_%d' % (pred_folder, i) for i in range(1, 7)]
+    # pred_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/datasets/tabletop_ep0_600px/episode_0"
+    # path = [
+    #         "%s/viz_direction/static_cam" % pred_folder,
+    #         "%s/viz_direction/gripper_cam" % pred_folder,
+    #         "%s/viz_affordance/static_cam" % pred_folder,
+    #         "%s/viz_affordance/gripper_cam" % pred_folder,
+    #         "%s/viz_frames/static_cam" % pred_folder,
+    #         "%s/viz_frames/gripper_cam" % pred_folder]
     val_dir = False
     make_videos(path, "", val_dir)

@@ -9,7 +9,9 @@ sys.path.insert(0, parent_dir+"/VREnv/")
 from env_wrappers.env_wrapper import wrap_env
 from combined.combined import Combined
 from utils.utils import load_cfg, register_env
-register_env()
+from vr_env.envs.play_table_env import PlayTableSimEnv
+
+# register_env()
 
 
 @hydra.main(config_path="../config", config_name="cfg_combined")
@@ -31,7 +33,8 @@ def main(cfg):
     if(save_images):
         for d in dirs:
             os.makedirs("./%s/" % d)
-    env = gym.make("VREnv-v0", **run_cfg.eval_env).env
+    # env = gym.make("VREnv-v0", **run_cfg.eval_env).env
+    env = PlayTableSimEnv(**run_cfg.eval_env)
     env = wrap_env(env, max_ts,
                    affordance=run_cfg.affordance,
                    save_images=save_images,

@@ -317,8 +317,7 @@ class Combined(SAC):
         return env, env.observation(env.get_obs()), no_target
 
     def eval_grasp_success(self, env):
-        targetPos, _ = env.get_target_pos()
-        success = env.obj_in_box(env.objects[env.target], targetPos)
+        success = env.obj_in_box(env.objects[env.target])
         return success
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,

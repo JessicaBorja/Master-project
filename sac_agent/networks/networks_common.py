@@ -111,6 +111,9 @@ def get_concat_features(aff_cfg, obs, cnn_img,
     if("detected_target_pos" in obs
        and aff_cfg.gripper_cam.target_in_obs):
         features.append(obs['detected_target_pos'])
+
+    if("target_distance" in obs):
+        features.append(obs["target_distance"])
     features = torch.cat(features, dim=-1)
     return features
 

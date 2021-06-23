@@ -51,6 +51,12 @@ class Combined(SAC):
         self.im_lst = []
         self.static_cam_imgs = {}
 
+        # EGLWrapper
+        if self.env.use_egl:
+            os.environ['PYOPENGL_PLATFORM'] = 'egl'
+            self.env = EGLWrapper(self.env, self.aff_net_static_cam.device)
+            self.eval_env = EGLWrapper(self.eval_env, self.aff_net_static_cam.device)
+
     def _find_cam_id(self):
         for i, cam in enumerate(self.env.cameras):
             if "static" in cam.name:

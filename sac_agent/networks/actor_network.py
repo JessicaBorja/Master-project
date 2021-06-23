@@ -67,6 +67,7 @@ class CNNPolicy(nn.Module):
         self.action_low = torch.tensor(action_space.low).cuda()
         _tcp_pos_shape = get_pos_shape(obs_space, "robot_obs")
         _target_pos_shape = get_pos_shape(obs_space, "detected_target_pos")
+        _distance_shape = get_pos_shape(obs_space, "target_distance")
         self.cnn_depth = get_depth_network(
                             obs_space,
                             out_feat=16,
@@ -85,7 +86,7 @@ class CNNPolicy(nn.Module):
         for net in [self.cnn_img, self.cnn_depth, self.cnn_gripper]:
             if(net is not None):
                 out_feat += 16
-        out_feat += _tcp_pos_shape + _target_pos_shape
+        out_feat += _tcp_pos_shape + _target_pos_shape + _distance_shape
 
         self.fc1 = nn.Linear(out_feat, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)

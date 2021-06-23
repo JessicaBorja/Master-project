@@ -184,8 +184,9 @@ class ObservationWrapper(gym.ObservationWrapper):
             # 1, W, H
             obs["gripper_img_obs"] = gripper_obs
         if(self.gripper_cam_aff_net is not None
-           and (self.affordance.gripper_cam.use or
-                self.affordance.gripper_cam.densify_reward)):
+           and (self.affordance.gripper_cam.use
+                or self.affordance.gripper_cam.densify_reward
+                or self.affordance.gripper_cam.use_distance)):
             # Np array 1, H, W
             gripper_obs = self.img_preprocessing(
                         obs_dict['rgb_obs'][self.gripper_id])
@@ -211,6 +212,10 @@ class ObservationWrapper(gym.ObservationWrapper):
                 del obs_t
             obs["gripper_aff"] = mask
             obs["detected_target_pos"] = self.unwrapped.current_target
+            if(self.affordance.gripper_cam.use_distance):
+                distance = np.linalg.norm(self.unwrapped.current_target
+                                          - obs_dict["robot_obs"][:3])
+                obs["target_distance"] = distance
             del gripper_obs
         return obs
 

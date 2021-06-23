@@ -15,7 +15,7 @@ from affordance_model.datasets import get_transforms
 
 from utils.cam_projections import pixel2world, world2pixel
 from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
-from env_wrappers.env_wrapper import EGLWrapper
+# from env_wrappers.env_wrapper import EGLWrapper
 
 
 class Combined(SAC):

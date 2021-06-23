@@ -24,6 +24,7 @@ def main(cfg):
     run_cfg.eval_env.show_gui = cfg.env.show_gui
     run_cfg.eval_env.cameras = cfg.env.cameras
     run_cfg.all_cameras = cfg.all_cameras
+    run_cfg.eval_env.use_egl = cfg.env.use_egl
 
     max_ts = cfg.agent.learn_config.max_episode_length
 

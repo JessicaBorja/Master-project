@@ -34,17 +34,19 @@ class ObservationWrapper(gym.ObservationWrapper):
         _transforms_cfg =\
             transforms["train"] if train else transforms["validation"]
         self.rl_transforms, shape = self.get_transforms(_transforms_cfg)
+        self.channels = shape[0]
 
         # History length
-        self.skip_frames = skip_frames
-        self.history_length = history_length * shape[0]
-        _n_images = ((skip_frames+1)*(history_length-1) + 1)
-        self._total_frames = np.zeros((_n_images * shape[0],
-                                       self.img_size, self.img_size))
-        self._indices = [i for i in range(_n_images)
-                         if i % (skip_frames+1) == 0]
-        assert len(self._indices) == history_length
-        self._cur_img_obs = None
+        # self.skip_frames = skip_frames
+        # self.history_length = history_length * shape[0]
+        # _n_images = ((skip_frames+1)*(history_length-1) + 1)
+        # self._total_frames = np.zeros((_n_images * shape[0],
+        #                                self.img_size, self.img_size))
+        # self._indices = [i for i in range(_n_images)
+        #                  if i % (skip_frames+1) == 0]
+        # assert len(self._indices) == history_length
+        # self._cur_img_obs = None
+
         # Cameras defaults
         self.static_id, self.gripper_id = self.find_cam_ids()
         self.obs_it = 0
@@ -96,15 +98,15 @@ class ObservationWrapper(gym.ObservationWrapper):
             if(env_obs_cfg.use_img):
                 obs_space_dict["%s_img_obs" % cam_type] = gym.spaces.Box(
                     low=0, high=255,
-                    shape=(self.history_length, self.img_size, self.img_size))
+                    shape=(self.channels, self.img_size, self.img_size))
             if(env_obs_cfg.use_depth):
                 obs_space_dict['%s_depth_obs' % cam_type] = gym.spaces.Box(
                     low=0, high=255,
-                    shape=(self.history_length, self.img_size, self.img_size))
+                    shape=(1, self.img_size, self.img_size))
             if(aff_cfg.use):
                 obs_space_dict['%s_aff' % cam_type] = gym.spaces.Box(
                     low=0, high=1,
-                    shape=(self.history_length, self.img_size, self.img_size))
+                    shape=(1, self.img_size, self.img_size))
         if(self._use_robot_obs):
             # *tcp_pos(3), *tcp_euler(1), gripper_width, gripper_action(1),
             if(self.unwrapped.task == "pickup"):
@@ -116,6 +118,9 @@ class ObservationWrapper(gym.ObservationWrapper):
         if(self.affordance.gripper_cam.target_in_obs):
             obs_space_dict['detected_target_pos'] = gym.spaces.Box(
                 low=-1, high=1, shape=(3,))
+        if(self.affordance.gripper_cam.use_distance):
+            obs_space_dict['target_distance'] = gym.spaces.Box(
+                low=-1, high=1, shape=(1,))
         return gym.spaces.Dict(obs_space_dict)
 
     def init_aff_net(self, cam_str):
@@ -203,11 +208,12 @@ class ObservationWrapper(gym.ObservationWrapper):
                                             obs_dict['rgb_obs'][self.gripper_id],
                                             obs_dict['depth_obs'][self.gripper_id],
                                             preds)
-                    obs["detected_target_pos"] = self.unwrapped.current_target
+            if(self.affordance.gripper_cam.target_in_obs):
+                obs["detected_target_pos"] = self.unwrapped.current_target
             if(self.affordance.gripper_cam.use_distance):
                 distance = np.linalg.norm(self.unwrapped.current_target
                                           - obs_dict["robot_obs"][:3])
-                obs["target_distance"] = distance
+                obs["target_distance"] = np.array([distance])
             if(aff_cfg.use):
                 # m = np.transpose(mask * 255,(1, 2, 0)).astype('uint8')
                 # cv2.imshow("%s_aff" % cam_type, m)
@@ -274,17 +280,17 @@ class ObservationWrapper(gym.ObservationWrapper):
         frame = frame.cpu().detach().numpy()
 
         # History length
-        if(frame.shape == 2):
-            frame = np.expand_dims(frame, 0)  # (1, img_size, img_size)
-        c, w, h = frame.shape
-        self._total_frames = np.pad(self._total_frames, ((
-            c, 0), (0, 0), (0, 0)), mode='constant')[:-c, :, :]
-        self._total_frames[0:c] = frame
+        # if(frame.shape == 2):
+        #     frame = np.expand_dims(frame, 0)  # (1, img_size, img_size)
+        # c, w, h = frame.shape
+        # self._total_frames = np.pad(self._total_frames, ((
+        #     c, 0), (0, 0), (0, 0)), mode='constant')[:-c, :, :]
+        # self._total_frames[0:c] = frame
 
-        self._cur_img_obs = [self._total_frames[i * c:(i * c) + c]
-                             for i in self._indices]
-        self._cur_img_obs = np.concatenate(self._cur_img_obs, 0)
-        return self._cur_img_obs
+        # self._cur_img_obs = [self._total_frames[i * c:(i * c) + c]
+        #                      for i in self._indices]
+        # self._cur_img_obs = np.concatenate(self._cur_img_obs, 0)
+        return frame
 
     # Aff-center
     def find_target_center(self, cam_id, orig_img, depth, obs):

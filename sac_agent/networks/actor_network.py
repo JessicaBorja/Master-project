@@ -83,7 +83,7 @@ class CNNPolicy(nn.Module):
         for net in [self.cnn_img, self.cnn_gripper]:
             if(net is not None):
                 out_feat += 16
-        out_feat += _tcp_pos_shape + _target_pos_shape + _distance_shape
+        out_feat += _robot_obs_shape + _target_pos_shape + _distance_shape
 
         self.fc1 = nn.Linear(out_feat, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)

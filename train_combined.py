@@ -12,6 +12,8 @@ def get_name(cfg, model_name):
         model_name += "_depth"
     if(cfg.affordance.gripper_cam.target_in_obs):
         model_name += "_target"
+    if(cfg.affordance.gripper_cam.use_distance):
+        model_name += "_dist"
     if(cfg.affordance.gripper_cam.use):
         model_name += "_affMask"
     if(cfg.affordance.gripper_cam.densify_reward):

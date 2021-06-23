@@ -1,4 +1,3 @@
-
 cameras:
   - '${all_cameras.topview}'
   - '${all_cameras.gripper}'

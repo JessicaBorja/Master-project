@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from sac_agent.sac_utils.utils import get_activation_fn
 import numpy as np
 import os
-
+import cv2
 
 def get_pos_shape(obs_space, key="robot_obs"):
     _obs_space_keys = list(obs_space.spaces.keys())
@@ -27,84 +27,73 @@ def get_depth_network(obs_space, out_feat, activation):
     return None
 
 
-def get_gripper_network(obs_space, out_feat, activation, affordance_cfg):
+def get_img_network(obs_space, out_feat, activation, affordance_cfg, cam_type):
     _obs_space_keys = list(obs_space.spaces.keys())
     _activation_fn = get_activation_fn(activation)
-    if("gripper_img_obs" in _obs_space_keys):
-        _history_length = obs_space['gripper_img_obs'].shape[0]
-        _img_size = obs_space["gripper_img_obs"].shape[-1]
+    _channels = 0
+
+    img_obs_key = "%s_img_obs" % cam_type
+    depth_obs_key = "%s_depth_obs" % cam_type
+    if(img_obs_key in _obs_space_keys or depth_obs_key in _obs_space_keys):
+        if(img_obs_key in _obs_space_keys):
+            _channels = obs_space[img_obs_key].shape[0]
+            _img_size = obs_space[img_obs_key].shape[-1]
+
+        if(depth_obs_key in _obs_space_keys):
+            _channels += 1
+            _img_size = obs_space[depth_obs_key].shape[-1]
 
         # Affordance config
         use_affordance = \
-            os.path.exists(affordance_cfg.gripper_cam.model_path)\
-            and affordance_cfg.gripper_cam.use
-        print("Networks: Use gripper cam affordance: %s" % use_affordance)
-        # Build network
-        return CNNCommon(
-            _history_length, _img_size,
-            out_feat=out_feat,
-            activation=_activation_fn,
-            use_affordance=use_affordance)
-    return None
-
-
-def get_img_network(obs_space, out_feat, activation, affordance_cfg):
-    _obs_space_keys = list(obs_space.spaces.keys())
-    _activation_fn = get_activation_fn(activation)
-    if("img_obs" in _obs_space_keys):
-        _history_length = obs_space['img_obs'].shape[0]
-        _img_size = obs_space['img_obs'].shape[-1]
-
-        # Affordance config
-        use_affordance = \
-            os.path.exists(affordance_cfg.static_cam.model_path)\
-            and affordance_cfg.static_cam.use
-        print("Networks: Using static cam affordance: %s" % use_affordance)
+            os.path.exists(affordance_cfg.model_path)\
+            and affordance_cfg.use
+        # print("Networks: Using %s cam affordance: %s" % (cam_type, use_affordance))
 
         # Build network
         return CNNCommon(
-            _history_length, _img_size,
+            _channels, _img_size,
             out_feat=out_feat,
             activation=_activation_fn,
             use_affordance=use_affordance)
-    return None
+    else:
+        # print("No image input for %s camera" % cam_type)
+        return None
 
 
-def get_concat_features(aff_cfg, obs, cnn_img,
-                        cnn_depth=None, cnn_gripper=None):
+def get_concat_features(aff_cfg, obs, cnn_img=None, cnn_gripper=None):
     features = []
 
-    # Static image
-    if("img_obs" in obs):
-        img = obs['img_obs']
-        if("static_aff" in obs and aff_cfg.static_cam.use):
-            mask = obs["static_aff"]
-            if(len(img.shape) == 3):
-                img = img.unsqueeze(0)
+    cam_networks = {
+        "static": [cnn_img, aff_cfg.static_cam],
+        "gripper": [cnn_gripper, aff_cfg.gripper_cam],
+    }
+
+    # Get features from static cam and gripper cam networks
+    for cam_type, cam_dict in cam_networks.items():
+        cam_net, cam_aff_cfg = cam_dict
+        cnn_input = []
+        if("%s_img_obs" % cam_type in obs):
+            img_obs = obs['%s_img_obs' % cam_type]
+            if(len(img_obs.shape) == 3):
+                img_obs = img_obs.unsqueeze(0)
+            cnn_input.append(img_obs)
+
+        # Concat depth
+        if("%s_depth_obs" % cam_type in obs):
+            img_obs = obs["%s_depth_obs" % cam_type]
+            if(len(img_obs.shape) == 3):
+                img_obs = img_obs.unsqueeze(0)
+            cnn_input.append(img_obs)
+
+        # Concat segmentation mask
+        if("%s_aff" % cam_type in obs and cam_aff_cfg.use):
+            mask = obs["%s_aff" % cam_type]
             if(len(mask.shape) == 3):
                 mask = mask.unsqueeze(0)
-            # Concat segmentation mask
-            obs = torch.cat((img, mask), 1)
-        features.append(cnn_img(img))
-
-    # Gripper
-    if("gripper_img_obs" in obs):
-        img = obs['gripper_img_obs']
-        # Gripper_aff can be part of observation if
-        # shaping reward with gripper aff
-        if("gripper_aff" in obs and aff_cfg.gripper_cam.use):
-            mask = obs["gripper_aff"]
-            if(len(img.shape) == 3):
-                img = img.unsqueeze(0)
-            if(len(mask.shape) == 3):
-                mask = mask.unsqueeze(0)
-            # Concat segmentation mask
-            img = torch.cat((img, mask), 1)
-        features.append(cnn_gripper(img))
-
-    if("depth_obs" in obs):
-        features.append(cnn_depth(obs['depth_obs']))
-
+            cnn_input.append(mask)
+        if(len(cnn_input) > 0):
+            cnn_input = torch.cat(cnn_input, 1)
+            features.append(cam_net(cnn_input))
     if("robot_obs" in obs):
         features.append(obs['robot_obs'])
 
@@ -128,7 +117,6 @@ class CNNCommon(nn.Module):
         w, h = self.calc_out_size(w, h, 3, 0, 1)
 
         # Load affordance model
-        self._use_affordance = use_affordance
         aff_channels = 0
         if(use_affordance):
             aff_channels = 1  # Concatenate aff mask to inputs

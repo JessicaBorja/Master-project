@@ -4,8 +4,7 @@ import torch.nn.functional as F
 from torch.distributions import Normal, RelaxedOneHotCategorical
 from sac_agent.sac_utils.utils import get_activation_fn
 from sac_agent.networks.networks_common import \
-     get_pos_shape, get_depth_network, get_img_network, \
-     get_gripper_network, get_concat_features
+     get_pos_shape, get_img_network, get_concat_features
 
 
 # policy
@@ -65,25 +64,23 @@ class CNNPolicy(nn.Module):
         super(CNNPolicy, self).__init__()
         self.action_high = torch.tensor(action_space.high).cuda()
         self.action_low = torch.tensor(action_space.low).cuda()
-        _tcp_pos_shape = get_pos_shape(obs_space, "robot_obs")
+        _robot_obs_shape = get_pos_shape(obs_space, "robot_obs")
         _target_pos_shape = get_pos_shape(obs_space, "detected_target_pos")
         _distance_shape = get_pos_shape(obs_space, "target_distance")
-        self.cnn_depth = get_depth_network(
-                            obs_space,
-                            out_feat=16,
-                            activation=activation)
         self.cnn_img = get_img_network(
                             obs_space,
                             out_feat=16,
                             activation=activation,
-                            affordance_cfg=affordance)
-        self.cnn_gripper = get_gripper_network(
+                            affordance_cfg=affordance.static_cam,
+                            cam_type="static")
+        self.cnn_gripper = get_img_network(
                             obs_space,
                             out_feat=16,
                             activation=activation,
-                            affordance_cfg=affordance)
+                            affordance_cfg=affordance.gripper_cam,
+                            cam_type="gripper")
         out_feat = 0
-        for net in [self.cnn_img, self.cnn_depth, self.cnn_gripper]:
+        for net in [self.cnn_img, self.cnn_gripper]:
             if(net is not None):
                 out_feat += 16
         out_feat += _tcp_pos_shape + _target_pos_shape + _distance_shape
@@ -100,7 +97,6 @@ class CNNPolicy(nn.Module):
         features = get_concat_features(self.aff_cfg,
                                        obs,
                                        self.cnn_img,
-                                       self.cnn_depth,
                                        self.cnn_gripper)
 
         x = F.elu(self.fc1(features))

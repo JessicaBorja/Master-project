@@ -1,4 +1,3 @@
-
 save_dir: "./trained_models"
 hyperparameters:
     gamma: 0.99

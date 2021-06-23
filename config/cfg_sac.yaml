@@ -132,7 +132,7 @@ hydra:
     dir: ${save_dir}./${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 defaults:
-  - transforms: img_transforms
+  - transforms: rl_transforms
   - robot: panda
   - scene: basic_playtable
   - env: env

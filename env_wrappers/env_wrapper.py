@@ -15,7 +15,7 @@ def wrap_env(env, max_ts, save_images=False, **args):
 
 
 class EGLWrapper(gym.Wrapper):
-    def __init__(self, env, device,):
+    def __init__(self, env, device):
         self.set_egl_device(device)
         super(EGLWrapper, self).__init__(env)
         return env

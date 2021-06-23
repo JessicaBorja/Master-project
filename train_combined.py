@@ -1,12 +1,15 @@
 import hydra
 import logging
-
 from env_wrappers.env_wrapper import wrap_env
 from combined.combined import Combined
 from vr_env.envs.play_table_env import PlayTableSimEnv
 
 
 def get_name(cfg, model_name):
+    if(cfg.env_wrapper.gripper_cam.use_img):
+        model_name += "_img"
+    if(cfg.env_wrapper.gripper_cam.use_depth):
+        model_name += "_depth"
     if(cfg.affordance.gripper_cam.target_in_obs):
         model_name += "_target"
     if(cfg.affordance.gripper_cam.use):

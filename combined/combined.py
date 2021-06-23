@@ -26,7 +26,7 @@ class Combined(SAC):
         self.writer = SummaryWriter(self.writer_name)
         self.cam_id = self._find_cam_id()
         self.transforms = get_transforms(
-            cfg.transforms.validation,
+            cfg.affordance.transforms.validation,
             self.affordance.img_size)
         # initial angle
         self.initial_pos = self.env.get_obs()["robot_obs"][:3]
@@ -52,10 +52,10 @@ class Combined(SAC):
         self.static_cam_imgs = {}
 
         # EGLWrapper
-        if self.env.use_egl:
-            os.environ['PYOPENGL_PLATFORM'] = 'egl'
-            self.env = EGLWrapper(self.env, self.aff_net_static_cam.device)
-            self.eval_env = EGLWrapper(self.eval_env, self.aff_net_static_cam.device)
+        # if self.env.use_egl:
+        #     os.environ['PYOPENGL_PLATFORM'] = 'egl'
+        #     self.env = EGLWrapper(self.env, self.aff_net_static_cam.device)
+        #     self.eval_env = EGLWrapper(self.eval_env, self.aff_net_static_cam.device)
 
     def _find_cam_id(self):
         for i, cam in enumerate(self.env.cameras):
@@ -119,12 +119,12 @@ class Combined(SAC):
             self.aff_net_static_cam.predict(aff_mask, center_dir)
 
         # Visualize predictions
-        img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                                         object_centers, object_masks,
-                                         "static", self.global_obs_it,
-                                         self.env.save_images)
-        self.static_cam_imgs.update(img_dict)
-        self.global_obs_it += 1
+        # img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+        #                                  object_centers, object_masks,
+        #                                  "static", self.global_obs_it,
+        #                                  self.env.save_images)
+        # self.static_cam_imgs.update(img_dict)
+        # self.global_obs_it += 1
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
@@ -260,8 +260,9 @@ class Combined(SAC):
         # Get new position and orientation
         # pos, z angle, action = open gripper
         tcp_pos = env.get_obs()["robot_obs"][:3]
-        a = [*tcp_pos, *self.target_orn, 1]  # drop object
+        a = [tcp_pos, self.target_orn, 1]  # drop object
         for i in range(8):  # 8 steps
+            env.robot.apply_action(a)
             for i in range(8):  # 1 rl steps
                 env.p.stepSimulation()
                 env.fps_controller.step()
@@ -317,17 +318,8 @@ class Combined(SAC):
 
     def eval_grasp_success(self, env):
         targetPos, _ = env.get_target_pos()
-        box_pos = env.objects["bin"]["initial_pos"]
-
-        # x range
-        x_range, y_range, z_range = False, False, False
-        if(targetPos[0] > box_pos[0] and targetPos[0] <= box_pos[0] + 0.23):
-            x_range = True
-        if(targetPos[1] <= box_pos[1] and targetPos[1] > box_pos[1] - 0.35):
-            y_range = True
-        if(targetPos[1] <= env.objects[env.target]["initial_pos"][2] + 0.05):
-            z_range = True
-        return x_range and y_range and z_range
+        success = env.obj_in_box(env.objects[env.target], targetPos)
+        return success
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
                  print_all_episodes=False, render=False, save_images=False):
@@ -357,10 +349,9 @@ class Combined(SAC):
                 a, _ = self._pi.act(tt(s), deterministic=True)
                 a = a.cpu().detach().numpy()
                 ns, r, done, info = env.step(a)
-                if(render):
-                    img = env.render()
                 if(save_images):
                     # img, _ = self.find_target_center(env)
+                    img = env.render()
                     self.im_lst.append(img)
                 s = ns
                 episode_return += r
@@ -379,7 +370,8 @@ class Combined(SAC):
 
         # Save images
         if(save_images):
-            os.makedirs("./frames/")
+            if(not os.path.exists('./frames/')):
+                os.makedirs("./frames/")
             for idx, im in enumerate(self.im_lst):
                 cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
         # mean and print

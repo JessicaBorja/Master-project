@@ -120,8 +120,8 @@ class Segmentator(pl.LightningModule):
 
     # Affordance mask prediction
     def forward(self, x):
-        # in lightning, forward defines the prediction/inference actions
         self.unet.encoder.eval()
+        # in lightning, forward defines the prediction/inference actions
         features = self.unet.encoder(x)
         decoder_output = self.unet.decoder(*features)
         aff_logits = self.unet.segmentation_head(decoder_output)
@@ -136,9 +136,7 @@ class Segmentator(pl.LightningModule):
     def predict(self, aff_mask, center_dir):
         # x.shape = (B, C, H, W)
         self.eval_mode()
-
         with torch.no_grad():
-
             # Center direction
             center_dir /= torch.norm(center_dir,
                                      dim=1,

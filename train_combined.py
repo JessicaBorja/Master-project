@@ -1,12 +1,8 @@
 import hydra
-import gym
 import logging
-
-from segmentation_models_pytorch.unet import model
-
 from env_wrappers.env_wrapper import wrap_env
-from utils.utils import register_env
 from combined.combined import Combined
+from vr_env.envs.play_table_env import PlayTableSimEnv
 
 
 def get_name(cfg, model_name):
@@ -27,13 +23,14 @@ def get_name(cfg, model_name):
 
 @hydra.main(config_path="./config", config_name="cfg_combined")
 def main(cfg):
-    register_env()
+    # register_env()
     # Auto generate names given dense, aff-mask, aff-target
     log = logging.getLogger(__name__)
     cfg.model_name = get_name(cfg, cfg.model_name)
     max_ts = cfg.agent.learn_config.max_episode_length
     for i in range(cfg.repeat_training):
-        training_env = gym.make("VREnv-v0", **cfg.env).env
+        # training_env = gym.make("VREnv-v0", **cfg.env).env
+        training_env = PlayTableSimEnv(**cfg.env)
         training_env = wrap_env(training_env, max_ts,
                                 train=True, affordance=cfg.affordance,
                                 **cfg.env_wrapper)

@@ -7,9 +7,15 @@ import glob
 
 
 def plot_data(data, ax, label, color="gray", stats_axis=0):
-    # pd.Series(data['value']).rolling(window_size, min_periods=window_size).mean()
     mean = np.mean(data, axis=stats_axis)[:, -1]
     std = np.std(data, axis=stats_axis)[:, -1]
+
+    smooth_window = 5
+    mean = np.array(pd.Series(mean).rolling(smooth_window,
+                                            min_periods=smooth_window).mean())
+    std = np.array(pd.Series(std).rolling(smooth_window,
+                                          min_periods=smooth_window).mean())
+
     steps = data[0, :, 0]
 
     ax.plot(steps, mean, 'k', linewidth=2, label=label, color=color)
@@ -222,9 +228,9 @@ def plot_by_episodes(plot_dict, csv_dir="./results_csv/"):
 
 
 if __name__ == "__main__":
-    plot_dict = {"master_sparse": "Baseline",
-                #  "master_target_affMask_sparse": "Sparse + detected target + affordance mask",
-                 "master_target_dense": "Ours"}
-                #  "master_target_affMask_dense": "Dense + detected target + affordance mask"}
+    plot_dict = {"master_sparse": "Sparse + grayscale",
+                "depth_only_depth_sparse": "Sparse + depth",
+                "master_target_dense": "Grayscale + target + dense",
+                "depth_only_depth_target_affMask_dense": "Depth dense + detected target + affordance mask"}
     plot_by_episodes(plot_dict, csv_dir="./analysis/results_csv/pickup_success/")
     plot_by_timesteps(plot_dict, csv_dir="./analysis/results_csv/pickup_success/")

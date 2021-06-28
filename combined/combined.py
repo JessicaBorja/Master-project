@@ -15,7 +15,6 @@ from affordance_model.datasets import get_transforms
 
 from utils.cam_projections import pixel2world, world2pixel
 from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
-# from env_wrappers.env_wrapper import EGLWrapper
 
 
 class Combined(SAC):
@@ -50,12 +49,6 @@ class Combined(SAC):
         # to save images
         self.im_lst = []
         self.static_cam_imgs = {}
-
-        # EGLWrapper
-        # if self.env.use_egl:
-        #     os.environ['PYOPENGL_PLATFORM'] = 'egl'
-        #     self.env = EGLWrapper(self.env, self.aff_net_static_cam.device)
-        #     self.eval_env = EGLWrapper(self.eval_env, self.aff_net_static_cam.device)
 
     def _find_cam_id(self):
         for i, cam in enumerate(self.env.cameras):

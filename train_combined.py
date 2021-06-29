@@ -29,7 +29,7 @@ def main(cfg):
     cfg.model_name = get_name(cfg, cfg.model_name)
     max_ts = cfg.agent.learn_config.max_episode_length
     for i in range(cfg.repeat_training):
-        training_env = init_env(cfg)
+        training_env = init_env(cfg.env)
         training_env = wrap_env(training_env, max_ts,
                                 train=True, affordance=cfg.affordance,
                                 **cfg.env_wrapper)

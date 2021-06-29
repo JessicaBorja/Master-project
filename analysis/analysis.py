@@ -229,8 +229,8 @@ def plot_by_episodes(plot_dict, csv_dir="./results_csv/"):
 
 if __name__ == "__main__":
     plot_dict = {"master_sparse": "Sparse + grayscale",
-                "depth_only_depth_sparse": "Sparse + depth",
-                "master_target_dense": "Grayscale + target + dense",
-                "depth_only_depth_target_affMask_dense": "Depth dense + detected target + affordance mask"}
+                 "depth_only_depth_sparse": "Sparse + depth",
+                 "master_target_dense": "Grayscale + target + dense",
+                 "depth_only_depth_target_affMask_dense": "Depth dense + detected target + affordance mask"}
     plot_by_episodes(plot_dict, csv_dir="./analysis/results_csv/pickup_success/")
     plot_by_timesteps(plot_dict, csv_dir="./analysis/results_csv/pickup_success/")

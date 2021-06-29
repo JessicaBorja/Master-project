@@ -1,8 +1,7 @@
 import hydra
 import logging
-from env_wrappers.env_wrapper import init_env, wrap_env
+from env_wrappers.env_wrapper import wrap_env, init_env
 from combined.combined import Combined
-from vr_env.envs.play_table_env import PlayTableSimEnv
 
 
 def get_name(cfg, model_name):

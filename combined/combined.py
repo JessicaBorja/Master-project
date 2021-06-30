@@ -93,7 +93,7 @@ class Combined(SAC):
         return area_center, target_pos, no_target
 
     # Aff-center model
-    def _compute_target_centers(self, env=None, save_images=False, img_it=0):
+    def _compute_target_centers(self, env=None):
         # Get environment observation
         cam = env.cameras[self.cam_id]
         obs = env.get_obs()
@@ -112,12 +112,13 @@ class Combined(SAC):
             self.aff_net_static_cam.predict(aff_mask, center_dir)
 
         # Visualize predictions
-        # img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-        #                                  object_centers, object_masks,
-        #                                  "static", self.global_obs_it,
-        #                                  self.env.save_images)
-        # self.static_cam_imgs.update(img_dict)
-        # self.global_obs_it += 1
+        if(env.viz or env.save_images):
+            img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+                                             object_centers, object_masks,
+                                             "static", self.global_obs_it,
+                                             self.env.save_images)
+            self.static_cam_imgs.update(img_dict)
+            self.global_obs_it += 1
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
@@ -203,7 +204,7 @@ class Combined(SAC):
     def get_box_pos_mask(self, env):
         box_pos = self.env.objects["bin"]["initial_pos"]
         x, y, z = box_pos
-        box_top_left = [x, y + 0.05, z + 0.05, 1]
+        box_top_left = [x, y + 0.08, z + 0.05, 1]
         box_bott_right = [x + 0.23, y - 0.35, z, 1]
 
         # Static camera 
@@ -632,13 +633,18 @@ class Combined(SAC):
                 return False
         return True
 
-
     def save_images(self, env):
         # Write all images
         if(env.save_images):
             # for idx, im in enumerate(self.im_lst):
             #     cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
             for name, im in self.static_cam_imgs.items():
+                head, _ = os.path.split(name)
+                if(not os.path.exists(head)):
+                    os.makedirs(head)
                 cv2.imwrite(name, im)
             for name, im in env.gripper_cam_imgs.items():
+                head, _ = os.path.split(name)
+                if(not os.path.exists(head)):
+                    os.makedirs(head)
                 cv2.imwrite(name, im)

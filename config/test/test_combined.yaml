@@ -1,30 +1,21 @@
-
-#absolute path where models are stored
+# Visualization and saving images
 optim_res: False
 
+# Absolute path where models are stored
 models_dir: ${project_path}/Master-project/combined/hydra_outputs
 
-# 2021-06-01/13-53-12/results/tabletop_gripper_tcp_target_pos_densify_01-06_13-53
-# 2021-06-01/13-55-02/results/tabletop_gripper-aff_tcp_target_pos_densify_01-06_13-55
-# 2021-06-01/13-48-46/results/tabletop_gripper_tcp_sparse_01-06_13-48
-
 # Baseline
-# 01-27-21/results/rewB_gripper_tcp_sparse_04-06_01-27
+# model_name: rgb_img_depth_sparse_29-06_19-23_most_tasks
+# folder_name: ${test.models_dir}/pickup/2021-06-29/19-21-58_aff_rl
 
-# Modelos que funcionan
-# 01-28-51/results/rewB_gripper-aff_tcp_dense_04-06_01-29
-# 01-31-43/results/rewB_gripper-aff_tcp_target_pos_sparse_04-06_01-31
+# RGB rgb_img_depth_dist_affMask_dense
+model_name: rgb_img_depth_dist_affMask_dense_26-06_19-04_most_tasks
+folder_name: ${test.models_dir}/pickup/2021-06-25/12-35-34
 
-# Este es sparse pero me equivoque de nombre
-#rewB_affMask_target_sparse
-# 01-32-56/results/rewB_gripper_tcp_target_dense_04-06_01-33
-
-# 2021-06-15/22-41-47/results/master_target_dense_15-06_22-41
-model_name: "rgb_img_depth_sparse_17-06_18-48_best_eval"
-folder_name: ${test.models_dir}/pickup/2021-06-17/18-48-14
 eval_cfg:
   n_episodes: 5
   render: False
   print_all_episodes: True
   max_episode_length: 100
   save_images: False
+  viz: False

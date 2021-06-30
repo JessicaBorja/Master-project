@@ -19,7 +19,7 @@ def plot_data(data, ax, label, color="gray", stats_axis=0):
     steps = data[0, :, 0]
 
     ax.plot(steps, mean, 'k', linewidth=2, label=label, color=color)
-    ax.fill_between(steps, mean + std, mean - std, color=color, alpha=0.3)
+    ax.fill_between(steps, mean + std, mean - std, color=color, alpha=0.15)
     ax.axhline(6, color="gray", ls="--")
     return ax
 
@@ -75,7 +75,7 @@ def plot_experiments(data, show=True, save=True,
     fig, ax = plt.subplots(1, 1, figsize=(10, 6), sharey=True)
     ax.set_title("Evaluation")
 
-    cm = plt.get_cmap('viridis')
+    cm = plt.get_cmap('tab10')
     colors = cm(np.linspace(0, 1, len(data)))
 
     for exp_data, c in zip(data, colors):
@@ -173,7 +173,9 @@ def get_mean_and_std(exp_name="slide", metric="return",
         #   glob.glob("%s*%s*train*length*.csv" % (csv_folder, exp_name))
         metric = "episode length"
     # assert len(eval_files) == len(train_files)
-
+    if(len(eval_files)==0):
+        print("no files Match %s in %s"%(exp_name, csv_folder))
+        return
     experiment_data = seeds_mean(eval_files, data_merge_fnc=data_merge_fnc)
     return experiment_data
 
@@ -228,9 +230,11 @@ def plot_by_episodes(plot_dict, csv_dir="./results_csv/"):
 
 
 if __name__ == "__main__":
-    plot_dict = {"master_sparse": "Sparse + grayscale",
-                 "depth_only_depth_sparse": "Sparse + depth",
+    plot_dict = {"master_sparse": "Baseline: Grayscale",
+                 "rgb_img_depth_sparse": "Baseline: RGB + depth",
                  "master_target_dense": "Grayscale + target + dense",
-                 "depth_only_depth_target_affMask_dense": "Depth dense + detected target + affordance mask"}
-    plot_by_episodes(plot_dict, csv_dir="./analysis/results_csv/pickup_success/")
-    plot_by_timesteps(plot_dict, csv_dir="./analysis/results_csv/pickup_success/")
+                 "gray_img_depth_dist_affMask_dense": "Grayscale + depth + dist + affMask + dense",
+                 "rgb_img_depth_dist_affMask_sparse": "RGB + depth + dist + affMask + sparse",
+                 "rgb_img_depth_dist_affMask_dense": "RGB + depth + dist + affMask + dense"}
+    plot_by_episodes(plot_dict, csv_dir="./analysis/results_csv/pickup_ablation/")
+    plot_by_timesteps(plot_dict, csv_dir="./analysis/results_csv/pickup_ablation/")

@@ -19,7 +19,7 @@ from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
 class ObservationWrapper(gym.ObservationWrapper):
     def __init__(self, env, history_length, skip_frames, img_size,
                  gripper_cam, static_cam, use_pos=False, affordance=None,
-                 transforms=None, train=False, save_images=False):
+                 transforms=None, train=False, save_images=False, viz=False):
         super(ObservationWrapper, self).__init__(env)
         self.env = env
         self.img_size = img_size
@@ -51,6 +51,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         self.static_id, self.gripper_id = self.find_cam_ids()
         self.obs_it = 0
         self.save_images = save_images
+        self.viz = viz
 
         # Parameters to define observation
         self.affordance = affordance
@@ -328,11 +329,16 @@ class ObservationWrapper(gym.ObservationWrapper):
             self.gripper_cam_aff_net.predict(aff_mask, directions)
 
         # Visualize predictions
-        # im_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-        #                                 object_centers, object_masks,
-        #                                 "gripper", self.obs_it,
-        #                                 save_images=self.save_images)
-        # self.gripper_cam_imgs.update(im_dict)
+        if(self.viz or self.save_images):
+            depth_img = cv2.resize(depth, orig_img.shape[:2])
+            cv2.imshow("depth", depth_img)
+            self.gripper_cam_imgs.update(
+                {"./%s_depth/img_%04d.jpg" % ("gripper", self.obs_it): depth_img*255})
+            im_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
+                                            object_centers, object_masks,
+                                            "gripper", self.obs_it,
+                                            save_images=self.save_images)
+            self.gripper_cam_imgs.update(im_dict)
 
         # Plot different objects
         cluster_outputs = []

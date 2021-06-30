@@ -70,13 +70,17 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
     # flow_img = cv2.resize(flow_img, out_shape)
     # out_img = cv2.resize(out_img, out_shape)
 
+    cv2.imshow("original_img", orig_img)
+    cv2.imshow("aff_mask", mask)
     cv2.imshow("flow_img", flow_img)
     cv2.imshow("flow_over_img", flow_over_img)
     cv2.imshow("preds", out_img)
     cv2.waitKey(1)
 
     if(save_images):
-        return {"./%s_aff/img_%04d.jpg" % (cam_type, obs_it): out_img,
+        return {"./%s_orig/img_%04d.jpg" % (cam_type, obs_it): orig_img,
+                "./%s_masks/img_%04d.jpg" % (cam_type, obs_it): mask,
+                "./%s_aff/img_%04d.jpg" % (cam_type, obs_it): out_img,
                 "./%s_dirs/img_%04d.jpg" % (cam_type, obs_it): flow_over_img}
     else:
         return {}

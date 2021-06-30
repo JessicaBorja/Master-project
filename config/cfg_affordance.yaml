@@ -50,7 +50,7 @@ trainer:
 #-- Hydra config --#
 hydra:
   run:
-    dir: ${save_dir}./${now:%Y-%m-%d}/${now:%H-%M-%S} # Output directory for normal runs
+    dir: ${save_dir}/${now:%Y-%m-%d}/${now:%H-%M-%S} # Output directory for normal runs
 
 defaults:
   - optim: aff_optim

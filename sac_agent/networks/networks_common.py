@@ -132,11 +132,6 @@ class CNNCommon(nn.Module):
     def forward(self, x):
         if(len(x.shape) == 3):
             x = x.unsqueeze(0)
-        # batch_size = x.shape[0]
-        # x = self._activation(self.conv1(x))
-        # x = self._activation(self.conv2(x))
-        # x = self._activation(self.conv3(x))
-        # x = self.fc1(x.view(batch_size,-1)).squeeze() #bs, out_feat
 
         x = self._activation(self.conv1(x))
         x = self._activation(self.conv2(x))

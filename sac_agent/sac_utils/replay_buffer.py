@@ -1,53 +1,36 @@
 import numpy as np
-from collections import namedtuple
+from collections import deque, namedtuple
 from sac_agent.sac_utils.utils import tt
 
 
 class ReplayBuffer:
     # Replay buffer for experience replay. Stores transitions.
     def __init__(self, max_size, dict_state=False):
-        self._data = namedtuple("ReplayBuffer",
-                                ["states", "actions", "rewards",
-                                    "next_states", "terminal_flags"])
-        self._data = self._data(states=[], actions=[], rewards=[],
-                                next_states=[], terminal_flags=[])
-        self._size = 0
+        self._transition = namedtuple("transition",
+                                      ["states", "actions", "rewards",
+                                       "next_states", "terminal_flags"])
+        # self._data = self._data(states=[], actions=[], rewards=[],
+        #                         next_states=[], terminal_flags=[])
+        self._data = deque(maxlen=int(max_size))
         self._max_size = max_size
         self.dict_state = dict_state
 
     def __len__(self):
-        return self._size
+        return len(self._data)
 
     def add_transition(self, state, action, reward, next_state, done):
-        self._data.states.append(state)
-        self._data.actions.append(action)
-        self._data.next_states.append(next_state)
-        self._data.rewards.append(reward)
-        self._data.terminal_flags.append(done)
-        self._size += 1
-
-        if self._size > self._max_size:
-            self._data.states.pop(0)
-            self._data.actions.pop(0)
-            self._data.next_states.pop(0)
-            self._data.rewards.pop(0)
-            self._data.terminal_flags.pop(0)
-            self._size -= 1
+        transition = self._transition(state, action, reward, next_state, done)
+        self._data.append(transition)
 
     def sample(self, batch_size):
-        batch_indices = np.random.choice(len(self._data.states), batch_size)
-        batch_states = np.array(
-                       [self._data.states[i] for i in batch_indices])
-        batch_actions = np.array(
-                        [self._data.actions[i] for i in batch_indices])
-        batch_next_states = np.array(
-                            [self._data.next_states[i] for i in batch_indices])
-        batch_rewards = np.array(
-                        [self._data.rewards[i] for i in batch_indices])
-        batch_terminal_flags = np.array(
-                        [self._data.terminal_flags[i] for i in batch_indices],
-                        dtype="uint8")
+        batch_indices = np.random.choice(len(self._data), batch_size)
+        (batch_states, batch_actions, batch_rewards,
+         batch_next_states, batch_terminal_flags) = \
+            zip(*[self._data[i] for i in batch_indices])
 
+        batch_actions = np.array(batch_actions)
+        batch_rewards = np.array(batch_rewards)
+        batch_terminal_flags = np.array(batch_terminal_flags).astype('uint8')
         if(self.dict_state):
             v = {k: np.array([dic[k] for dic in batch_states])
                  for k in batch_states[0]}

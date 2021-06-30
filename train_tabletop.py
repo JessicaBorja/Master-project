@@ -22,7 +22,7 @@ def get_name(cfg, model_name):
     return model_name
 
 
-@hydra.main(config_path="./config", config_name="cfg_combined")
+@hydra.main(config_path="./config", config_name="cfg_tabletop")
 def main(cfg):
     # Auto generate names given dense, aff-mask, aff-target
     log = logging.getLogger(__name__)

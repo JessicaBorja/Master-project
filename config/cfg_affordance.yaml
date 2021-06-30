@@ -1,4 +1,4 @@
-project_path: /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd
+project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd
 data_dir: ${project_path}/datasets/fulldata_directions_64px/
 save_dir: ./affordance_model/hydra_outputs/
 

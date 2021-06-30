@@ -1,4 +1,3 @@
-
 _target_: vr_env.robot.robot.Robot
 filename: franka_panda/panda.urdf
 # base_position: [0.3, -0.15, 0.6]
@@ -19,5 +18,6 @@ use_nullspace: true
 max_velocity: 2
 use_ik_fast: false
 euler_obs: ${euler_obs}
-magic_scaling_factor_pos: 1.6
-magic_scaling_factor_orn: 2.2
+magic_scaling_factor_pos: 1
+magic_scaling_factor_orn: 1
+use_target_pose: False

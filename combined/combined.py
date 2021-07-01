@@ -4,176 +4,59 @@ from torch.utils.tensorboard import SummaryWriter
 import sys
 import os
 import cv2
-from omegaconf import OmegaConf
 import pybullet as p
 import math
 from sac_agent.sac import SAC
 from sac_agent.sac_utils.utils import EpisodeStats, tt
 
-from affordance_model.segmentator_centers import Segmentator
-from affordance_model.datasets import get_transforms
 
-from utils.cam_projections import pixel2world, world2pixel
-from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
+from affordance_model.datasets import get_transforms
+from combined.target_search import TargetSearch
 
 
 class Combined(SAC):
-    def __init__(self, cfg, sac_cfg=None):
+    def __init__(self, cfg, sac_cfg=None,
+                 rand_target=False, target_search_mode="env"):
         super(Combined, self).__init__(**sac_cfg)
-        self.affordance = cfg.target_search_aff
-        self.aff_net_static_cam = self._init_static_cam_aff_net()
         self.writer = SummaryWriter(self.writer_name)
-        self.cam_id = self._find_cam_id()
-        self.transforms = get_transforms(
+        _cam_id = self._find_cam_id()
+        _aff_transforms = get_transforms(
             cfg.affordance.transforms.validation,
-            self.affordance.img_size)
+            cfg.target_search_aff.img_size)
         # initial angle
-        self.initial_pos = self.env.get_obs()["robot_obs"][:3]
+        _initial_pos = self.env.get_obs()["robot_obs"][:3]
         self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
 
-        # Search for targets
-        self._compute_target = self._env_compute_target
-        # self._compute_target = self._compute_target_centers
-        self.area_center, self.target, _ = self._compute_target()
-
-        # Target specifics
-        self.env.unwrapped.current_target = self.target
-        self.eval_env.unwrapped.current_target = self.target
-        self.radius = self.env.target_radius  # Distance in meters
+        # to save images
+        self.im_lst = []
 
         # To enumerate static cam preds on target search
         self.global_obs_it = 0
         self.no_detected_target = 0
-        self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(self.env)
+        if(self.env.task == "pickup"):
+            args = {"cam_id": _cam_id,
+                    "initial_pos": _initial_pos,
+                    "aff_cfg": cfg.target_search_aff,
+                    "aff_transforms": _aff_transforms,
+                    "rand_target": rand_target}
+            self.target_search = TargetSearch(self.env,
+                                              mode=target_search_mode,
+                                              **args)
+        else:
+            self.target_search = TargetSearch(self.env, mode="env")
 
-        # to save images
-        self.im_lst = []
-        self.static_cam_imgs = {}
+        self.area_center, self.target_pos, _ = self.target_search.compute()
+
+        # Target specifics
+        self.env.unwrapped.current_target = self.target_pos
+        self.eval_env.unwrapped.current_target = self.target_pos
+        self.radius = self.env.target_radius  # Distance in meters
 
     def _find_cam_id(self):
         for i, cam in enumerate(self.env.cameras):
             if "static" in cam.name:
                 return i
         return 0
-
-    def _init_static_cam_aff_net(self):
-        path = self.affordance.model_path
-        aff_net = None
-        if(os.path.exists(path)):
-            hp = OmegaConf.to_container(self.affordance.hyperparameters)
-            hp = OmegaConf.create(hp)
-            aff_net = Segmentator.load_from_checkpoint(
-                                path,
-                                cfg=hp)
-            aff_net.cuda()
-            aff_net.eval()
-            print("Static cam affordance model loaded (to find targets)")
-        else:
-            self.affordance = None
-            path = os.path.abspath(path)
-            raise TypeError(
-                "target_search_aff.model_path does not exist: %s" % path)
-        return aff_net
-
-    # Env real target pos
-    def _env_compute_target(self, env=None):
-        if(not env):
-            env = self.env
-        # This should come from static cam affordance later on
-        target_pos, _ = env.get_target_pos()
-        # 2 cm deviation
-        target_pos = np.array(target_pos)
-        target_pos += np.random.normal(loc=0, scale=0.01,
-                                       size=(len(target_pos)))
-        area_center = np.array(target_pos) \
-            + np.array([0, 0, 0.07])
-
-        # always returns a target position
-        no_target = False
-        return area_center, target_pos, no_target
-
-    # Aff-center model
-    def _compute_target_centers(self, env=None):
-        # Get environment observation
-        cam = env.cameras[self.cam_id]
-        obs = env.get_obs()
-        depth_obs = obs["depth_obs"][self.cam_id]
-        orig_img = obs["rgb_obs"][self.cam_id]
-
-        # Apply validation transforms
-        img_obs = torch.tensor(orig_img).permute(2, 0, 1).unsqueeze(0).cuda()
-        img_obs = self.transforms(img_obs)
-
-        # Predict affordances and centers
-        _, aff_probs, aff_mask, center_dir = \
-            self.aff_net_static_cam.forward(img_obs)
-        aff_mask = aff_mask - self.box_mask
-        aff_mask, center_dir, object_centers, object_masks = \
-            self.aff_net_static_cam.predict(aff_mask, center_dir)
-
-        # Visualize predictions
-        if(env.viz or env.save_images):
-            img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                                             object_centers, object_masks,
-                                             "static", self.global_obs_it,
-                                             self.env.save_images)
-            self.static_cam_imgs.update(img_dict)
-            self.global_obs_it += 1
-
-        # To numpy
-        aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
-        object_masks = torch_to_numpy(object_masks[0])  # H, W
-
-        # Plot different objects
-        no_target = False
-        if(len(object_centers) > 0):
-            target_px = object_centers[0]
-        else:
-            # No center detected
-            self.no_detected_target += 1
-            default = self.initial_pos
-            no_target = True
-            return np.array(default), np.array(default), no_target
-
-        max_robustness = 0
-        obj_class = np.unique(object_masks)[1:]
-        obj_class = obj_class[obj_class != 0]  # remove background class
-
-        # Look for most likely center
-        for i, o in enumerate(object_centers):
-            # Mean prob of being class 1 (foreground)
-            robustness = np.mean(aff_probs[object_masks == obj_class[i], 1])
-            if(robustness > max_robustness):
-                max_robustness = robustness
-                target_px = o
-
-        # Convert back to observation size
-        pred_shape = aff_probs.shape[:2]
-        orig_shape = depth_obs.shape[:2]
-        target_px = target_px.detach().cpu().numpy()
-        target_px = (target_px * orig_shape / pred_shape).astype("int64")
-
-        # world cord
-        v, u = target_px
-        out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
-                                 (u, v),
-                                 (0, 255, 0),
-                                 markerType=cv2.MARKER_CROSS,
-                                 markerSize=12,
-                                 line_type=cv2.LINE_AA)
-        # cv2.imshow("out_img", out_img)
-        # cv2.waitKey(1)
-        if(self.env.save_images):
-            cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
-                        out_img)
-
-        # Compute depth
-        target_pos = pixel2world(cam, u, v, depth_obs)
-
-        target_pos = np.array(target_pos)
-        area_center = np.array(target_pos) \
-            + np.array([0, 0, 0.05])
-        return area_center, target_pos, no_target
 
     def move_to_target(self, env, tcp_pos, a, dict_obs=True):
         target = a[0]
@@ -200,31 +83,6 @@ class Combined(SAC):
             #     cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it, im)
             #     self.global_obs_it += 1
         return tcp_pos  # end pos
-
-    def get_box_pos_mask(self, env):
-        box_pos = self.env.objects["bin"]["initial_pos"]
-        x, y, z = box_pos
-        box_top_left = [x, y + 0.08, z + 0.05, 1]
-        box_bott_right = [x + 0.23, y - 0.35, z, 1]
-
-        # Static camera 
-        cam = env.cameras[self.cam_id]
-
-        u1, v1 = world2pixel(np.array(box_top_left), cam)
-        u2, v2 = world2pixel(np.array(box_bott_right), cam)
-
-        shape = (cam.width, cam.height)
-        mask = np.zeros(shape, np.uint8)
-        mask[v1:v2, u1:u2] = 1
-
-        shape = (self.affordance.img_size, self.affordance.img_size)
-        mask = cv2.resize(mask, shape)
-        # cv2.imshow("box_mask", mask)
-        # cv2.waitKey()
-
-        # 1, H, W
-        mask = torch.tensor(mask).unsqueeze(0).cuda()
-        return mask, (box_top_left, box_bott_right)
 
     def move_to_box(self, env):
         # Box does not move
@@ -276,18 +134,20 @@ class Combined(SAC):
 
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
-        self.area_center, self.target, no_target = \
-            self._compute_target(env)
-        target = self.target
+        self.area_center, self.target_pos, no_target = \
+            self.target_search.compute(env, self.global_obs_it)
+        if(no_target):
+            self.no_detected_target += 1
+        target_pos = self.target_pos
 
         # Set current_target in each episode
-        env.unwrapped.current_target = target
+        env.unwrapped.current_target = target_pos
         # self.eval_env.unwrapped.current_target = target
 
         # p.addUserDebugText("a_center",
         #                    textPosition=self.area_center,
         #                    textColorRGB=[0, 0, 1])
-        if(np.linalg.norm(tcp_pos - target) > self.radius):
+        if(np.linalg.norm(tcp_pos - target_pos) > self.radius):
             up_target = [tcp_pos[0],
                          tcp_pos[1],
                          self.area_center[2] + 0.1]
@@ -349,9 +209,12 @@ class Combined(SAC):
                 s = ns
                 episode_return += r
                 episode_length += 1
-            if(episode_return >= 200):
+            if(episode_return >= 200 and env.task == "pickup"):
                 self.move_to_box(env)
                 success = self.eval_grasp_success(env)
+            # Episode ended because it finished the task
+            elif(env.task != "pickup" and r == 0):
+                success = True
             else:
                 success = False
             ep_success.append(success)
@@ -390,12 +253,14 @@ class Combined(SAC):
 
         # check if it actually earned the reward
         success = False
-        if(r >= 200):
+        if(r >= 200 and self.env.task == "pickup"):
             self.move_to_box(self.env)
             success = self.eval_grasp_success(self.env)
             # If lifted incorrectly get no reward
             if(not success):
                 r = 0
+        elif(self.env.task != "pickup" and r == 0):
+            success = True
 
         self._replay_buffer.add_transition(s, a, r, ns, done)
         s = ns
@@ -573,10 +438,10 @@ class Combined(SAC):
 
         return best_eval_return, plot_data
 
+    # Only applies to tabletop
     def tidy_up(self, env, max_episode_length=100):
         tasks = []
         # get from static cam affordance
-        self._compute_target = self._compute_target_centers
         if(env.task == "pickup"):
             tasks = list(self.env.objects.keys())
             tasks.remove("table")
@@ -617,7 +482,7 @@ class Combined(SAC):
                 #     # self.im_lst.append(im)
                 #     cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it, im)
                 #     self.global_obs_it += 1
-            if(episode_return >= 200):
+            if(episode_return >= 200 and env.task == "pickup"):
                 self.move_to_box(env)
                 success = self.eval_grasp_success(env)
             else:
@@ -638,7 +503,7 @@ class Combined(SAC):
         if(env.save_images):
             # for idx, im in enumerate(self.im_lst):
             #     cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
-            for name, im in self.static_cam_imgs.items():
+            for name, im in self.target_search.static_cam_imgs.items():
                 head, _ = os.path.split(name)
                 if(not os.path.exists(head)):
                     os.makedirs(head)

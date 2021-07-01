@@ -32,7 +32,7 @@ def main(cfg):
     env = wrap_env(env, max_ts,
                    affordance=run_cfg.affordance,
                    save_images=save_images,
-                   viz=cfg.test.eval_cfg.viz,
+                   viz=cfg.viz_obs,
                    **env_wrapper)
 
     sac_cfg = {"env": env,

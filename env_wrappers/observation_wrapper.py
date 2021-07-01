@@ -3,17 +3,17 @@ import cv2
 import numpy as np
 from omegaconf.omegaconf import OmegaConf
 import torch
-from torchvision import transforms
 import os
-import hydra
 from gym import spaces
 
 import pybullet as p
 
 from affordance_model.segmentator_centers import Segmentator
 from affordance_model.utils.transforms import DistanceTransform
+from affordance_model.datasets import get_transforms
+
 from utils.cam_projections import pixel2world
-from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
+from utils.img_utils import torch_to_numpy, viz_aff_centers_preds, visualize
 
 
 class ObservationWrapper(gym.ObservationWrapper):
@@ -28,7 +28,10 @@ class ObservationWrapper(gym.ObservationWrapper):
         # Prepreocessing for affordance model
         _transforms_cfg =\
             affordance.transforms["train"] if train else affordance.transforms["validation"]
-        self.aff_transforms, _ = self.get_transforms(_transforms_cfg)
+        _static_aff_im_size = affordance.static_cam.img_size
+        self.aff_transforms = {
+            "static": self.get_transforms(_transforms_cfg, _static_aff_im_size)[0],
+            "gripper": self.get_transforms(_transforms_cfg)[0]}
 
         # Preprocessing for RL policy obs
         _transforms_cfg =\
@@ -130,10 +133,16 @@ class ObservationWrapper(gym.ObservationWrapper):
             if(self.affordance.static_cam.use
                and cam_str == "static"):
                 path = self.affordance.static_cam.model_path
+                # Configuration of the model
+                hp = {**self.affordance.hyperparameters,
+                      "hough_voting": self.affordance.static_cam.hough_voting}
+                hp = OmegaConf.create(hp)
+
+                # Create model
                 if(os.path.exists(path)):
                     aff_net = Segmentator.load_from_checkpoint(
                                         path,
-                                        cfg=self.affordance.hyperparameters)
+                                        cfg=hp)
                     aff_net.cuda()
                     aff_net.eval()
                     print("obs_wrapper: Static cam affordance model loaded")
@@ -186,19 +195,25 @@ class ObservationWrapper(gym.ObservationWrapper):
 
         if(aff_net is not None and (aff_cfg.use or get_gripper_target)):
             # Np array 1, H, W
-            grayscale_obs = self.img_preprocessing(
-                        obs_dict['rgb_obs'][cam_id],
-                        self.aff_transforms)
+            processed_obs = self.img_preprocessing(
+                            obs_dict['rgb_obs'][cam_id],
+                            self.aff_transforms[cam_type])
             with torch.no_grad():
                 # 1, 1, H, W in range [-1, 1]
-                obs_t = torch.tensor(grayscale_obs).unsqueeze(0)
+                obs_t = torch.tensor(processed_obs).unsqueeze(0)
                 obs_t = obs_t.float().cuda()
 
                 # 1, H, W
                 # aff_logits, aff_probs, aff_mask, directions
                 _, aff_probs, aff_mask, directions = aff_net(obs_t)
                 # aff_mask = self._mask_transforms(aff_mask).cuda()
-                mask = torch_to_numpy(aff_mask)  # foreground/affordance Mask                
+                if(self.viz and cam_type == "static"):
+                    visualize(aff_mask,
+                              obs_dict['rgb_obs'][cam_id][:,:,::-1],
+                              imshow=True)
+                mask = torch_to_numpy(aff_mask)  # foreground/affordance Mask       
+                if(aff_mask.shape != img_obs.shape):
+                    mask = np.resize(mask, img_obs.shape)
                 if(get_gripper_target):
                     preds = {"%s_aff" % cam_type: aff_mask,
                              "%s_center_dir" % cam_type: directions,
@@ -262,11 +277,8 @@ class ObservationWrapper(gym.ObservationWrapper):
         new_frame = np.expand_dims(new_frame, axis=0)
         return new_frame
 
-    def get_transforms(self, transforms_cfg):
-        transforms_lst = []
-        for cfg in transforms_cfg:
-            transforms_lst.append(hydra.utils.instantiate(cfg))
-        apply_transforms = transforms.Compose(transforms_lst)
+    def get_transforms(self, transforms_cfg, img_size=None):
+        apply_transforms = get_transforms(transforms_cfg, img_size=img_size)
         test_tensor = torch.zeros((3, self.img_size, self.img_size))
         test_tensor = apply_transforms(test_tensor)
         # History length

@@ -1,28 +1,10 @@
 import hydra
 import logging
-from env_wrappers.env_wrapper import wrap_env, init_env
+from env_wrappers.env_wrapper import wrap_env, init_env, get_name
 from combined.combined import Combined
 
 
-def get_name(cfg, model_name):
-    if(cfg.env_wrapper.gripper_cam.use_img):
-        model_name += "_img"
-    if(cfg.env_wrapper.gripper_cam.use_depth):
-        model_name += "_depth"
-    if(cfg.affordance.gripper_cam.target_in_obs):
-        model_name += "_target"
-    if(cfg.affordance.gripper_cam.use_distance):
-        model_name += "_dist"
-    if(cfg.affordance.gripper_cam.use):
-        model_name += "_affMask"
-    if(cfg.affordance.gripper_cam.densify_reward):
-        model_name += "_dense"
-    else:
-        model_name += "_sparse"
-    return model_name
-
-
-@hydra.main(config_path="./config", config_name="cfg_playable")
+@hydra.main(config_path="./config", config_name="cfg_playtable")
 def main(cfg):
     # Auto generate names given dense, aff-mask, aff-target
     log = logging.getLogger(__name__)
@@ -30,14 +12,12 @@ def main(cfg):
     max_ts = cfg.agent.learn_config.max_episode_length
     for i in range(cfg.repeat_training):
         training_env = init_env(cfg.env)
+        # Switch between RL and model-based distance in mts
+        training_env.target_radius = 0.25
         training_env = wrap_env(training_env, max_ts,
                                 train=True, affordance=cfg.affordance,
+                                viz=cfg.viz_obs,
                                 **cfg.env_wrapper)
-
-        # eval_env = gym.make("VREnv-v0", **cfg.eval_env).env
-        # eval_env = wrap_env(eval_env,
-        #                     affordance=cfg.affordance,
-        #                     **cfg.env_wrapper)
 
         sac_cfg = {"env": training_env,
                    "eval_env": None,
@@ -48,7 +28,7 @@ def main(cfg):
                    **cfg.agent.hyperparameters}
 
         log.info("model: %s" % cfg.model_name)
-        model = Combined(cfg, sac_cfg=sac_cfg)
+        model = Combined(cfg, sac_cfg=sac_cfg, rand_target=True)
         model.learn(**cfg.agent.learn_config)
         training_env.close()
         # eval_env.close()

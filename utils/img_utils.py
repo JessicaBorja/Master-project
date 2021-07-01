@@ -117,18 +117,18 @@ def visualize(mask, img, imshow):
     img_size is the size at which the network was trained,
     img can be of a higher size (e.g. img_size = 64, img.shape[1] = 200)
     Args:
-        mask: torch tensor, shape = (1, classes, img_size, img_size), between 0-1
+        mask: torch tensor, shape = (classes, img_size, img_size), between 0-1
               after act_fnc
         img: numpy array, shape = (W, H, C), between 0-255
     return:
         res: Overlay of mask over image, shape = (W, H, 3), 0-255
     """
-    if(mask.shape[1] == 1):
-        mask = mask[:, 0].permute(1, 2, 0).detach().cpu().numpy()
-    else:
-        mask = torch.argmax(mask, axis=1).permute(1, 2, 0)
-        mask = mask.detach().cpu().numpy()*255.0
-    res = visualize_np(mask, img, imshow)
+    if(len(mask.shape) > 3 and mask.shape[1] > 1
+       or len(mask.shape) == 3 and mask.shape[0] > 1):
+        mask = torch.argmax(mask, axis=1)
+
+    mask = mask.permute(1, 2, 0).detach().cpu().numpy()
+    res = visualize_np(mask*255.0, img, imshow)
     return res
 
 

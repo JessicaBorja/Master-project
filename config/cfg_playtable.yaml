@@ -2,12 +2,12 @@ project_path:  /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/
 data_path: ${project_path}/VREnv/data/
 save_dir: ./combined/hydra_outputs/${task}
 model_name: "full"
-task: slide
+task: drawer
 euler_obs: true
 img_size: 64
 repeat_training: 1
 
-
+viz_obs: False
 # path to load affordance models either gripper_cam 
 # or static_cam
 models_path: "${project_path}/Master-project/trained_models/"
@@ -45,9 +45,9 @@ target_search_aff:
 env_wrapper:
   gripper_cam:
     use_img: True
-    use_depth: True
+    use_depth: False
   static_cam:
-    use_img: False
+    use_img: True
     use_depth: False
   use_pos: True
   history_length: 1
@@ -74,8 +74,16 @@ affordance:
       unet_cfg:
         decoder_channels: [128, 64, 32]
     static_cam:
-      use: False
+      use: True
       model_path: ${models_path}/static_cam_center_preds_1.ckpt
+      img_size: 200
+      hough_voting:
+        skip_pixels: 2
+        inlier_threshold: 0.7
+        angle_discretization: 100
+        inlier_distance: 10
+        percentage_threshold: 0.3
+        object_center_kernel_radius: 10
     gripper_cam:
       use: False  # Use affordance in observation
       use_distance: False
@@ -175,14 +183,14 @@ hydra:
     dir: ${save_dir}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 defaults:
-  - robot: panda_tabletop
-  - scene: clutter_tabletop
+  - robot: panda
+  - scene: basic_playtable
   - env: env_combined
   - env@eval_env: env_combined
-  - camera_conf: tabletop_topview
+  - camera_conf: topview
   - agent: default
   - test: test_combined
   - transforms@affordance.transforms: aff_transforms
-  - transforms@env_wrapper.transforms: rl_transforms
+  - transforms@env_wrapper.transforms: rl_transforms_gray
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog

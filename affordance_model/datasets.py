@@ -19,7 +19,8 @@ from sklearn.cluster import DBSCAN
 
 def get_transforms(transforms_cfg, img_size=None):
     transforms_lst = []
-    for cfg in transforms_cfg:
+    transforms_config = transforms_cfg.copy()
+    for cfg in transforms_config:
         if(cfg._target_ == "torchvision.transforms.Resize"
            and img_size is not None):
             cfg.size = img_size
@@ -42,14 +43,14 @@ def get_loaders(logger, dataset_cfg, dataloader_cfg, img_size):
 
 class VREnvData(Dataset):
     # split = "train" or "validation"
-    def __init__(self, img_size, root_dir, transforms, n_train_ep=-1,
+    def __init__(self, img_size, root_dir, transforms_cfg, n_train_ep=-1,
                  split="train", cam="static", log=None):
         self.log = log
         self.root_dir = root_dir
         _ids = self.read_json(os.path.join(root_dir, "episodes_split.json"))
         self.data = self._get_split_data(_ids, split, cam, n_train_ep)
-        self.transforms = get_transforms(transforms[split])
-        self.mask_transforms = get_transforms(transforms['masks'])
+        self.transforms = get_transforms(transforms_cfg[split])
+        self.mask_transforms = get_transforms(transforms_cfg['masks'])
         self.pixel_indices = np.indices((img_size, img_size),
                                         dtype=np.float32).transpose(1, 2, 0)
         self.img_size = img_size

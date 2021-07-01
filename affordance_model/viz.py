@@ -68,7 +68,11 @@ def viz(cfg):
     if(not os.path.exists(cfg.output_dir) and cfg.save_images):
         os.makedirs(cfg.output_dir)
     # Initialize model
-    run_cfg = OmegaConf.load(cfg.folder_name + "/.hydra/config.yaml")
+    hydra_cfg_path = cfg.folder_name + "/.hydra/config.yaml"
+    if os.path.exists(hydra_cfg_path):
+        run_cfg = OmegaConf.load(hydra_cfg_path)
+    else:
+        run_cfg = cfg
     model_cfg = run_cfg.model_cfg
     model_cfg.hough_voting = cfg.model_cfg.hough_voting
 

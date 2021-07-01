@@ -1,23 +1,31 @@
-project_folder: /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/Master-project/ # "C:/Users/Jessica/Documents/Proyecto_ssd/SAC/"
+project_folder: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/Master-project/
 
 # Load data relative to root directory
 # Validation episodes
-data_dir: [../datasets/tabletop_directions_64px_MoC/episode_1/data/gripper_cam/]
+data_dir: [../datasets/vrenv_directions_200px/episode_6/data/static_cam/]
           # ../datasets/vrenv_directions_64px/episode_10/data/gripper_cam/,
           # ../Proyecto_ssd/datasets/vrenv_directions_64px/episode_13/data/gripper_cam/]
 
-# Gripper camera
-folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-05-30/00-41-40
-model_name: last.ckpt
+# # Gripper camera
+# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-05-30/00-41-40
+# model_name: last.ckpt
+
+# Static camera
+folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-05-30/01-57-19
+model_name: static_centers_2-5_1_5_1_200px_epoch=13-val_miou=0.362.ckpt
+
+# folder_name: ${project_folder}
+# model_name: static_cam_center_preds_1.ckpt
 
 # Output img size, must be mutiple of 32
 save_images: False
 imshow: True
-img_size: 64
+img_size: 200
 out_size: 300
 output_dir: ${project_folder}/affordance_model/predictions/aff_centers_dir_gripper
 
 model_cfg:
+  n_classes: 2
   hough_voting:
     skip_pixels: 2
     inlier_threshold: 0.7
@@ -25,6 +33,21 @@ model_cfg:
     inlier_distance: 10
     percentage_threshold: 0.3
     object_center_kernel_radius: 10
+  centers_loss:
+    weight: 2.5
+  aff_loss:
+    weight: 1
+    dice_loss:
+      add: True
+      weight: 5
+    ce_loss:
+      weight: 1
+      class_weights: [0.2, 0.8]
+  optimizer:
+    lr: 1e-5
+    weight_decay: 1e-3
+  unet_cfg:
+    decoder_channels: [128, 64, 32]
 
 #-- Hydra config --#
 # hydra output will be stored to save_dir

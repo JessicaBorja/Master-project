@@ -22,7 +22,8 @@ class TargetSearch():
         self.affordance_cfg = aff_cfg
         self.aff_net_static_cam = self._init_static_cam_aff_net(aff_cfg)
         self.static_cam_imgs = {}
-        self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(self.env)
+        if(env.task == "pickup"):
+            self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(self.env)
 
     def compute(self, env=None, *args):
         if(self.mode == "affordance"):

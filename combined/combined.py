@@ -11,7 +11,7 @@ from sac_agent.sac_utils.utils import EpisodeStats, tt
 
 
 from affordance_model.datasets import get_transforms
-from combined.target_search import TargetSearch
+from target_search import TargetSearch
 
 
 class Combined(SAC):
@@ -33,17 +33,15 @@ class Combined(SAC):
         # To enumerate static cam preds on target search
         self.global_obs_it = 0
         self.no_detected_target = 0
-        if(self.env.task == "pickup"):
-            args = {"cam_id": _cam_id,
-                    "initial_pos": _initial_pos,
-                    "aff_cfg": cfg.target_search_aff,
-                    "aff_transforms": _aff_transforms,
-                    "rand_target": rand_target}
-            self.target_search = TargetSearch(self.env,
-                                              mode=target_search_mode,
-                                              **args)
-        else:
-            self.target_search = TargetSearch(self.env, mode="env")
+
+        args = {"cam_id": _cam_id,
+                "initial_pos": _initial_pos,
+                "aff_cfg": cfg.target_search_aff,
+                "aff_transforms": _aff_transforms,
+                "rand_target": rand_target}
+        self.target_search = TargetSearch(self.env,
+                                          mode=target_search_mode,
+                                          **args)
 
         self.area_center, self.target_pos, _ = self.target_search.compute()
 

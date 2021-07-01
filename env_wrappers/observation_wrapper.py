@@ -28,7 +28,9 @@ class ObservationWrapper(gym.ObservationWrapper):
         # Prepreocessing for affordance model
         _transforms_cfg =\
             affordance.transforms["train"] if train else affordance.transforms["validation"]
-        _static_aff_im_size = affordance.static_cam.img_size
+        _static_aff_im_size = 200
+        if(img_size in affordance.static_cam):
+            _static_aff_im_size = affordance.static_cam.img_size
         self.aff_transforms = {
             "static": self.get_transforms(_transforms_cfg, _static_aff_im_size)[0],
             "gripper": self.get_transforms(_transforms_cfg)[0]}

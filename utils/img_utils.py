@@ -66,13 +66,9 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
                                        thickness=3,
                                        line_type=cv2.LINE_AA)
 
-    # flow_over_img = cv2.resize(flow_over_img, out_shape)
-    # flow_img = cv2.resize(flow_img, out_shape)
-    # out_img = cv2.resize(out_img, out_shape)
-
-    cv2.imshow("original_img", orig_img)
-    cv2.imshow("aff_mask", mask)
-    cv2.imshow("flow_img", flow_img)
+    # cv2.imshow("original_img", orig_img)
+    # cv2.imshow("aff_mask", mask)
+    # cv2.imshow("flow_img", flow_img)
     cv2.imshow("flow_over_img", flow_over_img)
     cv2.imshow("preds", out_img)
     cv2.waitKey(1)

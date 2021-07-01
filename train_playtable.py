@@ -28,7 +28,9 @@ def main(cfg):
                    **cfg.agent.hyperparameters}
 
         log.info("model: %s" % cfg.model_name)
-        model = Combined(cfg, sac_cfg=sac_cfg, rand_target=True)
+        model = Combined(cfg,
+                         sac_cfg=sac_cfg,
+                         target_search_mode="env")
         model.learn(**cfg.agent.learn_config)
         training_env.close()
         # eval_env.close()

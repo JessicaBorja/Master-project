@@ -215,7 +215,7 @@ class ObservationWrapper(gym.ObservationWrapper):
                               imshow=True)
                 mask = torch_to_numpy(aff_mask)  # foreground/affordance Mask       
                 if(aff_mask.shape[1:] != img_obs.shape[1:]):
-                    new_shape = (aff_mask.shape[0], img_obs.shape[:2])
+                    new_shape = (aff_mask.shape[0], *img_obs.shape[1:])
                     mask = np.resize(mask, new_shape)
                 if(get_gripper_target):
                     preds = {"%s_aff" % cam_type: aff_mask,

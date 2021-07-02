@@ -165,6 +165,17 @@ class SAC():
         a = a.cpu().detach().numpy()
         ns, r, done, info = self.env.step(a)
 
+        # check if it actually earned the reward
+        success = False
+        if(r >= 200 and self.env.task == "pickup"):
+            self.move_to_box(self.env)
+            success = self.eval_grasp_success(self.env)
+            # If lifted incorrectly get no reward
+            if(not success):
+                r = 0
+        elif(self.env.task != "pickup" and r == 0):
+            success = True
+
         self._replay_buffer.add_transition(s, a, r, ns, done)
         s = ns
         ep_return += r
@@ -199,17 +210,20 @@ class SAC():
                                     batch_actions)
             for k, v in plot_data.items():
                 v.append(new_data[k])
-        return s, done, ep_return, ep_length, plot_data, info
+        return s, done, success, ep_return, ep_length, plot_data, info
 
     def _on_train_ep_end(self, writer, ts, episode, total_ts,
-                         best_return, episode_length, episode_return):
+                         best_return, episode_length, episode_return, success):
         self.log.info(
             "Episode %d: %d Steps," % (episode, episode_length) +
+            "Success: %s " % str(success) +
             "Return: %.3f, total timesteps: %d/%d" %
             (episode_return, ts, total_ts))
 
         # Summary Writer
         # log everything on timesteps to get the same scale
+        writer.add_scalar('train/success',
+                          success, ts)
         writer.add_scalar('train/episode_return',
                           episode_return, ts)
         writer.add_scalar('train/episode_length',
@@ -244,122 +258,38 @@ class SAC():
                      "ent_coef_loss": [], "ent_coef": []}
 
         # Evaluate agent for n_eval_ep with max_ep_length
-        mean_return, mean_length = \
+        if(self.eval_env.task == "pickup"):
+            tasks = list(self.eval_env.objects.keys())
+            tasks.remove("table")
+            tasks.remove("bin")
+            n_eval_ep = len(tasks)
+
+        mean_return, mean_length, success_lst = \
             self.evaluate(self.eval_env, max_ep_length,
                           n_episodes=n_eval_ep)
 
         # Log results to writer
+        n_success = np.sum(success_lst)
         if(mean_return > best_eval_return):
             self.log.info("[%d] New best eval avg. return!%.3f" %
                           (episode, mean_return))
             self.save(self.trained_path+"_best_eval.pth")
             best_eval_return = mean_return
 
+        if(n_success > most_tasks):
+            self.log.info("[%d] New most successful! %d/%d" %
+                          (episode, n_success, len(success_lst)))
+            self.save(self.trained_path+"_most_tasks.pth")
+            best_eval_return = mean_return
+
+        writer.add_scalar('eval/success(%dep)' %
+                          (len(success_lst)), n_success, t)
         writer.add_scalar('eval/mean_return(%dep)' %
                           (n_eval_ep), mean_return, t)
         writer.add_scalar('eval/mean_ep_length(%dep)' %
                           (n_eval_ep), mean_length, t)
 
         return best_eval_return, plot_data
-
-    def learn(self, total_timesteps=10000, log_interval=100,
-              max_episode_length=None, n_eval_ep=5):
-        if not isinstance(total_timesteps, int):   # auto
-            total_timesteps = int(total_timesteps)
-        # eval_writer = SummaryWriter(self.eval_writer_name)
-        writer = SummaryWriter(self.writer_name)
-        episode = 1
-        s = self.env.reset()
-        episode_return, episode_length = 0, 0
-        best_return, best_eval_return = -np.inf, -np.inf
-        if(max_episode_length is None):
-            max_episode_length = sys.maxsize  # "infinite"
-
-        plot_data = {"actor_loss": [],
-                     "critic_loss": [],
-                     "ent_coef_loss": [], "ent_coef": []}
-        _log_n_ep = log_interval//max_episode_length
-        if(_log_n_ep < 1):
-            _log_n_ep = 1
-        for t in range(1, total_timesteps+1):
-            s, done, episode_return, episode_length, plot_data, info = \
-                    self.training_step(s, t, episode_return, episode_length,
-                                       plot_data)
-
-            # End episode
-            end_ep = done or (max_episode_length
-                              and (episode_length >= max_episode_length))
-
-            # Log interval
-            if((t % log_interval == 0 and not self._log_by_episodes)
-               or (self._log_by_episodes and end_ep
-                   and episode % _log_n_ep == 0)):
-                best_eval_return, plot_data = \
-                     self._eval_and_log(self.writer, t, episode,
-                                        plot_data, best_eval_return,
-                                        n_eval_ep, max_episode_length)
-
-            if(end_ep):
-                best_return = \
-                    self._on_train_ep_end(writer, t, episode,
-                                          total_timesteps, best_return,
-                                          episode_length, episode_return)
-
-                # Reset everything
-                episode += 1
-                episode_return, episode_length = 0, 0
-                s = self.env.reset()
-
-        # Evaluate at end of training
-        self.log.info("End of training evaluation:")
-        self.evaluate(self.eval_env,
-                      max_episode_length,
-                      print_all_episodes=True)
-
-    def evaluate(self, env, max_episode_length=150, n_episodes=5,
-                 print_all_episodes=False, render=False, save_images=False):
-        stats = EpisodeStats(episode_lengths=[],
-                             episode_rewards=[],
-                             validation_reward=[])
-        im_lst = []
-        for episode in range(n_episodes):
-            s = env.reset()
-            episode_length, episode_return = 0, 0
-            done = False
-            while(episode_length < max_episode_length and not done):
-                # sample action and scale it to action space
-                a, _ = self._pi.act(tt(s), deterministic=True)
-                a = a.cpu().detach().numpy()
-                ns, r, done, info = env.step(a)
-                if(render):
-                    img = env.render()
-                if(save_images):
-                    img = env.render('rgb_array')
-                    im_lst.append(img)
-                s = ns
-                episode_return += r
-                episode_length += 1
-            stats.episode_rewards.append(episode_return)
-            stats.episode_lengths.append(episode_length)
-            if(print_all_episodes):
-                print("Episode %d, Return: %.3f" % (episode, episode_return))
-
-        # Save images
-        if(save_images):
-            os.makedirs("./frames/")
-            for idx, im in enumerate(im_lst):
-                cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
-        # mean and print
-        mean_reward = np.mean(stats.episode_rewards)
-        reward_std = np.std(stats.episode_rewards)
-        mean_length = np.mean(stats.episode_lengths)
-        length_std = np.std(stats.episode_lengths)
-
-        self.log.info(
-            "Mean return: %.3f +/- %.3f, " % (mean_reward, reward_std) +
-            "Mean length: %.3f +/- %.3f, over %d episodes" %
-            (mean_length, length_std, n_episodes))
-        return mean_reward, mean_length
 
     def save(self, path):
         save_dict = {

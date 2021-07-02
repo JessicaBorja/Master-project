@@ -14,7 +14,7 @@ models_path: "${project_path}/Master-project/trained_models/"
 
 # Static cam affordance model to detect the targets
 target_search_aff:
-  model_path: ${models_path}/static_cam_center_preds_1.ckpt
+  model_path: ${models_path}/static_centers_2-5_1_5_1_200px_epoch_13.ckpt
   img_size: 200
   hyperparameters:
     n_classes: 2

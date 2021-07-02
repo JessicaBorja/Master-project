@@ -24,6 +24,10 @@ def main(cfg):
     run_cfg.eval_env.use_egl = cfg.env.use_egl
     run_cfg.scene = cfg.scene
 
+    # new change
+    run_cfg.robot.use_target_pose = False
+    run_cfg.target_search_aff = cfg.target_search_aff
+
     max_ts = cfg.agent.learn_config.max_episode_length
 
     save_images = cfg.test.eval_cfg.save_images
@@ -41,7 +45,9 @@ def main(cfg):
                "net_cfg": net_cfg,
                **agent_cfg}
 
-    model = Combined(run_cfg, sac_cfg=sac_cfg)
+    model = Combined(run_cfg,
+                     sac_cfg=sac_cfg,
+                     target_search_mode="affordance")
     path = "%s/trained_models/%s.pth" % (
             test_cfg.folder_name,
             test_cfg.model_name)

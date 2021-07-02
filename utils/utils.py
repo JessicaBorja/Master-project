@@ -29,6 +29,7 @@ def change_project_path(cfg, run_cfg):
     run_cfg.target_search_aff.model_path = target_search_aff
 
     # VREnv data path
+    run_cfg.models_path = cfg.models_path
     run_cfg.data_path = run_cfg.data_path.replace(
         run_cfg.project_path,
         cfg.project_path)

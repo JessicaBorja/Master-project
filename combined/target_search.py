@@ -50,8 +50,7 @@ class TargetSearch():
         return area_center, target_pos, no_target
 
     # Aff-center model
-    def _compute_target_aff(self, env=None, global_obs_it=0,
-                            uniform_sample=True):
+    def _compute_target_aff(self, env=None, global_obs_it=0):
         if(not env):
             env = self.env
         # Get environment observation
@@ -99,7 +98,7 @@ class TargetSearch():
         obj_class = np.unique(object_masks)[1:]
         obj_class = obj_class[obj_class != 0]  # remove background class
 
-        if(uniform_sample):
+        if(self.random_target):
             rand_target = np.random.randint(len(object_centers))
             target_px = object_centers[rand_target]
         else:

@@ -42,6 +42,9 @@ class Combined(SAC):
         self.target_search = TargetSearch(self.env,
                                           mode=target_search_mode,
                                           **args)
+        if(self.env.task == "pickup"):
+            self.box_mask, self.box_3D_end_points = \
+                self.target_search.get_box_pos_mask(self.env)
 
         self.area_center, self.target_pos, _ = self.target_search.compute()
 

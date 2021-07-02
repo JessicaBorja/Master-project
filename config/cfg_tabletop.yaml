@@ -74,7 +74,7 @@ affordance:
       unet_cfg:
         decoder_channels: [128, 64, 32]
     static_cam:
-      use: True
+      use: False
       model_path: ${models_path}/static_cam_center_preds_1.ckpt
       img_size: 200
       hough_voting:

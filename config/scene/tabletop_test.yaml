@@ -47,5 +47,5 @@ objects:
   unseen:
     file: 077_rubiks_cube/google_16k/textured.urdf
     initial_pos: [0.08, 0.48, 0.623]
-    initial_orn: [0, 0, 0]
+    initial_orn: [0, 0, -0.5]
     fixed: false

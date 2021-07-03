@@ -11,7 +11,7 @@ from sac_agent.sac_utils.utils import EpisodeStats, tt
 
 
 from affordance_model.datasets import get_transforms
-from target_search import TargetSearch
+from combined.target_search import TargetSearch
 
 
 class Combined(SAC):
@@ -59,6 +59,7 @@ class Combined(SAC):
                 return i
         return 0
 
+    # Model based methods
     def move_to_target(self, env, tcp_pos, a, dict_obs=True):
         target = a[0]
         # env.robot.apply_action(a)
@@ -171,9 +172,67 @@ class Combined(SAC):
         # for rl policy
         return env, env.observation(env.get_obs()), no_target
 
-    def eval_grasp_success(self, env):
-        success = env.obj_in_box(env.objects[env.target])
-        return success
+    # RL Policy
+    def learn(self, total_timesteps=10000, log_interval=100,
+              max_episode_length=None, n_eval_ep=5):
+        if not isinstance(total_timesteps, int):   # auto
+            total_timesteps = int(total_timesteps)
+        episode = 1
+        s = self.env.reset()
+        episode_return, episode_length = 0, 0
+        best_return, best_eval_return = -np.inf, -np.inf
+        most_tasks = 0
+        if(max_episode_length is None):
+            max_episode_length = sys.maxsize  # "infinite"
+
+        plot_data = {"actor_loss": [],
+                     "critic_loss": [],
+                     "ent_coef_loss": [], "ent_coef": []}
+
+        _log_n_ep = log_interval//max_episode_length
+        if(_log_n_ep < 1):
+            _log_n_ep = 1
+
+        # correct_every_ts = 20
+        # Move to target position only one
+        # Episode ends if outside of radius
+        self.env, s, _ = self.correct_position(self.env, s)
+        for t in range(1, total_timesteps+1):
+            s, done, success, episode_return, episode_length, plot_data, info = \
+                self.training_step(s, t, episode_return, episode_length,
+                                   plot_data)
+
+            # End episode
+            end_ep = done or (max_episode_length
+                              and (episode_length >= max_episode_length))
+
+            # Log interval (sac)
+            if((t % log_interval == 0 and not self._log_by_episodes)
+               or (self._log_by_episodes and end_ep
+                   and episode % _log_n_ep == 0)):
+                best_eval_return, plot_data = \
+                     self._eval_and_log(self.writer, t, episode,
+                                        plot_data, most_tasks,
+                                        best_eval_return,
+                                        n_eval_ep, max_episode_length)
+
+            if(end_ep):
+                best_return = \
+                    self._on_train_ep_end(self.writer, t, episode,
+                                          total_timesteps, best_return,
+                                          episode_length, episode_return,
+                                          success)
+                # Reset everything
+                episode += 1
+                episode_return, episode_length = 0, 0
+                s = self.env.reset()
+                self.env, s, _ = self.correct_position(self.env, s)
+
+        # Evaluate at end of training
+        best_eval_return, plot_data = \
+            self._eval_and_log(self.writer, t, episode,
+                               plot_data, most_tasks, best_eval_return,
+                               n_eval_ep, max_episode_length)
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
                  print_all_episodes=False, render=False, save_images=False):
@@ -244,201 +303,6 @@ class Combined(SAC):
             (mean_length, length_std, n_episodes))
         return mean_reward, mean_length, ep_success
 
-    # One single training timestep
-    # Take one step in the environment and update the networks
-    def training_step(self, s, ts, ep_return, ep_length, plot_data):
-        # sample action and scale it to action space
-        a, _ = self._pi.act(tt(s), deterministic=False)
-        a = a.cpu().detach().numpy()
-        ns, r, done, info = self.env.step(a)
-
-        # check if it actually earned the reward
-        success = False
-        if(r >= 200 and self.env.task == "pickup"):
-            self.move_to_box(self.env)
-            success = self.eval_grasp_success(self.env)
-            # If lifted incorrectly get no reward
-            if(not success):
-                r = 0
-        elif(self.env.task != "pickup" and r == 0):
-            success = True
-
-        self._replay_buffer.add_transition(s, a, r, ns, done)
-        s = ns
-        ep_return += r
-        ep_length += 1
-
-        # Replay buffer has enough data
-        if(self._replay_buffer.__len__() >= self.batch_size
-           and not done and ts > self.learning_starts):
-
-            sample = self._replay_buffer.sample(self.batch_size)
-            batch_states, batch_actions, batch_rewards,\
-                batch_next_states, batch_terminal_flags = sample
-
-            with torch.no_grad():
-                next_actions, log_probs = self._pi.act(
-                                                batch_next_states,
-                                                deterministic=False,
-                                                reparametrize=False)
-
-                target_qvalue = torch.min(
-                    self._q1_target(batch_next_states, next_actions),
-                    self._q2_target(batch_next_states, next_actions))
-
-                td_target = \
-                    batch_rewards \
-                    + (1 - batch_terminal_flags) * self._gamma * \
-                    (target_qvalue - self.ent_coef * log_probs)
-
-            # ----------------  Networks update -------------#
-            new_data = self._update(td_target,
-                                    batch_states,
-                                    batch_actions)
-            for k, v in plot_data.items():
-                v.append(new_data[k])
-        return s, done, success, ep_return, ep_length, plot_data, info
-
-    def learn(self, total_timesteps=10000, log_interval=100,
-              max_episode_length=None, n_eval_ep=5):
-        if not isinstance(total_timesteps, int):   # auto
-            total_timesteps = int(total_timesteps)
-        episode = 1
-        s = self.env.reset()
-        episode_return, episode_length = 0, 0
-        best_return, best_eval_return = -np.inf, -np.inf
-        most_tasks = 0
-        if(max_episode_length is None):
-            max_episode_length = sys.maxsize  # "infinite"
-
-        plot_data = {"actor_loss": [],
-                     "critic_loss": [],
-                     "ent_coef_loss": [], "ent_coef": []}
-
-        _log_n_ep = log_interval//max_episode_length
-        if(_log_n_ep < 1):
-            _log_n_ep = 1
-
-        # correct_every_ts = 20
-        # Move to target position only one
-        # Episode ends if outside of radius
-        self.env, s, _ = self.correct_position(self.env, s)
-        for t in range(1, total_timesteps+1):
-            s, done, success, episode_return, episode_length, plot_data, info = \
-                self.training_step(s, t, episode_return, episode_length,
-                                   plot_data)
-
-            # End episode
-            end_ep = done or (max_episode_length
-                              and (episode_length >= max_episode_length))
-
-            # Log interval (sac)
-            if((t % log_interval == 0 and not self._log_by_episodes)
-               or (self._log_by_episodes and end_ep
-                   and episode % _log_n_ep == 0)):
-                best_eval_return, plot_data = \
-                     self._eval_and_log(self.writer, t, episode,
-                                        plot_data, most_tasks,
-                                        best_eval_return,
-                                        n_eval_ep, max_episode_length)
-
-            if(end_ep):
-                best_return = \
-                    self._on_train_ep_end(self.writer, t, episode,
-                                          total_timesteps, best_return,
-                                          episode_length, episode_return,
-                                          success)
-                # Reset everything
-                episode += 1
-                episode_return, episode_length = 0, 0
-                s = self.env.reset()
-                self.env, s, _ = self.correct_position(self.env, s)
-
-        # Evaluate at end of training
-        best_eval_return, plot_data = \
-            self._eval_and_log(self.writer, t, episode,
-                               plot_data, most_tasks, best_eval_return,
-                               n_eval_ep, max_episode_length)
-
-    def _on_train_ep_end(self, writer, ts, episode, total_ts,
-                         best_return, episode_length, episode_return, success):
-        self.log.info(
-            "Episode %d: %d Steps," % (episode, episode_length) +
-            "Success: %s " % str(success) +
-            "Return: %.3f, total timesteps: %d/%d" %
-            (episode_return, ts, total_ts))
-
-        # Summary Writer
-        # log everything on timesteps to get the same scale
-        writer.add_scalar('train/success',
-                          success, ts)
-        writer.add_scalar('train/episode_return',
-                          episode_return, ts)
-        writer.add_scalar('train/episode_length',
-                          episode_length, ts)
-
-        if(episode_return >= best_return):
-            self.log.info("[%d] New best train ep. return!%.3f" %
-                          (episode, episode_return))
-            self.save(self.trained_path + "_best_train.pth")
-            best_return = episode_return
-
-        # Always save last model(last training episode)
-        self.save(self.trained_path + "_last.pth")
-        return best_return
-
-    # Evaluate model and log plot_data to writter
-    # Returns: Reseted plot_data and newest best_eval_reward
-    def _eval_and_log(self, writer, t, episode, plot_data, most_tasks,
-                      best_eval_return, n_eval_ep, max_ep_length):
-        # Log plot_data to writer
-        for key, value in plot_data.items():
-            if value:  # not empty
-                if(key == "critic_loss"):
-                    data = np.mean(value[-1])
-                else:
-                    data = value[-1]  # np.mean(value)
-                writer.add_scalar("train/%s" % key, data, t)
-
-        # Reset plot_data
-        plot_data = {"actor_loss": [],
-                     "critic_loss": [],
-                     "ent_coef_loss": [], "ent_coef": []}
-
-        # Evaluate agent for n_eval_ep with max_ep_length
-        if(self.eval_env.task == "pickup"):
-            tasks = list(self.eval_env.objects.keys())
-            tasks.remove("table")
-            tasks.remove("bin")
-            n_eval_ep = len(tasks)
-
-        mean_return, mean_length, success_lst = \
-            self.evaluate(self.eval_env, max_ep_length,
-                          n_episodes=n_eval_ep)
-
-        # Log results to writer
-        n_success = np.sum(success_lst)
-        if(mean_return > best_eval_return):
-            self.log.info("[%d] New best eval avg. return!%.3f" %
-                          (episode, mean_return))
-            self.save(self.trained_path+"_best_eval.pth")
-            best_eval_return = mean_return
-
-        if(n_success > most_tasks):
-            self.log.info("[%d] New most successful! %d/%d" %
-                          (episode, n_success, len(success_lst)))
-            self.save(self.trained_path+"_most_tasks.pth")
-            best_eval_return = mean_return
-
-        writer.add_scalar('eval/success(%dep)' %
-                          (len(success_lst)), n_success, t)
-        writer.add_scalar('eval/mean_return(%dep)' %
-                          (n_eval_ep), mean_return, t)
-        writer.add_scalar('eval/mean_ep_length(%dep)' %
-                          (n_eval_ep), mean_length, t)
-
-        return best_eval_return, plot_data
-
     # Only applies to tabletop
     def tidy_up(self, env, max_episode_length=100):
         tasks = []
@@ -499,6 +363,11 @@ class Combined(SAC):
                 return False
         return True
 
+    def eval_grasp_success(self, env):
+        success = env.obj_in_box(env.objects[env.target])
+        return success
+
+    # Save images
     def save_images(self, env):
         # Write all images
         if(env.save_images):

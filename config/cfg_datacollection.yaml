@@ -1,15 +1,15 @@
 #Environment
-project_path: /mnt/16867D9A9C78B590/Users/Jessica/Documents/Proyecto_ssd/ #  "C:/Users/Jessica/Documents/Proyecto_ssd" # 
+project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/ #  "C:/Users/Jessica/Documents/Proyecto_ssd" # 
 vrenv_path: ${project_path}/VREnv
 vrenv_data_path: ${vrenv_path}/data/
 img_size: 200
 mask_on_close: True
 
 # For collecting dataset with playdata
-play_data_dir: ${project_path}/datasets/play_data_tabletop/
+play_data_dir: ${project_path}/datasets/rendered_data/play_data_large_handles
 
 #Output directory where dataset will be stored
-output_dir: ${project_path}/datasets/tabletop_viz_200px/
+output_dir: ${project_path}/datasets/tmp_test/
 
 viz: True
 

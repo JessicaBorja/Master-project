@@ -2,7 +2,8 @@ import hydra
 import utils.flowlib as flowlib
 from utils.img_utils import overlay_mask, tresh_np, overlay_flow
 from utils.label_segmentation import get_static_mask, get_gripper_mask
-from utils.file_manipulation import get_files, save_data, create_data_ep_split, merge_datasets
+from utils.file_manipulation import get_files, save_data, check_file,\
+                                    create_data_ep_split, merge_datasets
 import cv2
 import numpy as np
 import tqdm
@@ -59,18 +60,6 @@ def update_mask(fixed_points, mask, directions,
             directions = label_directions(center_px, new_mask, directions)
             mask = overlay_mask(new_mask, mask, (255, 255, 255))
     return mask, centers, directions
-
-
-def check_file(filename, allow_pickle=True):
-    try:
-        data = np.load(filename, allow_pickle=allow_pickle)
-        if(len(data['rgb_static'].shape) != 3 or
-                len(data['rgb_gripper'].shape) != 3):
-            raise Exception("Corrupt data")
-    except Exception as e:
-        # print(e)
-        data = None
-    return data
 
 
 def create_gripper_cam_properties(cam_cfg):

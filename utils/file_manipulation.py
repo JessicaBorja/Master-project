@@ -6,6 +6,19 @@ import numpy as np
 import cv2
 
 
+# datacollection
+def check_file(filename, allow_pickle=True):
+    try:
+        data = np.load(filename, allow_pickle=allow_pickle)
+        if(len(data['rgb_static'].shape) != 3 or
+                len(data['rgb_gripper'].shape) != 3):
+            raise Exception("Corrupt data")
+    except Exception as e:
+        # print(e)
+        data = None
+    return data
+
+
 # Merge datasets using json files
 def merge_datasets(directory_list, output_dir):
     new_data = {"train": {}, "validation": {}}

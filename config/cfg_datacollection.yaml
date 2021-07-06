@@ -1,5 +1,5 @@
 #Environment
-project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/ #  "C:/Users/Jessica/Documents/Proyecto_ssd" # 
+project_path: "C:/Users/Jessica/Documents/Proyecto_ssd" # /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/ #  
 vrenv_path: ${project_path}/VREnv
 vrenv_data_path: ${vrenv_path}/data/
 img_size: 200
@@ -9,9 +9,9 @@ mask_on_close: True
 play_data_dir: ${project_path}/datasets/rendered_data/play_data_large_handles
 
 #Output directory where dataset will be stored
-output_dir: ${project_path}/datasets/tmp_test/
+output_dir: ${project_path}/datasets/playtable_multiclass/
 
-viz: True
+viz: False
 
 # save_dir: ../tmp/
 all_cameras:

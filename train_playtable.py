@@ -13,7 +13,7 @@ def main(cfg):
     for i in range(cfg.repeat_training):
         training_env = init_env(cfg.env)
         # Switch between RL and model-based distance in mts
-        training_env.target_radius = 0.25
+        training_env.target_radius = 0.2
         training_env = wrap_env(training_env, max_ts,
                                 train=True, affordance=cfg.affordance,
                                 viz=cfg.viz_obs,

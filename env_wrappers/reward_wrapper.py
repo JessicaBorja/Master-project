@@ -123,8 +123,7 @@ class RewardWrapper(gym.RewardWrapper):
 
     def reward(self, rew):
         # modify rew
-        if(self.task == "banana_combined" or self.task == "pickup"
-           and self.affordance.gripper_cam.densify_reward):
+        if(self.affordance.gripper_cam.densify_reward):
             # set by observation wrapper so that
             # both have the same observation on
             # a given timestep

@@ -8,7 +8,7 @@ from vr_env.utils.utils import EglDeviceNotFoundError, get_egl_device_id
 logger = logging.getLogger(__name__)
 
 
-def _graywrap_env(env, max_ts, save_images=False, viz=False, **args):
+def wrap_env(env, max_ts, save_images=False, viz=False, **args):
     env = ObservationWrapper(env,
                              save_images=save_images,
                              viz=viz,

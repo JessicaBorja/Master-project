@@ -28,3 +28,7 @@ masks:
   # - _target_: affordance_model.utils.transforms.ScaleImageTensor  # Scale 0-255 to 0-1
   - _target_: affordance_model.utils.transforms.ThresholdMasks # Mask is between 0 and 255
     threshold: 50
+  
+masks_multitask:
+  - _target_: torchvision.transforms.Resize
+    size: ${img_size}

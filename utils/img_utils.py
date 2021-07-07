@@ -129,6 +129,14 @@ def visualize(mask, img, imshow):
 
 
 def overlay_flow(flow, img, mask):
+    """
+    Args:
+        flow: numpy array, shape = (W, H, 3), between 0 - 255
+        img: numpy array, shape = (W, H, 3), between 0 - 255
+        mask: numpy array, shape = (W, H), between 0 - 255
+    return:
+        res: Overlay of mask over image, shape = (W, H, 3), 0-255
+    """
     result = Image.fromarray(np.uint8(img.squeeze()))
     pil_mask = Image.fromarray(np.uint8(mask.squeeze()))
     flow = Image.fromarray(np.uint8(flow))

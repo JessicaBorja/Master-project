@@ -18,7 +18,7 @@ from utils.file_manipulation import get_files
 from affordance_model.segmentator_centers import Segmentator
 from affordance_model.datasets import get_transforms
 from affordance_model.utils.losses import compute_mIoU
-from matplotlib import cm
+import matplotlib.pyplot as plt
 import json
 
 
@@ -82,10 +82,13 @@ def viz(cfg):
     model.eval()
     print("model loaded")
 
-    # Image needs to be multiple of 32 because of skip connections
-    # and decoder layers
+    # Transforms
+    n_classes = model_cfg.n_classes
+    cm = plt.get_cmap('tab10')
+
     img_transform = get_transforms(cfg.transforms.validation)
-    mask_transforms = get_transforms(cfg.transforms.masks)
+    _masks_t = "masks" if model_cfg.n_classes <= 2 else "masks_multitask"
+    mask_transforms = get_transforms(cfg.transforms[_masks_t])
     # Iterate images
     files, np_comprez = get_filenames(cfg.data_dir)
     n = len(files) // 2
@@ -119,20 +122,36 @@ def viz(cfg):
         object_masks = object_masks.permute((1, 2, 0)).detach().cpu().numpy()
         directions = directions[0].detach().cpu().numpy()
 
-        # Plot different objects
-        centers = []
+        # Plot different objects according to voting layer
         obj_segmentation = orig_img
+        centers = []
         obj_class = np.unique(object_masks)[1:]
         obj_class = obj_class[obj_class != 0]  # remove background class
-        colors = cm.jet(np.linspace(0, 1, len(obj_class)))
+        colors = cm(np.linspace(0, 1, len(obj_class)))[:, :3]
+        colors = (colors * 255).astype('uint8')
         for i, o in enumerate(object_centers):
             o = o.detach().cpu().numpy()
             centers.append(o)
-            obj_mask = np.zeros_like(object_masks)
+            obj_mask = np.zeros_like(object_masks)  # (img_size, img_size, 1)
             obj_mask[object_masks == obj_class[i]] = 255
             obj_segmentation = overlay_mask(obj_mask[:, :, 0],
                                             obj_segmentation,
-                                            tuple([int(c*255) for c in colors[i][:3]]))
+                                            tuple(colors[i]))
+        # Affordance segmentation
+        affordances = orig_img
+        if(n_classes > 2):
+            # Not showing background
+            colors = cm(np.linspace(0, 1, n_classes-1))[:, :3]
+            colors = (colors[:, ::-1] * 255).astype('uint8')
+            for i in range(1, n_classes):
+                obj_mask = np.zeros_like(mask)  # (1, img_size, img_size)
+                obj_mask[mask == i] = 255
+                affordances = overlay_mask(obj_mask[0],
+                                           affordances,
+                                           tuple(colors[i-1]))
+            mask[mask > 0] = 1
+        else:
+            affordances = overlay_mask(mask[0] * 255, affordances, (255, 0, 0))
 
         # To flow img
         directions = np.transpose(directions, (1, 2, 0))
@@ -149,6 +168,7 @@ def viz(cfg):
         mask = cv2.resize(mask, out_shape)
         gt_mask = cv2.resize(gt_mask.astype('uint8'), out_shape)
         gt_directions = cv2.resize(gt_flow, out_shape)
+        affordances = cv2.resize(affordances, out_shape)
 
         # Resize centers
         new_shape = np.array(out_shape)
@@ -158,6 +178,8 @@ def viz(cfg):
         # Overlay directions and centers
         res = overlay_flow(flow_img, orig_img, mask)
         gt_res = overlay_flow(gt_directions, orig_img, gt_mask)
+
+        # Draw detected centers
         for c in centers:
             u, v = c[1], c[0]  # center stored in matrix convention
             res = cv2.drawMarker(res, (u, v),
@@ -173,6 +195,7 @@ def viz(cfg):
             output_file = os.path.join(cfg.output_dir, name + ".jpg")
             cv2.imwrite(output_file, res)
         if(cfg.imshow):
+            cv2.imshow("Affordance masks", affordances)
             cv2.imshow("object masks", obj_segmentation)
             cv2.imshow("flow", flow_img)
             cv2.imshow("gt", gt_res)

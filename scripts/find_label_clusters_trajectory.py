@@ -188,11 +188,23 @@ def load_json(path):
     return data
 
 
+def find_most_sampled(trajectories):
+    k = 3
+    n_samples = {k: len(list(v)) for k, v in
+                 sorted(trajectories.items(), reverse=True, key=lambda item: len(item[1]))}
+    new_dict = {}
+    sorted_keys = list(n_samples.keys())[:k]
+    for i in range(k):
+        new_dict[i] = trajectories[sorted_keys[i]]
+    return new_dict
+
+
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
-    pos = label_motion(cfg)
+    # pos = label_motion(cfg)
     # pos = load_json('/mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/datasets/tmp_test/trajectories.json')
-    # pos = load_json("C:/Users/Jessica/Documents/Proyecto_ssd/datasets/tmp_test/trajectories_3objs.json")
+    pos = load_json("C:/Users/Jessica/Documents/Proyecto_ssd/datasets/playtable_multiclass_200px_MoC/trajectories_3objs.json")
+    # pos = find_most_sampled(pos)
     plot_clusters(pos)
 
 

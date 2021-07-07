@@ -49,8 +49,8 @@ def label_directions(center, object_mask, direction_labels):
     return direction_labels
 
 
-def read_clustering():
-    path = "C:/Users/Jessica/Documents/Proyecto_ssd/datasets/tmp_test/trajectories.json"
+def read_clustering(project_path):
+    path = "%s/datasets/playtable_multiclass_200px_MoC/trajectories_3objs.json" % project_path
     with open(path) as json_file:
         data = json.load(json_file)
 
@@ -64,17 +64,16 @@ def read_clustering():
 
 # Always classify as neighrest distance
 def classify(point, trajectories):
-    best_match = -1
-    if(len(trajectories) > 0):
-        min_dist = 10000  # arbitrary high number
-        for label, points in trajectories.items():
-            # points (n,3), query_point = (3)
-            curr_pt = np.expand_dims(point, 0)  # 1, 3
-            distance = np.linalg.norm(np.array(points) - curr_pt, axis=-1)
-            dist = min(distance)
-            if(dist < min_dist):
-                best_match = label
-                min_dist = dist
+    best_match = 0
+    min_dist = 10000  # arbitrary high number
+    for label, points in trajectories.items():
+        # points (n,3), query_point = (3)
+        curr_pt = np.expand_dims(point, 0)  # 1, 3
+        distance = np.linalg.norm(np.array(points) - curr_pt, axis=-1)
+        dist = min(distance)
+        if(dist < min_dist):
+            best_match = label
+            min_dist = dist
     # Class 0 is background
     return int(best_match) + 1
 
@@ -267,7 +266,7 @@ def collect_dataset_close_open(cfg):
     back_frames_min = 5
 
     # Multiclass
-    trajectories, colors = read_clustering()
+    trajectories, colors = read_clustering(cfg.project_path)
     n_classes = len(trajectories)
     for idx, filename in enumerate(tqdm.tqdm(files)):
         data = check_file(filename)
@@ -367,6 +366,7 @@ def collect_dataset_close_open(cfg):
 
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
+    # create_data_ep_split(cfg.output_dir)
     collect_dataset_close_open(cfg)
     # data_lst = ["%s/datasets/tabletop_directions_200px_MoC/" % cfg.project_path,
     #             "%s/datasets/vrenv_directions_200px/" % cfg.project_path]

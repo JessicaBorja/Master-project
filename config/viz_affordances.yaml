@@ -17,12 +17,16 @@ model_name: static_centers_2-5_1_5_1_200px_epoch=13-val_miou=0.362.ckpt
 # folder_name: ${project_folder}
 # model_name: static_cam_center_preds_1.ckpt
 
+# Multitask: Static
+# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-07/10-33-44
+# model_name: last.ckpt
+
 # Output img size, must be mutiple of 32
 save_images: False
 imshow: True
 img_size: 200
 out_size: 300
-output_dir: ${project_folder}/affordance_model/predictions/aff_centers_dir_gripper
+output_dir: ${project_folder}/affordance_model/predictions/aff_static_multitask
 
 model_cfg:
   n_classes: 2

@@ -1,16 +1,21 @@
 import hydra
+import os
+import sys
+import cv2
+import numpy as np
+from numpy.core.numeric import full
+import tqdm
+import json
+import matplotlib.pyplot as plt
+parent_dir = os.path.dirname(os.getcwd())
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, os.getcwd())
+sys.path.insert(0, parent_dir+"/VREnv/")
 import utils.flowlib as flowlib
 from utils.img_utils import overlay_mask, tresh_np, overlay_flow
 from utils.label_segmentation import get_static_mask, get_gripper_mask
-from utils.file_manipulation import get_files, save_data, create_data_ep_split, merge_datasets
-import cv2
-import numpy as np
-import tqdm
-import os
-import sys
-parent_dir = os.path.dirname(os.getcwd())
-sys.path.insert(0, parent_dir)
-sys.path.insert(0, parent_dir+"/VREnv/")
+from utils.file_manipulation import get_files, save_data, check_file,\
+                                    create_data_ep_split, merge_datasets
 
 
 # Keep points in a distance larger than radius from new_point
@@ -44,7 +49,36 @@ def label_directions(center, object_mask, direction_labels):
     return direction_labels
 
 
-def update_mask(fixed_points, mask, directions,
+def read_clustering(project_path):
+    path = "%s/datasets/playtable_multiclass_200px_MoC/trajectories_3objs.json" % project_path
+    with open(path) as json_file:
+        data = json.load(json_file)
+
+    labels = list(data.keys())
+    cm = plt.get_cmap('tab10')
+    colors = cm(np.linspace(0, 1, len(labels)))[:, :3]
+    # RGB -> BGR (open_cv)
+    colors = (colors[:, ::-1] * 255).astype('uint8')
+    return data, colors
+
+
+# Always classify as neighrest distance
+def classify(point, trajectories):
+    best_match = 0
+    min_dist = 10000  # arbitrary high number
+    for label, points in trajectories.items():
+        # points (n,3), query_point = (3)
+        curr_pt = np.expand_dims(point, 0)  # 1, 3
+        distance = np.linalg.norm(np.array(points) - curr_pt, axis=-1)
+        dist = min(distance)
+        if(dist < min_dist):
+            best_match = label
+            min_dist = dist
+    # Class 0 is background
+    return int(best_match) + 1
+
+
+def update_mask(fixed_points, mask, directions, trajectories,
                 frame_img_tuple, cam, out_img_size):
     # Update masks with fixed_points
     centers = []
@@ -57,20 +91,9 @@ def update_mask(fixed_points, mask, directions,
                                                          out_img_size)
             centers.append(center_px)
             directions = label_directions(center_px, new_mask, directions)
-            mask = overlay_mask(new_mask, mask, (255, 255, 255))
+            label = classify(p, trajectories)
+            mask[label] = overlay_mask(new_mask, mask[label], (255, 255, 255))
     return mask, centers, directions
-
-
-def check_file(filename, allow_pickle=True):
-    try:
-        data = np.load(filename, allow_pickle=allow_pickle)
-        if(len(data['rgb_static'].shape) != 3 or
-                len(data['rgb_gripper'].shape) != 3):
-            raise Exception("Corrupt data")
-    except Exception as e:
-        # print(e)
-        data = None
-    return data
 
 
 def create_gripper_cam_properties(cam_cfg):
@@ -136,6 +159,7 @@ def resize_mask_and_center(mask, center, new_size):
 
 
 def label_static(static_cam, static_hist, back_min, back_max,
+                 n_classes, trajectories, colors,
                  fixed_points, pt, viz, save_dict, out_img_size):
     for idx, (fr_idx, im_id, img) in enumerate(static_hist):
         # For static mask assume oclusion
@@ -144,10 +168,12 @@ def label_static(static_cam, static_hist, back_min, back_max,
         H, W = out_img_size  # img.shape[:2]  # img_shape = (H, W, C)
         directions = np.stack([np.ones((H, W)),
                                np.zeros((H, W))], axis=-1).astype(np.float32)
-        fp_mask, centers_px, fp_directions = update_mask(
+        # Class 0 is background
+        full_mask, centers_px, fp_directions = update_mask(
             fixed_points,
-            np.zeros((H, W)),
+            np.zeros((n_classes + 1, H, W)),
             directions,
+            trajectories,
             (fr_idx, img),
             static_cam,
             out_img_size)
@@ -165,26 +191,27 @@ def label_static(static_cam, static_hist, back_min, back_max,
             # No segmentation in current image due to occlusion
             mask = np.zeros((H, W))
 
+        # Concat to full mask
+        label = classify(pt, trajectories)
+        label_mask = np.stack((full_mask[label], mask)).any(axis=0).astype('uint8')
+        full_mask[label] = label_mask * 255.0
+
         # Visualize
         img = cv2.resize(img, out_img_size)
-        out_separate = overlay_mask(
-            fp_mask,
-            img,
-            (255, 0, 0))
-        out_separate = overlay_mask(
-            mask,
-            out_separate,
-            (0, 0, 255))
-
-        # Real mask
-        static_mask = overlay_mask(mask, fp_mask, (255, 255, 255))
-        out_img = overlay_mask(static_mask, img, (0, 0, 255))
+        static_mask = full_mask.any(axis=0).astype('uint8')  # Binary
         flow_img = flowlib.flow_to_image(directions)[:, :, ::-1]
-        flow_over_img = overlay_flow(flow_img, img, static_mask)
+        flow_over_img = overlay_flow(flow_img, img, static_mask*255)
+
+        # Color classes
+        out_img = img
+        # Start in 1, class 0 is background
+        for label, (mask, c) in enumerate(zip(full_mask[1:], colors), 1):
+            color = tuple(c)
+            out_img = overlay_mask(mask, out_img, color)
+            static_mask[mask == 255] = label  # Number indicating class
 
         if(viz):
-            cv2.imshow("Separate", out_separate)
-            cv2.imshow("Real", out_img)
+            cv2.imshow("Classes", out_img)
             cv2.imshow('flow_img', flow_over_img)
             cv2.imshow('real flow', flow_img)
             cv2.waitKey(1)
@@ -237,6 +264,10 @@ def collect_dataset_close_open(cfg):
     # Will segment 45 frames
     back_frames_max = 50
     back_frames_min = 5
+
+    # Multiclass
+    trajectories, colors = read_clustering(cfg.project_path)
+    n_classes = len(trajectories)
     for idx, filename in enumerate(tqdm.tqdm(files)):
         data = check_file(filename)
         if(data is None):
@@ -268,6 +299,7 @@ def collect_dataset_close_open(cfg):
                 # Save static cam masks
                 save_static = label_static(static_cam, static_hist,
                                            back_frames_min, back_frames_max,
+                                           n_classes, trajectories, colors,
                                            fixed_points, point,
                                            cfg.viz, save_static,
                                            (img_size, img_size))
@@ -332,8 +364,9 @@ def collect_dataset_close_open(cfg):
     create_data_ep_split(cfg.output_dir)
 
 
-@hydra.main(config_path="./config", config_name="cfg_datacollection")
+@hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
+    # create_data_ep_split(cfg.output_dir)
     collect_dataset_close_open(cfg)
     # data_lst = ["%s/datasets/tabletop_directions_200px_MoC/" % cfg.project_path,
     #             "%s/datasets/vrenv_directions_200px/" % cfg.project_path]

@@ -28,9 +28,17 @@ def get_transforms(transforms_cfg, img_size=None):
     return transforms.Compose(transforms_lst)
 
 
-def get_loaders(logger, dataset_cfg, dataloader_cfg, img_size):
-    train = VREnvData(img_size, split="train", log=logger, **dataset_cfg)
-    val = VREnvData(img_size, split="validation", log=logger, **dataset_cfg)
+def get_loaders(logger, dataset_cfg, dataloader_cfg, img_size, n_classes):
+    train = VREnvData(img_size,
+                      split="train",
+                      log=logger,
+                      n_classes=n_classes,
+                      **dataset_cfg)
+    val = VREnvData(img_size,
+                    split="validation",
+                    log=logger,
+                    n_classes=n_classes,
+                    **dataset_cfg)
     logger.info('train_data {}'.format(train.__len__()))
     logger.info('val_data {}'.format(val.__len__()))
 
@@ -44,13 +52,14 @@ def get_loaders(logger, dataset_cfg, dataloader_cfg, img_size):
 class VREnvData(Dataset):
     # split = "train" or "validation"
     def __init__(self, img_size, root_dir, transforms_cfg, n_train_ep=-1,
-                 split="train", cam="static", log=None):
+                 split="train", cam="static", log=None, n_classes=2):
         self.log = log
         self.root_dir = root_dir
         _ids = self.read_json(os.path.join(root_dir, "episodes_split.json"))
         self.data = self._get_split_data(_ids, split, cam, n_train_ep)
         self.transforms = get_transforms(transforms_cfg[split])
-        self.mask_transforms = get_transforms(transforms_cfg['masks'])
+        _masks_t = "masks" if n_classes <= 2 else "masks_multitask"
+        self.mask_transforms = get_transforms(transforms_cfg[_masks_t])
         self.pixel_indices = np.indices((img_size, img_size),
                                         dtype=np.float32).transpose(1, 2, 0)
         self.img_size = img_size
@@ -147,7 +156,7 @@ class VREnvData(Dataset):
         mask = data["mask"]
         # Resize from torchvision requires mask to have channel dim
         mask = np.expand_dims(mask, 0)
-        mask = self.mask_transforms(torch.from_numpy(mask))
+        mask = self.mask_transforms(torch.from_numpy(mask)).long()
 
         # CE Loss requires mask in form (B, H, W), so remove channel dim
         mask = mask.squeeze()  # H, W

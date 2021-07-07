@@ -98,9 +98,14 @@ class Segmentator(pl.LightningModule):
                                              labels["affordance"])
 
         # Center prediction loss
+        if(self.n_classes > 2):
+            bin_mask = torch.zeros_like(labels["affordance"])
+            bin_mask[labels["affordance"] > 0] = 1
+        else:
+            bin_mask = labels["affordance"]
         center_loss = self.center_loss(preds["center_dirs"],
                                        labels["center_dirs"],
-                                       labels["affordance"])
+                                       bin_mask)
 
         info.update({"center_loss": center_loss})
 
@@ -128,13 +133,19 @@ class Segmentator(pl.LightningModule):
         center_direction_prediction = self.center_direction_net(decoder_output)
 
         # Affordance
-        aff_probs = self.act_fnc(aff_logits)  # Shape: [N x 3 x H x W]
-        aff_mask = torch.argmax(aff_probs, dim=1)  # Shape: [N x H x W]
+        aff_probs = self.act_fnc(aff_logits)  # Shape: [N x C x H x W]
+        aff_mask = torch.argmax(aff_probs, dim=1)  # Shape: [N x C x H x W]
         return aff_logits, aff_probs, aff_mask, center_direction_prediction
 
     # Center prediction
     def predict(self, aff_mask, center_dir):
         # x.shape = (B, C, H, W)
+        if(self.n_classes > 2):
+            bin_mask = torch.zeros_like(aff_mask)
+            bin_mask[aff_mask > 0] = 1
+        else:
+            bin_mask = aff_mask
+
         self.eval_mode()
         with torch.no_grad():
             # Center direction
@@ -144,7 +155,7 @@ class Segmentator(pl.LightningModule):
                                      ).clamp(min=1e-10)
 
             initial_masks, num_objects, object_centers_padded = \
-                self.hough_voting_layer((aff_mask == 1).int(),
+                self.hough_voting_layer((bin_mask == 1).int(),
                                         center_dir)
 
         # Compute list of object centers

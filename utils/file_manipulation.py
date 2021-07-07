@@ -6,6 +6,19 @@ import numpy as np
 import cv2
 
 
+# datacollection
+def check_file(filename, allow_pickle=True):
+    try:
+        data = np.load(filename, allow_pickle=allow_pickle)
+        if(len(data['rgb_static'].shape) != 3 or
+                len(data['rgb_gripper'].shape) != 3):
+            raise Exception("Corrupt data")
+    except Exception as e:
+        # print(e)
+        data = None
+    return data
+
+
 # Merge datasets using json files
 def merge_datasets(directory_list, output_dir):
     new_data = {"train": {}, "validation": {}}
@@ -109,7 +122,7 @@ def create_dirs(root_dir, sub_dir, directory_lst):
 
 
 # Save a directory wtih frames, masks, viz_out
-def save_data(data_dict, directory, sub_dir, save_viz=True):
+def save_data(data_dict, directory, sub_dir, save_viz=False):
     if(save_viz):
         data_dir, viz_dir, viz_frames, viz_aff = \
             create_dirs(directory, sub_dir, ['data',
@@ -117,7 +130,7 @@ def save_data(data_dict, directory, sub_dir, save_viz=True):
                                              'viz_frames',
                                              'viz_affordance'])
     else:
-        data_dir = create_dirs(directory, sub_dir, ['data'])
+        data_dir = create_dirs(directory, sub_dir, ['data'])[0]
     for img_id, img_dict in data_dict.items():
         # Write vizualization output
         if(save_viz):

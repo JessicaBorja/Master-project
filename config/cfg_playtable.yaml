@@ -8,6 +8,7 @@ img_size: 64
 repeat_training: 1
 
 viz_obs: False
+init_angle: False
 # path to load affordance models either gripper_cam 
 # or static_cam
 models_path: "${project_path}/Master-project/trained_models/"
@@ -183,7 +184,7 @@ hydra:
     dir: ${save_dir}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 defaults:
-  - robot: panda
+  - robot: panda_playtable
   - scene: basic_playtable
   - env: env_combined
   - env@eval_env: env_combined

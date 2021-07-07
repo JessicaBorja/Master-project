@@ -8,7 +8,7 @@ from vr_env.utils.utils import EglDeviceNotFoundError, get_egl_device_id
 logger = logging.getLogger(__name__)
 
 
-def wrap_env(env, max_ts, save_images=False, viz=False, **args):
+def _graywrap_env(env, max_ts, save_images=False, viz=False, **args):
     env = ObservationWrapper(env,
                              save_images=save_images,
                              viz=viz,
@@ -18,7 +18,7 @@ def wrap_env(env, max_ts, save_images=False, viz=False, **args):
 
 
 def init_env(env_cfg):
-    if(env_cfg.use_egl or env_cfg.use_egl):
+    if(env_cfg.use_egl):
         device = torch.device(torch.cuda.current_device())
         set_egl_device(device)
     env = PlayTableSimEnv(**env_cfg)

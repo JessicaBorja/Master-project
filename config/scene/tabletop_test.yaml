@@ -12,7 +12,7 @@ objects:
   meat:
     file: 010_potted_meat_can/google_16k/textured.urdf
     initial_pos: [0.35, 0.92, 0.623]
-    initial_orn: [1.5707963267948966, 0, 1.5707963267948966]
+    initial_orn: [0, 0, 2]
     fixed: false
   beans:
     file: ais_objects/beans/beans.urdf

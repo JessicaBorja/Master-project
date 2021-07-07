@@ -192,6 +192,6 @@ defaults:
   - agent: default
   - test: test_combined
   - transforms@affordance.transforms: aff_transforms
-  - transforms@env_wrapper.transforms: rl_transforms_gray
+  - transforms@env_wrapper.transforms: rl_transforms
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog

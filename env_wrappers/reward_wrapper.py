@@ -156,5 +156,8 @@ class RewardWrapper(gym.RewardWrapper):
                 # If episode was successful
                 if(rew >= 1 and self.env.task == "pickup"):
                     rew += self.max_ts - self.ts_counter
+                elif(rew > -1 and self.env.task != "pickup"):
+                    # These all have a completely negative reward
+                    rew -= self.max_ts - self.ts_counter
                 self.ts_counter = 0
         return rew

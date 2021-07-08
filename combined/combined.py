@@ -24,8 +24,13 @@ class Combined(SAC):
             cfg.affordance.transforms.validation,
             cfg.target_search_aff.img_size)
         # initial angle
-        _initial_pos = self.env.get_obs()["robot_obs"][:3]
-        self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
+        _initial_obs = self.env.get_obs()["robot_obs"]
+        _initial_pos = _initial_obs[:3]
+        _initial_orn = _initial_obs[3:6]
+        if(self.env.task == "pickup"):
+            self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
+        else:
+            self.target_orn = _initial_orn
 
         # to save images
         self.im_lst = []
@@ -46,7 +51,7 @@ class Combined(SAC):
             self.box_mask, self.box_3D_end_points = \
                 self.target_search.get_box_pos_mask(self.env)
 
-        self.area_center, self.target_pos, _ = self.target_search.compute()
+        self.target_pos, _ = self.target_search.compute()
 
         # Target specifics
         self.env.unwrapped.current_target = self.target_pos
@@ -70,10 +75,9 @@ class Combined(SAC):
             last_pos = tcp_pos
 
             # Update position
-            env.robot.apply_action(a)
             for i in range(8):
-                env.p.stepSimulation()
-                env.fps_controller.step()
+                env.robot.apply_action(a)
+                env.p.stepSimulation(physicsClientId=env.cid)
             if(dict_obs):
                 tcp_pos = env.get_obs()["robot_obs"][:3]
             else:
@@ -89,7 +93,7 @@ class Combined(SAC):
     def move_to_box(self, env):
         # Box does not move
         r_obs = env.get_obs()["robot_obs"]
-        tcp_pos, _ = r_obs[:3], r_obs[3:7]
+        tcp_pos, _ = r_obs[:3], r_obs[3:6]
         top_left, bott_right = self.box_3D_end_points
         x_pos = np.random.uniform(top_left[0] + 0.07, bott_right[0] - 0.07)
         y_pos = np.random.uniform(top_left[1] - 0.07, bott_right[1] + 0.07)
@@ -136,7 +140,7 @@ class Combined(SAC):
 
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
-        self.area_center, self.target_pos, no_target = \
+        self.target_pos, no_target = \
             self.target_search.compute(env, self.global_obs_it)
         if(no_target):
             self.no_detected_target += 1
@@ -147,23 +151,32 @@ class Combined(SAC):
         # self.eval_env.unwrapped.current_target = target
 
         # p.addUserDebugText("a_center",
-        #                    textPosition=self.area_center,
+        #                    textPosition=self.target_pos,
         #                    textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target_pos) > self.radius):
-            up_target = [tcp_pos[0],
-                         tcp_pos[1],
-                         self.area_center[2] + 0.1]
-            # Move up
-            a = [up_target, self.target_orn, 1]
-            tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
+            if(env.task == "pickup" or env.task == "drawer"):
+                up_target = [tcp_pos[0],
+                             tcp_pos[1],
+                             self.target_pos[2] + 0.08]
+                # Move up
+                a = [up_target, self.target_orn, 1]
+                tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
 
-            # Move to target up
-            up_target = [*self.area_center[:2], tcp_pos[-1]]
-            a = [up_target, self.target_orn, 1]
-            tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
+                # Move to target
+                reach_target = [*self.target_pos[:2], tcp_pos[-1]]
+                a = [reach_target, self.target_orn, 1]
+                tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
+                if(self.target_search.mode == "env"):
+                    # Environment returns the center of mass..
+                    move_to = self.target_pos + np.array([0, 0, 0.07])
+                else:
+                    # Affordances detect the surface of an object
+                    move_to = self.target_pos + np.array([0, 0, 0.05])
+            else:
+                move_to = self.target_pos
 
             # Move to target
-            a = [self.area_center, self.target_orn, 1]
+            a = [move_to, self.target_orn, 1]
             self.move_to_target(env, tcp_pos, a, dict_obs)
             # p.addUserDebugText("target",
             #                    textPosition=target,

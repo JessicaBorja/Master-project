@@ -1,9 +1,8 @@
 _target_: vr_env.robot.robot.Robot
 filename: franka_panda/panda.urdf
-# base_position: [0.3, -0.15, 0.6]
-base_position: [0.3, -0.1, 0.35]
+base_position: [0.3, 0.1, 0.5]
 base_orientation: [0, 0, 1.5707963]
-initial_joint_positions: [-1.4653239989567401, 1.4817260599394233, 1.525733453119315, -2.435192704551518, -1.809600862016179, 1.8558817172819435, -1.23183583862092]
+initial_joint_positions: [-1.4391507467416405, 1.4894747989031825, 1.7047052195421661, -2.363264107300151, -1.734642842776407, 1.8839096606827832, -1.3300163958416662]
 max_joint_force: 200.0
 gripper_orientation_offset: [ 0, 3, 0.7853981633974483 ]
 limit_angle: [ 90, 0, 0, -1 ]
@@ -18,6 +17,8 @@ use_nullspace: true
 max_velocity: 2
 use_ik_fast: false
 euler_obs: ${euler_obs}
+max_rel_pos: 0.02
+max_rel_orn: 0.4  # 11 degrees
 magic_scaling_factor_pos: 1
 magic_scaling_factor_orn: 1
 use_target_pose: False

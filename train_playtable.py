@@ -2,10 +2,16 @@ import hydra
 import logging
 from env_wrappers.env_wrapper import wrap_env, init_env, get_name
 from combined.combined import Combined
+from sac_agent.sac_utils.utils import set_init_pos
 
 
 @hydra.main(config_path="./config", config_name="cfg_playtable")
 def main(cfg):
+    if(cfg.init_angle):
+        init_pos = cfg.env.robot_cfg.initial_joint_positions
+        init_pos = set_init_pos(cfg.task, init_pos)
+        cfg.env.robot_cfg.initial_joint_positions = init_pos
+
     # Auto generate names given dense, aff-mask, aff-target
     log = logging.getLogger(__name__)
     cfg.model_name = get_name(cfg, cfg.model_name)
@@ -13,7 +19,7 @@ def main(cfg):
     for i in range(cfg.repeat_training):
         training_env = init_env(cfg.env)
         # Switch between RL and model-based distance in mts
-        training_env.target_radius = 0.25
+        training_env.target_radius = 0.2
         training_env = wrap_env(training_env, max_ts,
                                 train=True, affordance=cfg.affordance,
                                 viz=cfg.viz_obs,

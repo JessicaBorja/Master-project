@@ -123,8 +123,7 @@ class RewardWrapper(gym.RewardWrapper):
 
     def reward(self, rew):
         # modify rew
-        if(self.task == "banana_combined" or self.task == "pickup"
-           and self.affordance.gripper_cam.densify_reward):
+        if(self.affordance.gripper_cam.densify_reward):
             # set by observation wrapper so that
             # both have the same observation on
             # a given timestep
@@ -146,12 +145,16 @@ class RewardWrapper(gym.RewardWrapper):
                and self.ts_counter <= self.max_ts):
                 distance = np.linalg.norm(tcp_pos - self.unwrapped.current_target)
                 # cannot be larger than 1
+                # scale dist increases as it falls away from object
                 scale_dist = min(distance / self.target_radius, 1)
-                rew += (1 - scale_dist)**0.4
+                if(self.env.task == "pickup"):
+                    rew += (1 - scale_dist)**0.4
+                else:
+                    rew -= scale_dist
                 self.ts_counter += 1
             else:
                 # If episode was successful
-                if(rew >= 1):
+                if(rew >= 1 and self.env.task == "pickup"):
                     rew += self.max_ts - self.ts_counter
                 self.ts_counter = 0
         return rew

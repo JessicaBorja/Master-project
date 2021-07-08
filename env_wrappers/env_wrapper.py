@@ -18,7 +18,7 @@ def wrap_env(env, max_ts, save_images=False, viz=False, **args):
 
 
 def init_env(env_cfg):
-    if(env_cfg.use_egl or env_cfg.use_egl):
+    if(env_cfg.use_egl):
         device = torch.device(torch.cuda.current_device())
         set_egl_device(device)
     env = PlayTableSimEnv(**env_cfg)

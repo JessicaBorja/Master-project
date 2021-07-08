@@ -42,12 +42,10 @@ class TargetSearch():
         target_pos = np.array(target_pos)
         target_pos += np.random.normal(loc=0, scale=0.01,
                                        size=(len(target_pos)))
-        area_center = np.array(target_pos) \
-            + np.array([0, 0, 0.07])
 
         # always returns a target position
         no_target = False
-        return area_center, target_pos, no_target
+        return target_pos, no_target
 
     # Aff-center model
     def _compute_target_aff(self, env=None, global_obs_it=0):
@@ -134,9 +132,7 @@ class TargetSearch():
         target_pos = pixel2world(cam, u, v, depth_obs)
 
         target_pos = np.array(target_pos)
-        area_center = np.array(target_pos) \
-            + np.array([0, 0, 0.05])
-        return area_center, target_pos, no_target
+        return target_pos, no_target
 
     def get_box_pos_mask(self, env):
         if(not env):

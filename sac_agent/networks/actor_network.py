@@ -85,7 +85,8 @@ class CNNPolicy(nn.Module):
                 out_feat += 16
         out_feat += _robot_obs_shape + _target_pos_shape + _distance_shape
 
-        self.fc1 = nn.Linear(out_feat, hidden_dim)
+        self.fc0 = nn.Linear(out_feat, 32)
+        self.fc1 = nn.Linear(32, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         # Last dimension of action_dim is gripper_action
         self.mu = nn.Linear(hidden_dim, action_dim - 1)
@@ -98,8 +99,8 @@ class CNNPolicy(nn.Module):
                                        obs,
                                        self.cnn_img,
                                        self.cnn_gripper)
-
-        x = F.elu(self.fc1(features))
+        x = F.elu(self.fc0(features))
+        x = F.elu(self.fc1(x))
         x = F.elu(self.fc2(x))
         mu = self.mu(x)
         log_sigma = self.sigma(x)

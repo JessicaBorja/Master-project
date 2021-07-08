@@ -47,10 +47,10 @@ class CNNCritic(nn.Module):
             if(net is not None):
                 out_feat += 16
         out_feat += _tcp_pos_shape + _target_pos_shape + _distance_shape
-        out_feat += action_dim
 
         self._activation = activation
-        self.fc1 = nn.Linear(out_feat, hidden_dim)
+        self.fc0 = nn.Linear(out_feat, 32)
+        self.fc1 = nn.Linear(32 + action_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.q = nn.Linear(hidden_dim, 1)
         self.aff_cfg = affordance
@@ -60,7 +60,8 @@ class CNNCritic(nn.Module):
                                        states,
                                        self.cnn_img,
                                        self.cnn_gripper)
-        x = torch.cat((features, actions), -1)
+        x = F.elu(self.fc0(features))
+        x = torch.cat((x, actions), -1)
         x = F.elu(self.fc1(x))
         x = F.elu(self.fc2(x))
         x = self.q(x).squeeze()

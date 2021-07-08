@@ -139,7 +139,7 @@ class TargetSearch():
             env = self.env
         box_pos = env.objects["bin"]["initial_pos"]
         x, y, z = box_pos
-        box_top_left = [x, y + 0.08, z + 0.05, 1]
+        box_top_left = [x - 0.05, y + 0.08, z + 0.05, 1]
         box_bott_right = [x + 0.23, y - 0.35, z, 1]
 
         # Static camera 

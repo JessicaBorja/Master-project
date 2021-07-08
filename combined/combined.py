@@ -155,9 +155,11 @@ class Combined(SAC):
         #                    textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target_pos) > self.radius):
             if(env.task == "pickup" or env.task == "drawer"):
+                # To never collide with the box
+                z_value = max(self.target_pos[2] + 0.08, 0.76)
                 up_target = [tcp_pos[0],
                              tcp_pos[1],
-                             self.target_pos[2] + 0.08]
+                             z_value]
                 # Move up
                 a = [up_target, self.target_orn, 1]
                 tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)

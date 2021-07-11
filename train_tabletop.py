@@ -12,8 +12,11 @@ def main(cfg):
     max_ts = cfg.agent.learn_config.max_episode_length
     for i in range(cfg.repeat_training):
         training_env = init_env(cfg.env)
-        training_env = wrap_env(training_env, max_ts,
-                                train=True, affordance=cfg.affordance,
+        training_env = wrap_env(training_env,
+                                max_ts,
+                                train=True,
+                                affordance=cfg.affordance,
+                                viz=cfg.viz_obs,
                                 **cfg.env_wrapper)
 
         sac_cfg = {"env": training_env,
@@ -27,8 +30,8 @@ def main(cfg):
         log.info("model: %s" % cfg.model_name)
         model = Combined(cfg,
                          sac_cfg=sac_cfg)
-                        #  rand_target=True,
-                        #  target_search_mode="affordance")
+                         #  rand_target=True,
+                         #  target_search_mode="affordance")
         model.learn(**cfg.agent.learn_config)
         training_env.close()
         # eval_env.close()

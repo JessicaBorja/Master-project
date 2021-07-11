@@ -1,7 +1,7 @@
 project_path:  /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/
 data_path: ${project_path}/VREnv/data/
 save_dir: ./combined/hydra_outputs/${task}
-model_name: "full"
+model_name: full
 task: pickup
 euler_obs: true
 img_size: 64

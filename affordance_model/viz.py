@@ -166,6 +166,8 @@ def viz(cfg):
         orig_img = cv2.resize(orig_img, out_shape)
         flow_img = cv2.resize(flow_img, out_shape)
         mask = cv2.resize(mask, out_shape)
+        if(gt_mask.max() >= 1):  # multiclass
+            gt_mask[gt_mask >= 1] = 255
         gt_mask = cv2.resize(gt_mask.astype('uint8'), out_shape)
         gt_directions = cv2.resize(gt_flow, out_shape)
         affordances = cv2.resize(affordances, out_shape)
@@ -199,6 +201,7 @@ def viz(cfg):
             cv2.imshow("object masks", obj_segmentation)
             cv2.imshow("flow", flow_img)
             cv2.imshow("gt", gt_res)
+            cv2.imshow("gt_flow", gt_flow)
             cv2.imshow("output", res)
             cv2.waitKey(1)
 

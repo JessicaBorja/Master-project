@@ -2,7 +2,7 @@ project_folder: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/Master-proj
 
 # Load data relative to root directory
 # Validation episodes
-data_dir: [../datasets/vrenv_directions_200px/episode_1/data/static_cam/]
+data_dir: [../datasets/hinge_center/episode_7/data/static_cam/]
           # ../datasets/vrenv_directions_64px/episode_10/data/gripper_cam/,
           # ../Proyecto_ssd/datasets/vrenv_directions_64px/episode_13/data/gripper_cam/]
 
@@ -18,11 +18,11 @@ data_dir: [../datasets/vrenv_directions_200px/episode_1/data/static_cam/]
 # model_name: static_cam_center_preds_1.ckpt
 
 # Multitask: Static
-# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-07/10-33-44
-# model_name: last.ckpt
+folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-13/16-58-47_aff_rl
+model_name: last.ckpt
 
-folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-07/11-34-18
-model_name: static_3_tasks_epoch=12-val_total_loss=3.818.ckpt
+# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-07/11-34-18
+# model_name: static_3_tasks_epoch=12-val_total_loss=3.818.ckpt
 
 # Output img size, must be mutiple of 32
 save_images: False

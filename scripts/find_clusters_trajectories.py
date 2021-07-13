@@ -129,7 +129,7 @@ def label_motion(cfg):
         # Start of interaction
         ep_id = int(tail[:-4].split('_')[-1])
         end_of_ep = ep_id >= end_ids[0] + 1 and len(end_ids) > 1
-        if(data['actions'][-1] == 0 or end_of_ep):  # open gripper
+        if(data['actions'][-1] <= 0 or end_of_ep):  # open gripper
             # Get mask for static images
             # open -> closed
             if(past_action == 1):
@@ -157,7 +157,7 @@ def label_motion(cfg):
         # Open gripper
         else:
             # Closed -> open transition
-            if(past_action == 0):
+            if(past_action <= 0):
                 if(curr_obj is not None):
                     trajectories[curr_obj].append(list(point))
                 start_counter = 0
@@ -176,6 +176,8 @@ def label_motion(cfg):
         past_action = data['actions'][-1]
 
     save_dirs = os.path.join(cfg.output_dir, "trajectories.json")
+    if(not os.path.exists(cfg.output_dir)):
+        os.makedirs(cfg.output_dir)
     with open(save_dirs, 'w') as json_file:
         print("saving to: %s" % save_dirs)
         json.dump(trajectories, json_file, indent=4, sort_keys=True)
@@ -201,9 +203,9 @@ def find_most_sampled(trajectories):
 
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
-    # pos = label_motion(cfg)
+    pos = label_motion(cfg)
     # pos = load_json('/mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/datasets/tmp_test/trajectories.json')
-    pos = load_json("C:/Users/Jessica/Documents/Proyecto_ssd/datasets/playtable_multiclass_200px_MoC/trajectories_3objs.json")
+    # pos = load_json("C:/Users/Jessica/Documents/Proyecto_ssd/datasets/playtable_multiclass_200px_MoC/trajectories_3objs.json")
     # pos = find_most_sampled(pos)
     plot_clusters(pos)
 

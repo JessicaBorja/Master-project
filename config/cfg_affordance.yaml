@@ -1,9 +1,9 @@
 project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd
-data_dir: ${project_path}/datasets/playtable_multiclass_200px_MoC/
+data_dir: ${project_path}/datasets/hinge_left/
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: static_test
-n_epochs: 30
+n_epochs: 20
 img_size: 200
 
 dataset:

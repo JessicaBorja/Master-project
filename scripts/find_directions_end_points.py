@@ -16,7 +16,7 @@ from utils.file_manipulation import get_files, check_file
 
 def find_clusters(directions, root_dir):
     data = np.array(list(directions.values()))
-    clustering = KMeans(n_clusters=5, random_state=0).fit(data)
+    clustering = KMeans(n_clusters=6, random_state=0).fit(data)
     # clustering = DBSCAN(eps=0.03, min_samples=3).fit(data)
     labels = clustering.labels_
     # color to label
@@ -78,9 +78,9 @@ def label_motion(cfg):
         frames_hist.append(frame_id)
 
         # Start of interaction
-        ep_id = int(tail[:-4].split('_')[-1])
-        end_of_ep = ep_id >= end_ids[0] + 1 and len(end_ids) > 1
-        if(data['actions'][-1] == 0 or end_of_ep):  # closed gripper
+        ts_id = int(tail[:-4].split('_')[-1])
+        end_of_ep = ts_id >= end_ids[0] + 1 and len(end_ids) > 1
+        if(data['actions'][-1] <= 0 or end_of_ep):  # closed gripper
             # Get mask for static images
             # open -> closed
             if(past_action == 1):
@@ -88,7 +88,7 @@ def label_motion(cfg):
         # Open gripper a = 1
         else:
             # Closed -> open transition
-            if(past_action == 0):
+            if(past_action <= 0):
                 direction = point - start_point
                 direction = direction / np.linalg.norm(direction)
                 start_point = point
@@ -104,6 +104,8 @@ def label_motion(cfg):
         past_action = data['actions'][-1]
 
     save_dirs = os.path.join(cfg.output_dir, "motion_vectors_normalized.json")
+    if(not os.path.exists(cfg.output_dir)):
+        os.makedirs(cfg.output_dir)
     with open(save_dirs, 'w') as json_file:
         print("saving to: %s" % save_dirs)
         json.dump(directions, json_file, indent=4, sort_keys=True)
@@ -118,8 +120,8 @@ def load_json(path):
 
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
-    # dirs = label_motion(cfg)
-    dirs = load_json('%s/motion_vectors_normalized.json' % cfg.output_dir)
+    dirs = label_motion(cfg)
+    # dirs = load_json('%s/motion_vectors_normalized.json' % cfg.output_dir)
     find_clusters(dirs, cfg.output_dir)
 
 

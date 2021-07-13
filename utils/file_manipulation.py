@@ -83,7 +83,12 @@ def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
     # Split data
     data = {"train": [], "validation": []}
     # val_ep = np.random.choice(n_episodes, 3, replace=False)
-    val_ep = [1, 10, 13]
+    if(n_episodes >= 13):
+        val_ep = [1, 10, 13]
+    else:
+        # Take last episodes
+        n_val_ep = n_episodes//4
+        val_ep = [i for i in range(n_episodes - n_val_ep, n_episodes)]
     train_ep = [ep for ep in range(n_episodes) if ep not in val_ep]
     data["validation"] = {"episode_%d" % e: [] for e in val_ep}
     data["train"] = {"episode_%d" % e: [] for e in train_ep}
@@ -98,8 +103,8 @@ def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
                             remove_blank_mask_instances)
 
         static_cam_files = glob.glob("%s/data/*/*static*" % ep_dir)
-        if(split == "validation"):
-            skip_first_frames = True
+        # if(split == "validation"):
+        #     skip_first_frames = True
         data = select_files(data, split, ep, static_cam_files,
                             remove_blank_mask_instances,
                             skip_first_frames=skip_first_frames)

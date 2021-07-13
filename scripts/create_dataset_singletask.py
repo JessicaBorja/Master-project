@@ -250,7 +250,7 @@ def collect_dataset_close_open(cfg):
         # Start of interaction
         ep_id = int(tail[:-4].split('_')[-1])
         end_of_ep = ep_id >= end_ids[0] + 1 and len(end_ids) > 1
-        if(data['actions'][-1] == 0 or end_of_ep):  # closed gripper
+        if(data['actions'][-1] <= 0 or end_of_ep):  # closed gripper
             # Get mask for static images
             # open -> closed
             if(past_action == 1):
@@ -284,7 +284,7 @@ def collect_dataset_close_open(cfg):
         # Open gripper
         else:
             # Closed -> open transition
-            if(past_action == 0):
+            if(past_action <= 0):
                 curr_point = data['robot_obs'][:3]
                 fixed_points.append((frame_idx, curr_point))
 

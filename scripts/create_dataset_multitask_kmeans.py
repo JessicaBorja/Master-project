@@ -20,9 +20,8 @@ from utils.file_manipulation import get_files, save_data, check_file,\
 
 
 # Keep points in a distance larger than radius from new_point
-# Do not keep fixed points more than 100 frames
 def update_fixed_points(fixed_points, new_point,
-                        current_frame_idx, radius=0.1):
+                        current_frame_idx, radius=0.15):
     x = []
     for frame_idx, p, label in fixed_points:
         if np.linalg.norm(new_point - p) > radius:
@@ -154,9 +153,9 @@ def resize_mask_and_center(mask, center, new_size):
     return mask, center
 
 
-def label_static(static_cam, static_hist, back_max, occ_frames,
-                 n_classes, colors,
-                 fixed_points, pt, viz, save_dict, out_img_size):
+def label_static(static_cam, static_hist, start_pt, pt,
+                 future_mask_frames, n_classes, colors,
+                 fixed_points, viz, save_dict, out_img_size):
     for idx, (fr_idx, im_id, img) in enumerate(static_hist):
         # For static mask assume oclusion
         # until back_frames_min before
@@ -175,10 +174,10 @@ def label_static(static_cam, static_hist, back_max, occ_frames,
         # first create fp masks and place current(newest)
         # mask and optical flow on top
         # Frame is before occlusion start
-        if(fr_idx <= occ_frames[0] and
-                idx > occ_frames[0] - back_max):
+        if(fr_idx >= future_mask_frames[0] and
+           fr_idx < future_mask_frames[1]):
             # Get new grip
-            mask, center_px = get_static_mask(static_cam, img, pt)
+            mask, center_px = get_static_mask(static_cam, img, start_pt)
             mask, center_px = resize_mask_and_center(mask, center_px,
                                                      out_img_size)
             # These are center direction vectors
@@ -264,7 +263,7 @@ def collect_dataset_close_open(cfg):
 
     # Will segment 45 frames
     back_frames_range = [50, 5]
-    occ_frames_range = [0, 0]
+    future_mask_frames = [0, 0]
 
     # Multiclass
     k_means, colors, n_classes = load_clustering(cfg.output_dir)
@@ -293,16 +292,16 @@ def collect_dataset_close_open(cfg):
         # Start of interaction
         ep_id = int(tail[:-4].split('_')[-1])
         end_of_ep = ep_id >= end_ids[0] + 1 and len(end_ids) > 1
-        if(data['actions'][-1] == 0 or end_of_ep):  # closed gripper
+        if(data['actions'][-1] <= 0 or end_of_ep):  # closed gripper
             # Get mask for static images
             # open -> closed
             if(past_action == 1):
                 # Save static cam masks
                 start_pt = point
-                # save_gripper = label_gripper(gripper_cam_properties,
-                #                              gripper_hist, point,
-                #                              cfg.viz, save_gripper,
-                #                              (img_size, img_size))
+                save_gripper = label_gripper(gripper_cam_properties,
+                                             gripper_hist, point,
+                                             cfg.viz, save_gripper,
+                                             (img_size, img_size))
 
                 # If region was already labeled, delete previous point
                 fixed_points = update_fixed_points(
@@ -310,10 +309,10 @@ def collect_dataset_close_open(cfg):
                         point,
                         frame_idx)
 
-                static_hist, gripper_hist = [], []
+                gripper_hist = []
                 # Occlusion back_frames_min before interaction
-                occ_frames_range = [frame_idx - back_frames_range[0],
-                                    frame_idx]  # min, max
+                future_mask_frames = [frame_idx - back_frames_range[0],
+                                      frame_idx - back_frames_range[1]]  # min, max
             # else:
             #     mask on close
             #     Was closed and remained closed
@@ -325,20 +324,19 @@ def collect_dataset_close_open(cfg):
             #                                      (img_size, img_size))
         else:  # Open gripper
             # Closed -> open transition
-            occ_frames_range[1] = frame_idx
-            if(past_action == 0):
+            if(past_action <= 0):
                 direction = point - start_pt
                 direction = direction / np.linalg.norm(direction)
                 class_label = k_means.predict(np.expand_dims(direction, 0)) + 1
                 fixed_points.append((frame_idx, point, class_label))
                 save_static = label_static(static_cam, static_hist,
-                                           back_frames_range[1],
-                                           occ_frames_range,
+                                           start_pt, point,
+                                           future_mask_frames,
                                            n_classes, colors,
-                                           fixed_points, point,
+                                           fixed_points,
                                            cfg.viz, save_static,
                                            (img_size, img_size))
-
+                static_hist = []
         # Reset everything
         if(end_of_ep):
             end_ids = end_ids[1:]
@@ -376,9 +374,6 @@ def collect_dataset_close_open(cfg):
 def main(cfg):
     # create_data_ep_split(cfg.output_dir)
     collect_dataset_close_open(cfg)
-    # data_lst = ["%s/datasets/tabletop_directions_200px_MoC/" % cfg.project_path,
-    #             "%s/datasets/vrenv_directions_200px/" % cfg.project_path]
-    # merge_datasets(data_lst, cfg.output_dir)
 
 
 if __name__ == "__main__":

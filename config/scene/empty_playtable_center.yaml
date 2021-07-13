@@ -1,0 +1,25 @@
+objects:
+  table:
+    file: own_objects/custom_playtable/urdf/playtable.urdf
+    initial_pos: [0.9, 1.0, 0]
+    initial_orn: [0, 0, 3.141592653589793]
+    fixed: true
+    joints:
+      slide_door_joint:
+        initial_state: 0  # prismatic
+  hinged_drawer:
+    file: own_objects/hinged_drawer/urdf/hinged_drawer.urdf
+    initial_pos: [0.7, 1.0, 0]
+    initial_orn: [0, 0, 3.141592653589793]
+    fixed: true
+    joints:
+      top_left_door_joint:
+        initial_state: 0  # revolute
+  drawer:
+    file: own_objects/drawer/urdf/drawer.urdf
+    initial_pos: [0.475, 1.0, -0.004]
+    initial_orn: [0, 0, 3.141592653589793]
+    fixed: true
+    joints:
+      drawer_joint:
+        initial_state: 0  # prismatic

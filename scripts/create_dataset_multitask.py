@@ -49,8 +49,8 @@ def label_directions(center, object_mask, direction_labels):
     return direction_labels
 
 
-def read_clustering(project_path):
-    path = "%s/datasets/playtable_multiclass_200px_MoC/trajectories_3objs.json" % project_path
+def read_clustering(dir):
+    path = "%s/trajectories.json" % dir
     with open(path) as json_file:
         data = json.load(json_file)
 
@@ -266,7 +266,7 @@ def collect_dataset_close_open(cfg):
     back_frames_min = 5
 
     # Multiclass
-    trajectories, colors = read_clustering(cfg.project_path)
+    trajectories, colors = read_clustering(cfg.output_dir)
     n_classes = len(trajectories)
     for idx, filename in enumerate(tqdm.tqdm(files)):
         data = check_file(filename)
@@ -292,7 +292,7 @@ def collect_dataset_close_open(cfg):
         # Start of interaction
         ep_id = int(tail[:-4].split('_')[-1])
         end_of_ep = ep_id >= end_ids[0] + 1 and len(end_ids) > 1
-        if(data['actions'][-1] == 0 or end_of_ep):  # closed gripper
+        if(data['actions'][-1] <= 0 or end_of_ep):  # closed gripper
             # Get mask for static images
             # open -> closed
             if(past_action == 1):
@@ -327,7 +327,7 @@ def collect_dataset_close_open(cfg):
         # Open gripper
         else:
             # Closed -> open transition
-            if(past_action == 0):
+            if(past_action <= 0):
                 curr_point = data['robot_obs'][:3]
                 fixed_points.append((frame_idx, curr_point))
 

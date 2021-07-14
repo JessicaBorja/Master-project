@@ -139,8 +139,9 @@ class TargetSearch():
             env = self.env
         box_pos = env.objects["bin"]["initial_pos"]
         x, y, z = box_pos
-        box_top_left = [x - 0.12, y + 0.2, z]
-        box_bott_right = [x + 0.12, y - 0.2, z]
+        # Homogeneous cords
+        box_top_left = [x - 0.12, y + 0.2, z, 1]
+        box_bott_right = [x + 0.12, y - 0.2, z, 1]
 
         # Static camera 
         cam = env.cameras[self.cam_id]

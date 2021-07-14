@@ -17,7 +17,7 @@ dataloader:
   pin_memory: True
 
 model_cfg:
-  model_name: "${model_name}"
+  model_name: ${model_name}
   n_classes: 4
   hough_voting:
     skip_pixels: 5

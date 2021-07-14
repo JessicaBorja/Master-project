@@ -22,6 +22,7 @@ def main(cfg):
         training_env = wrap_env(training_env, max_ts,
                                 train=True, affordance=cfg.affordance,
                                 viz=cfg.viz_obs,
+                                use_aff_target=cfg.termination_wrapper.use_aff,
                                 **cfg.env_wrapper)
 
         sac_cfg = {"env": training_env,

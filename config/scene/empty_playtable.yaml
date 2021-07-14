@@ -1,5 +1,5 @@
 objects:
-  table:
+  slide:
     file: own_objects/custom_playtable/urdf/playtable.urdf
     initial_pos: [0.7, 1.0, 0]
     initial_orn: [0, 0, 3.141592653589793]
@@ -7,7 +7,7 @@ objects:
     joints:
       slide_door_joint:
         initial_state: 0  # prismatic
-  hinged_drawer:
+  hinge:
     file: own_objects/hinged_drawer/urdf/hinged_drawer.urdf
     initial_pos: [0.7, 1.0, 0]
     initial_orn: [0, 0, 3.141592653589793]

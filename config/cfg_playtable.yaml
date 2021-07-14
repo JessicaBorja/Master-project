@@ -55,6 +55,10 @@ env_wrapper:
   skip_frames: 0
   img_size: ${img_size}
 
+# Use aff detected target to terminate episode
+termination_wrapper:
+  use_aff: False
+
 # Affordance configuration for RL agent observation inputs
 affordance:
     hyperparameters:
@@ -185,7 +189,7 @@ hydra:
 
 defaults:
   - robot: panda_playtable
-  - scene: basic_playtable
+  - scene: empty_playtable
   - env: env_combined
   - env@eval_env: env_combined
   - camera_conf: topview

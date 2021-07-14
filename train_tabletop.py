@@ -12,11 +12,10 @@ def main(cfg):
     max_ts = cfg.agent.learn_config.max_episode_length
     for i in range(cfg.repeat_training):
         training_env = init_env(cfg.env)
-        training_env = wrap_env(training_env,
-                                max_ts,
-                                train=True,
-                                affordance=cfg.affordance,
+        training_env = wrap_env(training_env, max_ts,
+                                train=True, affordance=cfg.affordance,
                                 viz=cfg.viz_obs,
+                                use_aff_target=cfg.termination_wrapper.use_aff,
                                 **cfg.env_wrapper)
 
         sac_cfg = {"env": training_env,

@@ -18,11 +18,12 @@ data_dir: [../datasets/hinge_center/episode_7/data/static_cam/]
 # model_name: static_cam_center_preds_1.ckpt
 
 # Multitask: Static
-folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-13/16-58-47_aff_rl
-model_name: last.ckpt
+# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-14/11-31-40_aff_rl
+# model_name: last.ckpt
 
-# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-07/11-34-18
-# model_name: static_3_tasks_epoch=12-val_total_loss=3.818.ckpt
+# Center
+folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-13/22-01-18_aff_rl
+model_name: last.ckpt
 
 # Output img size, must be mutiple of 32
 save_images: False

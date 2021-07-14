@@ -1,5 +1,7 @@
+from env_wrappers.termination_wrapper import TerminationWrapper
 from .observation_wrapper import ObservationWrapper
 from .reward_wrapper import RewardWrapper
+from .termination_wrapper import TerminationWrapper
 import os
 import logging
 import torch
@@ -8,12 +10,14 @@ from vr_env.utils.utils import EglDeviceNotFoundError, get_egl_device_id
 logger = logging.getLogger(__name__)
 
 
-def wrap_env(env, max_ts, save_images=False, viz=False, **args):
+def wrap_env(env, max_ts, save_images=False,
+             viz=False, use_aff_target=False, **args):
     env = ObservationWrapper(env,
                              save_images=save_images,
                              viz=viz,
                              **args)
     env = RewardWrapper(env, max_ts)
+    env = TerminationWrapper(env, use_aff_target=use_aff_target)
     return env
 
 

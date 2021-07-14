@@ -37,6 +37,7 @@ def main(cfg):
                    affordance=run_cfg.affordance,
                    save_images=save_images,
                    viz=cfg.viz_obs,
+                   use_aff_target=cfg.termination_wrapper.use_aff,
                    **env_wrapper)
 
     sac_cfg = {"env": env,

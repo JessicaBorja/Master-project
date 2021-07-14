@@ -396,23 +396,6 @@ class ObservationWrapper(gym.ObservationWrapper):
                 target_px = o
                 target_world = world_pt
 
-        # world cord
-        # v, u = target_px
-        # out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
-        #                          (u, v),
-        #                          (0, 255, 0),
-        #                          markerType=cv2.MARKER_CROSS,
-        #                          markerSize=12,
-        #                          line_type=cv2.LINE_AA)
-        # depth = cv2.drawMarker(np.array(depth),
-        #                        (u, v),
-        #                        (0, 255, 0),
-        #                        markerType=cv2.MARKER_CROSS,
-        #                        markerSize=12,
-        #                        line_type=cv2.LINE_AA)
-        # cv2.imshow("out_img", out_img)
-        # cv2.imshow("depth", depth)
-
         # p.removeAllUserDebugItems()
 
         # self.unwrapped.current_target = target_world

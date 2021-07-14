@@ -90,7 +90,7 @@ class TargetSearch():
             # No center detected
             default = self.initial_pos
             no_target = True
-            return np.array(default), np.array(default), no_target
+            return np.array(default), no_target
 
         max_robustness = 0
         obj_class = np.unique(object_masks)[1:]

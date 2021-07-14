@@ -5,7 +5,7 @@ objects:
     initial_orn: [0, 0, 0]
     fixed: true
   bin:
-    file: ais_objects/bin_20_30_50/bin_20_30_50.urdf
+    file: ais_objects/bin_10_30_50/bin_10_30_50.urdf
     initial_pos: [0.7, 0.75, 0.6]
     initial_orn: [1.57, 0, 0]
     fixed: true

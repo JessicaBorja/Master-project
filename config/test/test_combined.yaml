@@ -9,8 +9,12 @@ models_dir: ${project_path}/Master-project/combined/hydra_outputs
 # folder_name: ${test.models_dir}/pickup/2021-06-29/19-21-58_aff_rl
 
 # RGB rgb_img_depth_dist_affMask_dense
-model_name: rgb_img_depth_dist_affMask_dense_26-06_19-04_most_tasks
-folder_name: ${test.models_dir}/pickup/2021-06-25/12-35-34
+# model_name: rgb_img_depth_dist_affMask_dense_26-06_19-04_most_tasks
+# folder_name: ${test.models_dir}/pickup/2021-06-25/12-35-34
+
+model_name: slide_rgb_img_depth_dist_affMask_dense_15-07_00-02_best_eval
+folder_name: ${test.models_dir}/2021-07-15/00-02-16_aff_rl
+
 
 eval_cfg:
   n_episodes: 5

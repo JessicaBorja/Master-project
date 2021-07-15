@@ -1,17 +1,21 @@
 #Environment
-project_path:  "C:/Users/Jessica/Documents/Proyecto_ssd" # /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/ #
+project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/ # "C:/Users/Jessica/Documents/Proyecto_ssd" #
 vrenv_path: ${project_path}/VREnv
 vrenv_data_path: ${vrenv_path}/data/
-img_size: 200
+img_size:
+  static: 200
+  gripper: 64
 mask_on_close: True
 
 # For collecting dataset with playdata
-play_data_dir: ${project_path}/datasets/rendered_data/empty_playtable/hinge_center
+folder_name: hinge_center
+play_data_dir: ${project_path}/datasets/rendered_data/empty_playtable/${folder_name}
+
 
 #Output directory where dataset will be stored
-output_dir: ${project_path}/datasets/hinge_center/
-
+output_dir: ${project_path}/datasets/${folder_name}_MoC-${mask_on_close}/
 viz: True
+
 
 # save_dir: ../tmp/
 all_cameras:
@@ -26,7 +30,7 @@ all_cameras:
     height: 200
     look_at: [0.2753056585788727, 0.4048122465610504, 0.04299933835864067]
     look_from: [0.2753049433231638, 1.551965045589526, 1.681303648001446]
-  empty_playtable:
+  empty_playtable_left:
     _target_: vr_env.camera.static_camera.StaticCamera
     name: static
     fov: 45
@@ -76,7 +80,7 @@ hydra:
 
 defaults:
   - env: env
-  - scene@env.scene: clutter_tabletop
-  - camera_conf@env: play_data_tabletop
+  - scene@env.scene: empty_playtable_center
+  - camera_conf@env: empty_playtable_center
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog

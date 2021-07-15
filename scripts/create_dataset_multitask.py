@@ -33,12 +33,12 @@ def update_fixed_points(fixed_points, new_point,
     return x
 
 
-def label_directions(center, object_mask, direction_labels):
+def label_directions(center, object_mask, direction_labels, camtype):
     # Get directions
     # Shape: [H x W x 2]
-
+    indices = pixel_indices[camtype]
     object_mask = tresh_np(object_mask, 100)
-    object_center_directions = (center - pixel_indices).astype(np.float32)
+    object_center_directions = (center - indices).astype(np.float32)
     object_center_directions = object_center_directions\
         / np.maximum(np.linalg.norm(object_center_directions,
                                     axis=2, keepdims=True), 1e-10)
@@ -90,7 +90,8 @@ def update_mask(fixed_points, mask, directions, trajectories,
             new_mask, center_px = resize_mask_and_center(new_mask, center_px,
                                                          out_img_size)
             centers.append(center_px)
-            directions = label_directions(center_px, new_mask, directions)
+            directions = label_directions(center_px, new_mask,
+                                          directions, "static")
             label = classify(p, trajectories)
             mask[label] = overlay_mask(new_mask, mask[label], (255, 255, 255))
     return mask, centers, directions
@@ -114,20 +115,20 @@ def create_gripper_cam_properties(cam_cfg):
 
 
 def label_gripper(cam_properties, img_hist, point, viz,
-                  save_dict, out_img_size):
+                  save_dict, out_img_size, radius=25):
     for idx, (fr_idx, im_id, robot_obs, img) in enumerate(img_hist):
-        if(im_id not in save_dict):
+        if(im_id not in save_dict and robot_obs[-1] > 0.03):  # not completely closed
             # Shape: [H x W x 2]
             H, W = out_img_size  # img.shape[:2]
             directions = np.stack(
                             [np.ones((H, W)),
                              np.zeros((H, W))], axis=-1).astype(np.float32)
             # Center and directions in matrix convention (row, column)
-            mask, center_px = get_gripper_mask(img, robot_obs, point,
-                                               cam_properties, radius=25)
+            mask, center_px = get_gripper_mask(img, robot_obs[:6], point,
+                                               cam_properties, radius=radius)
             mask, center_px = resize_mask_and_center(mask, center_px,
                                                      out_img_size)
-            directions = label_directions(center_px, mask, directions)
+            directions = label_directions(center_px, mask, directions, "gripper")
 
             # Visualize results
             img = cv2.resize(img, out_img_size)
@@ -136,9 +137,12 @@ def label_gripper(cam_properties, img_hist, point, viz,
             flow_over_img = overlay_flow(flow_img, img, mask)
 
             if(viz):
-                cv2.imshow("Gripper", out_img)
-                cv2.imshow('Gripper flow_img', flow_over_img)
-                cv2.imshow('Gripper real flow', flow_img)
+                viz_img = cv2.resize(out_img,(200, 200))
+                viz_flow = cv2.resize(flow_img,(200, 200))
+                viz_flow_over_img = cv2.resize(flow_over_img,(200, 200))
+                cv2.imshow("Gripper", viz_img)
+                cv2.imshow('Gripper flow_img', viz_flow_over_img)
+                cv2.imshow('Gripper real flow', viz_flow)
                 cv2.waitKey(1)
 
             save_dict[im_id] = {
@@ -185,7 +189,8 @@ def label_static(static_cam, static_hist, back_min, back_max,
             mask, center_px = get_static_mask(static_cam, img, pt)
             mask, center_px = resize_mask_and_center(mask, center_px,
                                                      out_img_size)
-            directions = label_directions(center_px, mask, fp_directions)
+            directions = label_directions(center_px, mask,
+                                          fp_directions, "static")
             centers.append(center_px)
         else:
             # No segmentation in current image due to occlusion
@@ -233,10 +238,14 @@ def label_static(static_cam, static_hist, back_min, back_max,
 
 def collect_dataset_close_open(cfg):
     global pixel_indices
-    img_size = cfg.img_size
+    gripper_out_size = (cfg.img_size.gripper, cfg.img_size.gripper)
+    static_out_size = (cfg.img_size.static, cfg.img_size.static)
+
     mask_on_close = cfg.mask_on_close
-    pixel_indices = np.indices((img_size, img_size),
-                               dtype=np.float32).transpose(1, 2, 0)
+    pixel_indices = {"gripper": np.indices(gripper_out_size,
+                                           dtype=np.float32).transpose(1, 2, 0),
+                     "static": np.indices(static_out_size,
+                                          dtype=np.float32).transpose(1, 2, 0)}
     # Episodes info
     # ep_lens = np.load(os.path.join(cfg.play_data_dir, "ep_lens.npy"))
     ep_start_end_ids = np.load(os.path.join(
@@ -277,7 +286,7 @@ def collect_dataset_close_open(cfg):
 
         # Initialize img, mask, id
         img_id = tail[:-4]
-        robot_obs = data['robot_obs'][:6]  # 3 pos, 3 euler angle
+        robot_obs = data['robot_obs'][:7]  # 3 pos, 3 euler angle, gripper_width
         static_hist.append(
             (frame_idx, "static_%s" % img_id,
              data['rgb_static'][:, :, ::-1]))
@@ -302,11 +311,11 @@ def collect_dataset_close_open(cfg):
                                            n_classes, trajectories, colors,
                                            fixed_points, point,
                                            cfg.viz, save_static,
-                                           (img_size, img_size))
+                                           static_out_size)
                 save_gripper = label_gripper(gripper_cam_properties,
                                              gripper_hist, point,
                                              cfg.viz, save_gripper,
-                                             (img_size, img_size))
+                                             gripper_out_size)
 
                 # If region was already labeled, delete previous point
                 fixed_points = update_fixed_points(
@@ -319,11 +328,13 @@ def collect_dataset_close_open(cfg):
                 # mask on close
                 # Was closed and remained closed
                 # Last element in gripper_hist is the newest
+                # width = gripper_hist[-1][2][-1]
                 if(mask_on_close):
+                    # not completely closed i.e. holding something
                     save_gripper = label_gripper(gripper_cam_properties,
                                                  [gripper_hist[-1]], point,
                                                  cfg.viz, save_gripper,
-                                                 (img_size, img_size))
+                                                 gripper_out_size, radius=20)
         # Open gripper
         else:
             # Closed -> open transition

@@ -25,10 +25,11 @@ def train(cfg):
                 OmegaConf.to_yaml(print_cfg(cfg)))
 
     # Data split
+    img_size = cfg.img_size[cfg.dataset.cam]
     train_loader, val_loader = get_loaders(logger,
                                            cfg.dataset,
                                            cfg.dataloader,
-                                           cfg.img_size,
+                                           img_size,
                                            cfg.model_cfg.n_classes)
 
     # 24hr format

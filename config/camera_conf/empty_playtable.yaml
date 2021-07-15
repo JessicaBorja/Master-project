@@ -1,4 +1,0 @@
-
-cameras:
-  - '${all_cameras.empty_playtable}'
-  - '${all_cameras.gripper}'

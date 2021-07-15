@@ -7,6 +7,7 @@ import json
 import hydra
 from torch.utils.data import DataLoader
 from torchvision import transforms
+from torchvision.transforms.functional import rotate
 import sys
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, os.getcwd())
@@ -17,7 +18,7 @@ from utils.img_utils import overlay_flow, overlay_mask, tresh_np
 from sklearn.cluster import DBSCAN
 
 
-def get_transforms(transforms_cfg, img_size=None):
+def get_transforms(transforms_cfg, img_size=None, add_rotation=False):
     transforms_lst = []
     transforms_config = transforms_cfg.copy()
     for cfg in transforms_config:
@@ -25,6 +26,7 @@ def get_transforms(transforms_cfg, img_size=None):
            and img_size is not None):
             cfg.size = img_size
         transforms_lst.append(hydra.utils.instantiate(cfg))
+
     return transforms.Compose(transforms_lst)
 
 
@@ -53,13 +55,17 @@ class VREnvData(Dataset):
     # split = "train" or "validation"
     def __init__(self, img_size, root_dir, transforms_cfg, n_train_ep=-1,
                  split="train", cam="static", log=None, n_classes=2):
+        self.cam = cam
+        self.split = split
         self.log = log
         self.root_dir = root_dir
         _ids = self.read_json(os.path.join(root_dir, "episodes_split.json"))
         self.data = self._get_split_data(_ids, split, cam, n_train_ep)
-        self.transforms = get_transforms(transforms_cfg[split])
+        self.add_rotation = split == "train" and cam == "gripper"
+        self.transforms = get_transforms(transforms_cfg[split], img_size,
+                                         add_rotation=self.add_rotation)
         _masks_t = "masks" if n_classes <= 2 else "masks_multitask"
-        self.mask_transforms = get_transforms(transforms_cfg[_masks_t])
+        self.mask_transforms = get_transforms(transforms_cfg[_masks_t], img_size)
         self.pixel_indices = np.indices((img_size, img_size),
                                         dtype=np.float32).transpose(1, 2, 0)
         self.img_size = img_size
@@ -158,11 +164,18 @@ class VREnvData(Dataset):
         mask = np.expand_dims(mask, 0)
         mask = self.mask_transforms(torch.from_numpy(mask)).long()
 
-        # CE Loss requires mask in form (B, H, W), so remove channel dim
-        mask = mask.squeeze()  # H, W
-
         # centers, center_dirs = self.get_directions(mask)
         center_dirs = torch.tensor(data["directions"]).permute(2, 0, 1)
+
+        # Rotation transform
+        if(self.cam == "gripper" and self.split == "train"):
+            rand_angle = np.random.randint(-180, 180)
+            frame = rotate(frame, rand_angle)
+            mask = rotate(mask, rand_angle)
+            center_dirs = rotate(center_dirs, rand_angle)
+
+        # CE Loss requires mask in form (B, H, W), so remove channel dim
+        mask = mask.squeeze()  # H, W
 
         labels = {"affordance": mask,
                   # "centers": centers,
@@ -207,7 +220,8 @@ def test_dir_labels(hv, frame, aff_mask, center_dir):
 
 @hydra.main(config_path="../config", config_name="cfg_affordance")
 def main(cfg):
-    val = VREnvData(cfg.img_size, split="validation", log=None,
+    img_size = cfg.img_size[cfg.dataset.cam]
+    val = VREnvData(img_size, split="train", log=None,
                     **cfg.dataset)
     val_loader = DataLoader(val, num_workers=1, batch_size=1, pin_memory=True)
     print('val minibatches {}'.format(len(val_loader)))

@@ -1,10 +1,12 @@
 project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd
-data_dir: ${project_path}/datasets/hinge_left/
+data_dir: ${project_path}/datasets/hinge_left_MoC-True/
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: static_test
 n_epochs: 20
-img_size: 200
+img_size:
+  static: 200
+  gripper: 64
 
 dataset:
   root_dir: ${data_dir}

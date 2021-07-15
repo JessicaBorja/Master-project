@@ -169,10 +169,12 @@ class VREnvData(Dataset):
 
         # Rotation transform
         if(self.cam == "gripper" and self.split == "train"):
-            rand_angle = np.random.randint(-180, 180)
-            frame = rotate(frame, rand_angle)
-            mask = rotate(mask, rand_angle)
-            center_dirs = rotate(center_dirs, rand_angle)
+            rotate_frame = np.random.rand() < 0.30  # 30% chance of rotation
+            if(rotate_frame):
+                rand_angle = np.random.randint(-90, 90)
+                frame = rotate(frame, rand_angle)
+                mask = rotate(mask, rand_angle)
+                center_dirs = rotate(center_dirs, rand_angle)
 
         # CE Loss requires mask in form (B, H, W), so remove channel dim
         mask = mask.squeeze()  # H, W

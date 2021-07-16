@@ -65,9 +65,12 @@ class VREnvData(Dataset):
         self.transforms = get_transforms(transforms_cfg[split], img_size,
                                          add_rotation=self.add_rotation)
         _masks_t = "masks" if n_classes <= 2 else "masks_multitask"
-        self.mask_transforms = get_transforms(transforms_cfg[_masks_t], img_size)
-        self.pixel_indices = np.indices((img_size, img_size),
-                                        dtype=np.float32).transpose(1, 2, 0)
+        self.mask_transforms = get_transforms(transforms_cfg[_masks_t],
+                                              img_size)
+        self.pixel_indices = {"gripper":
+                                np.indices((64, 64), dtype=np.float32).transpose(1, 2, 0),
+                              "static":
+                                np.indices((200, 200), dtype=np.float32).transpose(1, 2, 0)}
         self.img_size = img_size
 
     def _overfit_split_data(self, data, split, cam, n_train_ep):
@@ -168,13 +171,31 @@ class VREnvData(Dataset):
         center_dirs = torch.tensor(data["directions"]).permute(2, 0, 1)
 
         # Rotation transform
-        if(self.cam == "gripper" and self.split == "train"):
-            rotate_frame = np.random.rand() < 0.30  # 30% chance of rotation
-            if(rotate_frame):
-                rand_angle = np.random.randint(-90, 90)
-                frame = rotate(frame, rand_angle)
-                mask = rotate(mask, rand_angle)
-                center_dirs = rotate(center_dirs, rand_angle)
+        # if(self.cam == "gripper" and self.split == "train"):
+        #     rotate_frame = np.random.rand() < 0.30  # 30% chance of rotation
+        #     if(rotate_frame):
+        #         # W, H = data["mask"].shape
+        #         # directions = np.stack(
+        #         #             [np.ones((H, W)),
+        #         #              np.zeros((H, W))], axis=-1).astype(np.float32)
+
+        #         # center = data["centers"][0]
+        #         # center_dirs = np.zeros((H, W))
+        #         # center_dirs = torch.tensor(center_dirs).unsqueeze(0)
+        #         # center_dirs[0, center[0], center[1]] = 1
+        #         # center_dirs = rotate(center_dirs, rand_angle)
+        #         # center = np.where(center_dirs[0] == 1)
+        #         # center = np.array([center[0], center[1]])
+        #         # # gripper always have just one center
+        #         # directions = self.label_directions(center,
+        #         #                                    data["mask"],
+        #         #                                    directions,
+        #         #                                    "gripper")
+        #         # # Rotate
+        #         rand_angle = np.random.randint(-90, 90)
+        #         frame = rotate(frame, rand_angle)
+        #         mask = rotate(mask, rand_angle)
+        #         center_dirs = rotate(center_dirs, rand_angle)
 
         # CE Loss requires mask in form (B, H, W), so remove channel dim
         mask = mask.squeeze()  # H, W
@@ -183,6 +204,22 @@ class VREnvData(Dataset):
                   # "centers": centers,
                   "center_dirs": center_dirs}
         return frame, labels
+
+    def label_directions(self, center, object_mask, direction_labels, camtype):
+        # Get directions
+        # Shape: [H x W x 2]
+        indices = self.pixel_indices[camtype]
+        object_mask = tresh_np(object_mask, 100)
+        object_center_directions = (center - indices).astype(np.float32)
+        object_center_directions = object_center_directions\
+            / np.maximum(np.linalg.norm(object_center_directions,
+                                        axis=2, keepdims=True), 1e-10)
+
+        # Add it to the labels
+        direction_labels[object_mask == 1] = \
+            object_center_directions[object_mask == 1]
+        return direction_labels
+
 
     def read_json(self, json_file):
         with open(json_file) as f:

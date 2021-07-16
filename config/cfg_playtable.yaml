@@ -94,7 +94,7 @@ affordance:
       use_distance: False
       densify_reward: False  # Use affordance to shape the reward function
       target_in_obs: False  # Add target detected by affordance into observation
-      model_path: ${models_path}/gripper_playtable_64px.ckpt
+      model_path: ${models_path}/hinge_left_gripper_epoch=24-val_miou=0.336.ckpt
       hough_voting:
         skip_pixels: 2
         inlier_threshold: 0.7
@@ -182,6 +182,28 @@ all_cameras:
     height: 760
     look_at: [0.2773292660713196, 0.7766451239585876, 0.20271989703178406]
     look_from: [-0.21922546214082672, 0.22516583397073475, 1.1457490759304818]
+  empty_playtable_left:
+    _target_: vr_env.camera.static_camera.StaticCamera
+    name: static
+    fov: 45
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 200
+    height: 200
+    look_from: [0.1489590099081397, -0.5244077444076538, 1.483006775379181]
+    look_at: [0.16050678491592407, 0.3025922179222107, 0.9209232330322266]
+  empty_playtable_center:
+    _target_: vr_env.camera.static_camera.StaticCamera
+    name: static
+    fov: 45
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 200
+    height: 200
+    look_from: [0.1489590099081397, -0.5244077444076538, 1.483006775379181]
+    look_at: [0.16050678491592407, 0.3025922179222107, 0.9209232330322266]
 
 hydra:
   run:
@@ -189,10 +211,10 @@ hydra:
 
 defaults:
   - robot: panda_playtable
-  - scene: empty_playtable
+  - scene: empty_playtable_left
   - env: env_combined
   - env@eval_env: env_combined
-  - camera_conf: topview
+  - camera_conf: empty_playtable_left
   - agent: default
   - test: test_combined
   - transforms@affordance.transforms: aff_transforms

@@ -128,6 +128,8 @@ def label_gripper(cam_properties, img_hist, point, viz,
                                                cam_properties, radius=radius)
             mask, center_px = resize_mask_and_center(mask, center_px,
                                                      out_img_size)
+            if(np.any(center_px < 0)):
+                continue  # Outside of image FOV
             directions = label_directions(center_px, mask, directions, "gripper")
 
             # Visualize results

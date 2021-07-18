@@ -125,6 +125,7 @@ class Segmentator(pl.LightningModule):
 
     # Affordance mask prediction
     def forward(self, x):
+        self.unet.encoder.eval()
         # in lightning, forward defines the prediction/inference actions
         features = self.unet.encoder(x)
         decoder_output = self.unet.decoder(*features)

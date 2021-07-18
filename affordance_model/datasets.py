@@ -18,7 +18,7 @@ from utils.img_utils import overlay_flow, overlay_mask, tresh_np
 from sklearn.cluster import DBSCAN
 
 
-def get_transforms(transforms_cfg, img_size=None, add_rotation=False):
+def get_transforms(transforms_cfg, img_size=None):
     transforms_lst = []
     transforms_config = transforms_cfg.copy()
     for cfg in transforms_config:
@@ -62,8 +62,7 @@ class VREnvData(Dataset):
         _ids = self.read_json(os.path.join(root_dir, "episodes_split.json"))
         self.data = self._get_split_data(_ids, split, cam, n_train_ep)
         self.add_rotation = split == "train" and cam == "gripper"
-        self.transforms = get_transforms(transforms_cfg[split], img_size,
-                                         add_rotation=self.add_rotation)
+        self.transforms = get_transforms(transforms_cfg[split], img_size)
         _masks_t = "masks" if n_classes <= 2 else "masks_multitask"
         self.mask_transforms = get_transforms(transforms_cfg[_masks_t],
                                               img_size)
@@ -163,6 +162,7 @@ class VREnvData(Dataset):
 
         # Segmentation mask (H, W)
         mask = data["mask"]
+
         # Resize from torchvision requires mask to have channel dim
         mask = np.expand_dims(mask, 0)
         mask = self.mask_transforms(torch.from_numpy(mask)).long()
@@ -171,31 +171,10 @@ class VREnvData(Dataset):
         center_dirs = torch.tensor(data["directions"]).permute(2, 0, 1)
 
         # Rotation transform
-        # if(self.cam == "gripper" and self.split == "train"):
-        #     rotate_frame = np.random.rand() < 0.30  # 30% chance of rotation
-        #     if(rotate_frame):
-        #         # W, H = data["mask"].shape
-        #         # directions = np.stack(
-        #         #             [np.ones((H, W)),
-        #         #              np.zeros((H, W))], axis=-1).astype(np.float32)
-
-        #         # center = data["centers"][0]
-        #         # center_dirs = np.zeros((H, W))
-        #         # center_dirs = torch.tensor(center_dirs).unsqueeze(0)
-        #         # center_dirs[0, center[0], center[1]] = 1
-        #         # center_dirs = rotate(center_dirs, rand_angle)
-        #         # center = np.where(center_dirs[0] == 1)
-        #         # center = np.array([center[0], center[1]])
-        #         # # gripper always have just one center
-        #         # directions = self.label_directions(center,
-        #         #                                    data["mask"],
-        #         #                                    directions,
-        #         #                                    "gripper")
-        #         # # Rotate
-        #         rand_angle = np.random.randint(-90, 90)
-        #         frame = rotate(frame, rand_angle)
-        #         mask = rotate(mask, rand_angle)
-        #         center_dirs = rotate(center_dirs, rand_angle)
+        if(self.add_rotation):
+            res = self.rotate_img(data, frame, mask, center_dirs)
+            if(res is not None):
+                frame, mask, center_dirs = res
 
         # CE Loss requires mask in form (B, H, W), so remove channel dim
         mask = mask.squeeze()  # H, W
@@ -204,6 +183,43 @@ class VREnvData(Dataset):
                   # "centers": centers,
                   "center_dirs": center_dirs}
         return frame, labels
+
+    def rotate_img(self, data, frame, mask, directions):
+        if(self.cam == "gripper" and self.split == "train"):
+            rotate_frame = np.random.rand() < 0.30  # 30% chance of rotation
+            if(rotate_frame):
+                rand_angle = np.random.randint(-90, 90)
+                W, H = data["mask"].shape
+                directions = np.stack(
+                            [np.ones((H, W)),
+                                np.zeros((H, W))], axis=-1).astype(np.float32)
+
+                center = data["centers"][0]
+                # center_dirs = np.zeros((H, W))
+                # center_dirs = torch.tensor(center_dirs).unsqueeze(0)
+                # center_dirs[0, center[0], center[1]] = 1
+                center_dirs = torch.tensor(np.indices((H, W)))
+                center_dirs = rotate(center_dirs, rand_angle)
+                indices = center_dirs.numpy()
+                indices = np.transpose(indices, (1, 2, 0))
+                center = np.argwhere((indices == center).all(-1))
+                # center = np.where(center_dirs[0] == 1)
+                # center = np.array([c for c in center]).transpose()
+                if len(center) <= 0:  # Ony rotate if center is inside img
+                    return None
+
+                # gripper always have just one center
+                mask = rotate(mask, rand_angle)
+                np_mask = mask.squeeze().numpy() * 255
+                directions = self.label_directions(center[0].transpose(),
+                                                   np_mask,
+                                                   directions,
+                                                   "gripper")
+                # Rotate
+                frame = rotate(frame, rand_angle)
+                directions = torch.tensor(directions).permute(2, 0, 1)
+                # center_dirs = rotate(center_dirs, rand_angle)
+        return (frame, mask, directions)
 
     def label_directions(self, center, object_mask, direction_labels, camtype):
         # Get directions
@@ -220,7 +236,6 @@ class VREnvData(Dataset):
             object_center_directions[object_mask == 1]
         return direction_labels
 
-
     def read_json(self, json_file):
         with open(json_file) as f:
             data = json.load(f)
@@ -235,8 +250,6 @@ def test_dir_labels(hv, frame, aff_mask, center_dir):
     flow_img = center_dir[0].permute((1, 2, 0)).cpu().detach().numpy()
     flow_img = flowlib.flow_to_image(flow_img)  # RGB
     flow_img = flow_img[:, :, ::-1]  # BGR
-    cv2.imshow("directions_l", flow_img)
-    cv2.waitKey(1)
     bool_mask = (aff_mask == 1).int().cuda()
     center_dir = center_dir.cuda()  # 1, 2, H, W
     initial_masks, num_objects, object_centers_padded = \
@@ -252,6 +265,7 @@ def test_dir_labels(hv, frame, aff_mask, center_dir):
                                markerType=cv2.MARKER_CROSS,
                                markerSize=5,
                                line_type=cv2.LINE_AA)
+    cv2.imshow("directions_l", flow_img)
     cv2.imshow("hv_center", frame)
     cv2.waitKey(1)
     return frame

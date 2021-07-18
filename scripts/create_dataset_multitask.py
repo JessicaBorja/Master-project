@@ -128,9 +128,12 @@ def label_gripper(cam_properties, img_hist, point, viz,
                                                cam_properties, radius=radius)
             mask, center_px = resize_mask_and_center(mask, center_px,
                                                      out_img_size)
-            if(np.any(center_px < 0)):
+            if(np.any(center_px < 0) or np.any(center_px >= H)):
                 continue  # Outside of image FOV
-            directions = label_directions(center_px, mask, directions, "gripper")
+            directions = label_directions(center_px,
+                                          mask,
+                                          directions,
+                                          "gripper")
 
             # Visualize results
             img = cv2.resize(img, out_img_size)
@@ -139,9 +142,9 @@ def label_gripper(cam_properties, img_hist, point, viz,
             flow_over_img = overlay_flow(flow_img, img, mask)
 
             if(viz):
-                viz_img = cv2.resize(out_img,(200, 200))
-                viz_flow = cv2.resize(flow_img,(200, 200))
-                viz_flow_over_img = cv2.resize(flow_over_img,(200, 200))
+                viz_img = cv2.resize(out_img, (200, 200))
+                viz_flow = cv2.resize(flow_img, (200, 200))
+                viz_flow_over_img = cv2.resize(flow_over_img, (200, 200))
                 cv2.imshow("Gripper", viz_img)
                 cv2.imshow('Gripper flow_img', viz_flow_over_img)
                 cv2.imshow('Gripper real flow', viz_flow)

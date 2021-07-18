@@ -339,7 +339,7 @@ def collect_dataset_close_open(cfg):
                     save_gripper = label_gripper(gripper_cam_properties,
                                                  [gripper_hist[-1]], point,
                                                  cfg.viz, save_gripper,
-                                                 gripper_out_size, radius=20)
+                                                 gripper_out_size)
         # Open gripper
         else:
             # Closed -> open transition

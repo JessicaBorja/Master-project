@@ -3,6 +3,7 @@ import cv2
 from PIL import Image
 import torch
 import utils.flowlib as flowlib
+import matplotlib.pyplot as plt
 
 
 def torch_to_numpy(x):
@@ -12,6 +13,25 @@ def torch_to_numpy(x):
 def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
                           object_centers, object_masks,
                           cam_type="", obs_it=0, save_images=False):
+    ''' C = n_classes
+        img_obs: numpy array, int64
+            - shape = (H, W, 3)
+            - range = (0, 255)
+        mask: torch tensor, int64
+            - shape = [1, H, W]
+            - range = (0, n_classes - 1)
+        aff_probs: torch tensor, float32
+            - shape = [1, C, H, W]
+            - range = (0, 1.0)
+        directions: torch tensor, float32
+            - shape = [1, 2, H, W]
+            - range = pixel space vectors
+        object_centers: list of torch tensors, int64
+            - pixel coordinates
+        object_masks: torch tensor, int64
+            - shape = [1, H, W]
+            - range = (0, n_objects in current image)
+    '''
     # To numpy
     mask = torch_to_numpy(mask[0])  # H, W
     aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
@@ -28,12 +48,31 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
     im_shape = img_obs.shape[:2]
     orig_img = img_obs[:, :, ::-1]
 
+    # Multiclass
+    n_classes = aff_probs.shape[-1]
+    affordances = orig_img
+    if(n_classes > 2):
+        cm = plt.get_cmap('tab10')
+        # Not showing background
+        colors = cm(np.linspace(0, 1, n_classes-1))[:, :3]
+        colors = (colors[:, ::-1] * 255).astype('uint8')
+        for i in range(1, n_classes):
+            obj_mask = np.zeros_like(mask)  # (1, img_size, img_size)
+            obj_mask[mask == i] = 255
+            obj_mask = cv2.resize(obj_mask, im_shape)
+            affordances = overlay_mask(obj_mask,
+                                       affordances,
+                                       tuple(colors[i-1]))
+        mask[mask > 0] = 255
+    else:
+        mask = (mask*255).astype('uint8')
+        mask = cv2.resize(mask, im_shape)
+        affordances = overlay_mask(mask, affordances, (255, 0, 0))
+
     # Reshape mask and directions
-    mask = (mask*255).astype('uint8')
-    mask = cv2.resize(mask, im_shape)
+    out_img = affordances
     flow_img = cv2.resize(flow_img, im_shape)
     flow_over_img = overlay_flow(flow_img, orig_img, mask)
-    out_img = overlay_mask(mask, orig_img, (0, 0, 255))
 
     # Visualize segmentations individually and obj centers
     obj_class = np.unique(object_masks)

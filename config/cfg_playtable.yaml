@@ -15,10 +15,10 @@ models_path: "${project_path}/Master-project/trained_models/"
 
 # Static cam affordance model to detect the targets
 target_search_aff:
-  model_path: ${models_path}/static_centers_2-5_1_5_1_200px_epoch_13.ckpt
+  model_path: ${models_path}/static_playtable.ckpt
   img_size: 200
   hyperparameters:
-    n_classes: 2
+    n_classes: 4
     hough_voting:
       skip_pixels: 2
       inlier_threshold: 0.7
@@ -80,7 +80,7 @@ affordance:
         decoder_channels: [128, 64, 32]
     static_cam:
       use: False
-      model_path: ${models_path}/static_cam_center_preds_1.ckpt
+      model_path: ${models_path}/static_playtable.ckpt
       img_size: 200
       hough_voting:
         skip_pixels: 2
@@ -94,7 +94,7 @@ affordance:
       use_distance: False
       densify_reward: False  # Use affordance to shape the reward function
       target_in_obs: False  # Add target detected by affordance into observation
-      model_path: ${models_path}/hinge_left_gripper_epoch=24-val_miou=0.336.ckpt
+      model_path: ${models_path}/gripper_playtable_64px.ckpt
       hough_voting:
         skip_pixels: 2
         inlier_threshold: 0.7
@@ -214,7 +214,7 @@ defaults:
   - scene: empty_playtable_left
   - env: env_combined
   - env@eval_env: env_combined
-  - camera_conf: empty_playtable_left
+  - camera_conf: empty_playtable_center
   - agent: default
   - test: test_combined
   - transforms@affordance.transforms: aff_transforms

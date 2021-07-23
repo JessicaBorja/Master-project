@@ -8,8 +8,8 @@ img_size:
 mask_on_close: True
 
 # For collecting dataset with playdata
-folder_name: hinge_center
-play_data_dir: ${project_path}/datasets/rendered_data/empty_playtable/${folder_name}
+folder_name: tabletop_multiscene
+play_data_dir: ${project_path}/datasets/rendered_data/${folder_name}
 
 
 #Output directory where dataset will be stored
@@ -30,6 +30,17 @@ all_cameras:
     height: 200
     look_at: [0.2753056585788727, 0.4048122465610504, 0.04299933835864067]
     look_from: [0.2753049433231638, 1.551965045589526, 1.681303648001446]
+  tabletop_multiscene:
+    _target_: vr_env.camera.static_camera.StaticCamera
+    name: tabletop_topview
+    fov: 45
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 200
+    height: 200
+    look_at: [0.22791078686714172, 0.008461681194603443, -0.24000032246112823]
+    look_from: [0.22790421545536008, 1.570319612342189, 1.5822541675395883]
   empty_playtable_left:
     _target_: vr_env.camera.static_camera.StaticCamera
     name: static

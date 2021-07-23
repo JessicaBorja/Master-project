@@ -6,11 +6,12 @@ from omegaconf import OmegaConf
 import os
 import cv2
 import torch
+import pybullet as p
 
 
 class TargetSearch():
     def __init__(self, env, mode,
-                 aff_transforms=None, aff_cfg=None,
+                 aff_transforms=None, aff_cfg=None, class_label=None,
                  cam_id=0, initial_pos=None, rand_target=False) -> None:
         self.env = env
         self.mode = mode
@@ -22,6 +23,7 @@ class TargetSearch():
         self.affordance_cfg = aff_cfg
         self.aff_net_static_cam = self._init_static_cam_aff_net(aff_cfg)
         self.static_cam_imgs = {}
+        self.class_label = class_label
         if(env.task == "pickup"):
             self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(self.env)
 
@@ -66,14 +68,23 @@ class TargetSearch():
             self.aff_net_static_cam.forward(img_obs)
         if(env.task == "pickup"):
             aff_mask = aff_mask - self.box_mask
+
+        # Filter by class
+        if(self.class_label is not None):
+            class_mask = torch.zeros_like(aff_mask)
+            class_mask[aff_mask == self.class_label] = 1
+        else:
+            class_mask = aff_mask
+
         aff_mask, center_dir, object_centers, object_masks = \
-            self.aff_net_static_cam.predict(aff_mask, center_dir)
+            self.aff_net_static_cam.predict(class_mask, center_dir)
 
         # Visualize predictions
         if(env.viz or env.save_images):
-            img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                                             object_centers, object_masks,
-                                             "static", global_obs_it,
+            img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs,
+                                             center_dir, object_centers,
+                                             object_masks, "static",
+                                             global_obs_it,
                                              self.env.save_images)
             self.static_cam_imgs.update(img_dict)
             global_obs_it += 1
@@ -130,8 +141,10 @@ class TargetSearch():
 
         # Compute depth
         target_pos = pixel2world(cam, u, v, depth_obs)
-
         target_pos = np.array(target_pos)
+        p.addUserDebugText("t",
+                           textPosition=target_pos,
+                           textColorRGB=[0, 1, 0])
         return target_pos, no_target
 
     def get_box_pos_mask(self, env):

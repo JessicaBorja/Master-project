@@ -1,0 +1,47 @@
+objects:
+  table:
+    file: table/hightable.urdf
+    initial_pos: [0.3, 0.7, 0.02]
+    initial_orn: [0, 0, 0]
+    fixed: true
+  bin:
+    file: ais_objects/bin_10_30_50/bin_10_30_50.urdf
+    initial_pos: [0.7, 0.75, 0.6]
+    initial_orn: [1.57, 0, 0]
+    fixed: true
+  drill:
+    file: 035_power_drill/google_16k/textured.urdf
+    initial_pos: [0.35, 0.92, 0.623]
+    initial_orn: [0, 0, 2]
+    fixed: false
+  marker:
+    file: 040_large_marker/google_16k/textured.urdf
+    initial_pos: [0.2, 0.7, 0.65]
+    initial_orn: [0, 0, 0]
+    fixed: false
+  # plane:
+  #   file: 072-a_toy_airplane/google_16k/textured.urdf
+  #   initial_pos: [0.15, 0.9, 0.63]
+  #   initial_orn: [0, 0, 0]
+  #   fixed: false
+  #   scale: 0.5
+  power_drill:
+    file: tabletop/power_drill/power_drill.urdf
+    initial_pos: [-0.1, 0.6, 0.623]
+    initial_orn: [0, 0, 0]
+    fixed: false
+  knife:
+    file: 027_skillet/google_16k/textured.urdf
+    initial_pos: [-0.1, 0.6, 0.623]
+    initial_orn: [0, 0, 0]
+    fixed: false
+  hammer:
+    file: 048_hammer/google_16k/textured.urdf
+    initial_pos: [-0.05, 0.85, 0.63]
+    initial_orn: [0, 0, 0]
+    fixed: false
+  screwdriver:
+    file: 044_flat_screwdriver/google_16k/textured.urdf
+    initial_pos: [0.08, 0.48, 0.623]
+    initial_orn: [0, 0, 0]
+    fixed: false

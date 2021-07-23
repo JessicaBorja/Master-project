@@ -1,0 +1,4 @@
+
+cameras:
+  - '${all_cameras.tabletop_multiscene}'
+  - '${all_cameras.gripper}'

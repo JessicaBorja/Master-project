@@ -44,7 +44,9 @@ class Combined(SAC):
                 "aff_cfg": cfg.target_search_aff,
                 "aff_transforms": _aff_transforms,
                 "rand_target": rand_target}
+        _class_label = self.get_task_label()
         self.target_search = TargetSearch(self.env,
+                                          class_label=_class_label,
                                           mode=target_search_mode,
                                           **args)
         if(self.env.task == "pickup"):
@@ -57,6 +59,17 @@ class Combined(SAC):
         self.env.unwrapped.current_target = self.target_pos
         self.eval_env.unwrapped.current_target = self.target_pos
         self.radius = self.env.target_radius  # Distance in meters
+
+    def get_task_label(self):
+        task = self.env.task
+        if(task == "hinge"):
+            return 1
+        elif(task == "drawer"):
+            return 2
+        elif(task == "slide"):
+            return 3
+        else:  # pickup
+            return None
 
     def _find_cam_id(self):
         for i, cam in enumerate(self.env.cameras):
@@ -160,7 +173,7 @@ class Combined(SAC):
                 up_target = [tcp_pos[0],
                              tcp_pos[1],
                              z_value]
-                # Move up
+                # Move up from starting pose
                 a = [up_target, self.target_orn, 1]
                 tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
 
@@ -175,6 +188,16 @@ class Combined(SAC):
                     # Affordances detect the surface of an object
                     move_to = self.target_pos + np.array([0, 0, 0.05])
             else:
+                # Move in x dir
+                x_target = [self.target_pos[0], *tcp_pos[1:]]
+                a = [x_target, self.target_orn, 1]
+                tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
+
+                # Move up x dir
+                up_target = [tcp_pos[0], self.target_pos[1], tcp_pos[-1]]
+                tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
+
+                # Move to target
                 move_to = self.target_pos
 
             # Move to target

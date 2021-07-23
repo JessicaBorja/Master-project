@@ -36,7 +36,7 @@ def main(cfg):
         log.info("model: %s" % cfg.model_name)
         model = Combined(cfg,
                          sac_cfg=sac_cfg,
-                         target_search_mode="env")
+                         target_search_mode="affordance")
         model.learn(**cfg.agent.learn_config)
         training_env.close()
         # eval_env.close()

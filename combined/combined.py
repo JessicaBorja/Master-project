@@ -163,9 +163,9 @@ class Combined(SAC):
         env.unwrapped.current_target = target_pos
         # self.eval_env.unwrapped.current_target = target
 
-        # p.addUserDebugText("a_center",
-        #                    textPosition=self.target_pos,
-        #                    textColorRGB=[0, 0, 1])
+        p.addUserDebugText("a_center",
+                           textPosition=self.target_pos,
+                           textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target_pos) > self.radius):
             if(env.task == "pickup" or env.task == "drawer"):
                 # To never collide with the box
@@ -188,16 +188,12 @@ class Combined(SAC):
                     # Affordances detect the surface of an object
                     move_to = self.target_pos + np.array([0, 0, 0.05])
             else:
-                # Move in x dir
-                x_target = [self.target_pos[0], *tcp_pos[1:]]
-                a = [x_target, self.target_orn, 1]
-                tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
+                # Move in x-z dir
+                # x_target = [self.target_pos[0], tcp_pos[1], self.target_pos[2]]
+                # a = [x_target, self.target_orn, 1]
+                # tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
 
-                # Move up x dir
-                up_target = [tcp_pos[0], self.target_pos[1], tcp_pos[-1]]
-                tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
-
-                # Move to target
+                # Move up y dir
                 move_to = self.target_pos
 
             # Move to target

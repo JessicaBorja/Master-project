@@ -28,8 +28,14 @@ class TargetSearch():
             self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(self.env)
 
     def compute(self, env=None, *args):
+        if(env is None):
+            env = self.env
         if(self.mode == "affordance"):
             res = self._compute_target_aff(env, *args)
+            if env.task == "slide" or env.task == "hinge":
+                target_pos, no_target = res
+                target_pos = [target_pos[0], target_pos[1] - 0.07, target_pos[2]]
+                res = (target_pos, no_target)
         else:
             res = self._env_compute_target(env)
         return res

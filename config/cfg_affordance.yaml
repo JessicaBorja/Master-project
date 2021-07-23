@@ -1,5 +1,5 @@
 project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd
-data_dir: ${project_path}/datasets/hinge_left_MoC-True/
+data_dir: ${project_path}/datasets/tabletop_multiscene_MoC-True/
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: static_test
@@ -20,7 +20,7 @@ dataloader:
 
 model_cfg:
   model_name: ${model_name}
-  n_classes: 4
+  n_classes: 2
   hough_voting:
     skip_pixels: 5
     inlier_threshold: 0.6

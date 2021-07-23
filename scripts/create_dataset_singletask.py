@@ -338,10 +338,11 @@ def collect_dataset_close_open(cfg):
 
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
-    collect_dataset_close_open(cfg)
+    # collect_dataset_close_open(cfg)
     # data_lst = ["%s/datasets/tabletop_directions_200px_MoC/" % cfg.project_path,
     #             "%s/datasets/vrenv_directions_200px/" % cfg.project_path]
     # merge_datasets(data_lst, cfg.output_dir)
+    create_data_ep_split(cfg.output_dir)
 
 
 if __name__ == "__main__":

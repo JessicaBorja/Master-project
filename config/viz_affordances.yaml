@@ -17,10 +17,6 @@ data_dir: [../datasets/hinge_left_MoC-True/episode_5/data/static_cam/]
 # folder_name: ${project_folder}
 # model_name: static_cam_center_preds_1.ckpt
 
-# Multitask: Static
-# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-14/11-31-40_aff_rl
-# model_name: last.ckpt
-
 # Multitask static
 folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-19/01-19-28_aff_rl
 model_name: multitask_hinge_left_static_epoch=10-val_miou=0.360.ckpt

@@ -163,9 +163,9 @@ class Combined(SAC):
         env.unwrapped.current_target = target_pos
         # self.eval_env.unwrapped.current_target = target
 
-        p.addUserDebugText("a_center",
-                           textPosition=self.target_pos,
-                           textColorRGB=[0, 0, 1])
+        # p.addUserDebugText("a_center",
+        #                    textPosition=self.target_pos,
+        #                    textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target_pos) > self.radius):
             if(env.task == "pickup" or env.task == "drawer"):
                 # To never collide with the box

@@ -148,9 +148,9 @@ class TargetSearch():
         # Compute depth
         target_pos = pixel2world(cam, u, v, depth_obs)
         target_pos = np.array(target_pos)
-        p.addUserDebugText("t",
-                           textPosition=target_pos,
-                           textColorRGB=[0, 1, 0])
+        # p.addUserDebugText("t",
+        #                    textPosition=target_pos,
+        #                    textColorRGB=[0, 1, 0])
         return target_pos, no_target
 
     def get_box_pos_mask(self, env):

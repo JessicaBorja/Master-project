@@ -66,9 +66,9 @@ def select_files(data, split, ep, episode_files,
         if(remove_blank_masks):
             mask = np.load(file)["mask"]  # (H, W)
             if(mask.max() > 0):  # at least one pixel is not background
-                data[split]['episode_%d' % ep].append(file_name)
+                data[split]['episode_%02d' % ep].append(file_name)
         else:
-            data[split]['episode_%d' % ep].append(file_name)
+            data[split]['episode_%02d' % ep].append(file_name)
     return data
 
 
@@ -82,21 +82,21 @@ def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
     n_episodes = len(glob.glob(root_dir + "/*/"))
     # Split data
     data = {"train": [], "validation": []}
-    if(n_episodes >= 13):
-        n_eval_ep = n_episodes // 4
-        val_ep = np.random.choice(n_episodes, n_eval_ep, replace=False)
-        # val_ep = [1, 10, 13]
-    else:
-        # Take last episodes
-        n_val_ep = n_episodes//4
-        val_ep = [i for i in range(n_episodes - n_val_ep, n_episodes)]
+    # if(n_episodes >= 13):
+    #     n_eval_ep = n_episodes // 4
+    #     val_ep = np.random.choice(n_episodes, n_eval_ep, replace=False)
+    #     # val_ep = [1, 10, 13]
+    # else:
+    #     # Take last episodes
+    n_val_ep = n_episodes//4
+    val_ep = [i for i in range(n_episodes - n_val_ep, n_episodes)]
     train_ep = [ep for ep in range(n_episodes) if ep not in val_ep]
-    data["validation"] = {"episode_%d" % e: [] for e in val_ep}
-    data["train"] = {"episode_%d" % e: [] for e in train_ep}
+    data["validation"] = {"episode_%02d" % e: [] for e in val_ep}
+    data["train"] = {"episode_%02d" % e: [] for e in train_ep}
     skip_first_frames = False
 
     for ep in tqdm.tqdm(range(n_episodes)):
-        ep_dir = os.path.join(root_dir, "episode_%d" % ep)
+        ep_dir = os.path.join(root_dir, "episode_%02d" % ep)
         split = "validation" if ep in val_ep else "train"
 
         gripper_cam_files = glob.glob("%s/data/*/*gripper*" % ep_dir)

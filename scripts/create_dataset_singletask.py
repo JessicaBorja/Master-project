@@ -310,39 +310,40 @@ def collect_dataset_close_open(cfg):
             past_action = 1  # Open
             save_static, save_gripper = {}, {}
             save_data(save_static,
-                      cfg.output_dir + "episode_%d" % episode,
+                      cfg.output_dir + "episode_%02d" % episode,
                       sub_dir="static_cam")
             save_data(save_gripper,
-                      cfg.output_dir + "episode_%d" % episode,
+                      cfg.output_dir + "episode_%02d" % episode,
                       sub_dir="gripper_cam")
             episode += 1
 
         if (len(save_gripper.keys()) + len(save_static.keys()) > 150):
             save_data(save_static,
-                      cfg.output_dir + "episode_%d" % episode,
+                      cfg.output_dir + "episode_%02d" % episode,
                       sub_dir="static_cam")
             save_data(save_gripper,
-                      cfg.output_dir + "episode_%d" % episode,
+                      cfg.output_dir + "episode_%02d" % episode,
                       sub_dir="gripper_cam")
             save_static, save_gripper = {}, {}
         past_action = data['actions'][-1]
 
     save_data(save_static,
-              cfg.output_dir + "episode_%d" % episode,
+              cfg.output_dir + "episode_%02d" % episode,
               sub_dir="static_cam")
     save_data(save_gripper,
-              cfg.output_dir + "episode_%d" % episode,
+              cfg.output_dir + "episode_%02d" % episode,
               sub_dir="gripper_cam")
     create_data_ep_split(cfg.output_dir)
 
 
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
-    # collect_dataset_close_open(cfg)
-    # data_lst = ["%s/datasets/tabletop_directions_200px_MoC/" % cfg.project_path,
-    #             "%s/datasets/vrenv_directions_200px/" % cfg.project_path]
+    collect_dataset_close_open(cfg)
+    # data_lst = ["%s/datasets/tabletop_multiscene_MoC-True/tabletop_kitchen_MoC-True/" % cfg.project_path,
+    #             "%s/datasets/tabletop_multiscene_MoC-True/tabletop_tools_MoC-True/" % cfg.project_path,
+    #             "%s/datasets/tabletop_multiscene_MoC-True/tabletop_misc_MoC-True/" % cfg.project_path]
     # merge_datasets(data_lst, cfg.output_dir)
-    create_data_ep_split(cfg.output_dir)
+    # create_data_ep_split(cfg.output_dir)
 
 
 if __name__ == "__main__":

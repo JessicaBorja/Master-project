@@ -1,6 +1,8 @@
 import hydra
 import logging
-from env_wrappers.env_wrapper import wrap_env, init_env, get_name
+from vr_env.envs.play_table_env import PlayTableSimEnv
+from env_wrappers.env_wrapper import RLWrapper
+from env_wrappers.utils import get_name
 from combined.combined import Combined
 
 
@@ -11,12 +13,11 @@ def main(cfg):
     cfg.model_name = get_name(cfg, cfg.model_name)
     max_ts = cfg.agent.learn_config.max_episode_length
     for i in range(cfg.repeat_training):
-        training_env = init_env(cfg.env)
-        training_env = wrap_env(training_env, max_ts,
-                                train=True, affordance=cfg.affordance,
-                                viz=cfg.viz_obs,
-                                use_aff_target=cfg.termination_wrapper.use_aff,
-                                **cfg.env_wrapper)
+        training_env = RLWrapper(PlayTableSimEnv, cfg.env, max_ts,
+                                 train=True,
+                                 affordance_cfg=cfg.affordance,
+                                 viz=cfg.viz_obs,
+                                 **cfg.env_wrapper)
 
         sac_cfg = {"env": training_env,
                    "eval_env": None,
@@ -28,7 +29,8 @@ def main(cfg):
 
         log.info("model: %s" % cfg.model_name)
         model = Combined(cfg,
-                         sac_cfg=sac_cfg)
+                         sac_cfg=sac_cfg,
+                         target_search_mode="affordance")
                          #  rand_target=True,
                          #  target_search_mode="affordance")
         model.learn(**cfg.agent.learn_config)

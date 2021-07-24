@@ -1,12 +1,12 @@
 import hydra
-import gym
 import os
 import sys
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, parent_dir+"/VREnv/")
-from env_wrappers.env_wrapper import init_env, wrap_env
+from vr_env.envs.play_table_env import PlayTableSimEnv
+from env_wrappers.env_wrapper import RLWrapper
 from combined.combined import Combined
 from utils.utils import load_cfg
 
@@ -31,14 +31,12 @@ def main(cfg):
     max_ts = cfg.agent.learn_config.max_episode_length
 
     save_images = cfg.test.eval_cfg.save_images
-    # env = gym.make("VREnv-v0", **run_cfg.eval_env).env
-    env = init_env(run_cfg.eval_env)
-    env = wrap_env(env, max_ts,
-                   affordance=run_cfg.affordance,
-                   save_images=save_images,
-                   viz=cfg.viz_obs,
-                   use_aff_target=cfg.termination_wrapper.use_aff,
-                   **env_wrapper)
+    env = RLWrapper(PlayTableSimEnv, cfg.env, max_ts,
+                    affordance_cfg=cfg.affordance,
+                    viz=cfg.viz_obs,
+                    save_images=save_images,
+                    **cfg.env_wrapper)
+
 
     sac_cfg = {"env": env,
                "model_name": run_cfg.model_name,

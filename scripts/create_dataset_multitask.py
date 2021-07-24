@@ -354,28 +354,28 @@ def collect_dataset_close_open(cfg):
             past_action = 1  # Open
             save_static, save_gripper = {}, {}
             save_data(save_static,
-                      cfg.output_dir + "episode_%d" % episode,
+                      cfg.output_dir + "episode_%02d" % episode,
                       sub_dir="static_cam")
             save_data(save_gripper,
-                      cfg.output_dir + "episode_%d" % episode,
+                      cfg.output_dir + "episode_%02d" % episode,
                       sub_dir="gripper_cam")
             episode += 1
 
         if (len(save_gripper.keys()) + len(save_static.keys()) > 150):
             save_data(save_static,
-                      cfg.output_dir + "episode_%d" % episode,
+                      cfg.output_dir + "episode_%02d" % episode,
                       sub_dir="static_cam")
             save_data(save_gripper,
-                      cfg.output_dir + "episode_%d" % episode,
+                      cfg.output_dir + "episode_%02d" % episode,
                       sub_dir="gripper_cam")
             save_static, save_gripper = {}, {}
         past_action = data['actions'][-1]
 
     save_data(save_static,
-              cfg.output_dir + "episode_%d" % episode,
+              cfg.output_dir + "episode_%02d" % episode,
               sub_dir="static_cam")
     save_data(save_gripper,
-              cfg.output_dir + "episode_%d" % episode,
+              cfg.output_dir + "episode_%02d" % episode,
               sub_dir="gripper_cam")
     create_data_ep_split(cfg.output_dir)
 

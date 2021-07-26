@@ -31,7 +31,7 @@ def main(cfg):
     max_ts = cfg.agent.learn_config.max_episode_length
 
     save_images = cfg.test.eval_cfg.save_images
-    env = RLWrapper(PlayTableSimEnv, run_cfg.env, max_ts,
+    env = RLWrapper(PlayTableSimEnv, run_cfg.eval_env, max_ts,
                     affordance_cfg=run_cfg.affordance,
                     viz=cfg.viz_obs,
                     save_images=save_images,

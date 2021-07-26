@@ -193,7 +193,7 @@ defaults:
   - env@eval_env: env_combined
   - camera_conf: tabletop_topview
   - agent: default
-  - test: test_combined
+  - test: test_tabletop
   - transforms@affordance.transforms: aff_transforms
   - transforms@env_wrapper.transforms: rl_transforms
   - override hydra/hydra_logging: colorlog

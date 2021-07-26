@@ -202,7 +202,7 @@ defaults:
   - env@eval_env: env_combined
   - camera_conf: empty_playtable_center
   - agent: default
-  - test: test_combined
+  - test: test_playtable
   - transforms@affordance.transforms: aff_transforms
   - transforms@env_wrapper.transforms: rl_transforms
   - override hydra/hydra_logging: colorlog

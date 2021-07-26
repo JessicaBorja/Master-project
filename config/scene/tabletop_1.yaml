@@ -12,7 +12,7 @@ objects:
   frying_pan:
     file: tabletop/frying_pan/frying_pan.urdf
     initial_pos: [0.15, 0.9, 0.63]
-    initial_orn: [0, 0, 0]
+    initial_orn: [0, 0, -1.54]
     fixed: false
   knife:
     file: tabletop/kitchen_knife/kitchen_knife.urdf
@@ -27,20 +27,20 @@ objects:
   frying_pan_2:
     file: tabletop/frying_pan_2/frying_pan.urdf
     initial_pos: [-0.1, 0.6, 0.62]
-    initial_orn: [0, 0, -1.57]
+    initial_orn: [0, 0, -1]
     fixed: false
   whisk:
     file: tabletop/whisk/whisk.urdf
     initial_pos: [0.13, 0.7, 0.62]
-    initial_orn: [0, 0, 0]
+    initial_orn: [0, 0, 0.5]
     fixed: false
   spatula:
     file: tabletop/spatula/spatula.urdf
     initial_pos: [0.4, 0.5, 0.61]
-    initial_orn: [0, 0, 0]
+    initial_orn: [0, 0, 3.1416]
     fixed: false
-  teapot_2:
-    file: tabletop/teapot_2/teapot.urdf
-    initial_pos: [-0.1, 0.85, 0.63]
-    initial_orn: [0, 0, 0]
-    fixed: false
+  # teapot_2:
+  #   file: tabletop/teapot_2/teapot.urdf
+  #   initial_pos: [-0.1, 0.85, 0.63]
+  #   initial_orn: [0, 0, 0]
+  #   fixed: false

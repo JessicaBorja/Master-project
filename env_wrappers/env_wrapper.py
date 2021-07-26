@@ -184,13 +184,13 @@ class RLWrapper(gym.Wrapper):
             # between the closest point detected by the affordances
             # and the end effector position
             # p.addUserDebugText("target_reward",
-            #                    textPosition=self.unwrapped.current_target,
+            #                    textPosition=self.env.unwrapped.current_target,
             #                    textColorRGB=[0, 1, 0])
 
             # If episode is not done because of moving to far away
             if(not self.termination(self.env._termination(), obs_dict)
                and self.ts_counter <= self.max_ts):
-                distance = np.linalg.norm(tcp_pos - self.current_target)
+                distance = np.linalg.norm(tcp_pos - self.env.unwrapped.current_target)
                 # cannot be larger than 1
                 # scale dist increases as it falls away from object
                 scale_dist = min(distance / self.target_radius, 1)
@@ -217,8 +217,11 @@ class RLWrapper(gym.Wrapper):
     def termination(self, done, obs):
         # If distance between detected target and robot pos
         #  deviates more than target_radius
+        # p.addUserDebugText("HOLA",
+        #                    textPosition=self.env.unwrapped.current_target,
+        #                    textColorRGB=[0, 1, 0])
         if(self.use_aff_termination):
-            distance = np.linalg.norm(self.current_target
+            distance = np.linalg.norm(self.env.unwrapped.current_target
                                       - obs["robot_obs"][:3])
         else:
             # Real distance
@@ -280,11 +283,12 @@ class RLWrapper(gym.Wrapper):
                     self.find_target_center(self.gripper_id,
                                             obs_dict['rgb_obs'][self.gripper_id],
                                             obs_dict['depth_obs'][self.gripper_id],
+                                            obs_dict["robot_obs"][6],
                                             preds)
             if(self.affordance_cfg.gripper_cam.target_in_obs):
-                obs["detected_target_pos"] = self.unwrapped.current_target
+                obs["detected_target_pos"] = self.env.unwrapped.current_target
             if(self.affordance_cfg.gripper_cam.use_distance):
-                distance = np.linalg.norm(self.unwrapped.current_target
+                distance = np.linalg.norm(self.env.unwrapped.current_target
                                           - obs_dict["robot_obs"][:3])
                 obs["target_distance"] = np.array([distance])
             if(aff_cfg.use):
@@ -294,7 +298,7 @@ class RLWrapper(gym.Wrapper):
         return obs
 
     # Aff-center
-    def find_target_center(self, cam_id, orig_img, depth, obs):
+    def find_target_center(self, cam_id, orig_img, depth, gripper_width, obs):
         """
         Args:
             orig_img: np array, RGB original resolution from camera
@@ -373,8 +377,8 @@ class RLWrapper(gym.Wrapper):
 
             world_pt = pixel2world(cam, u, v, depth)
             c_out = {"center": world_pt,
-                        "pixel_count": pixel_count,
-                        "robustness": max_robustness}
+                     "pixel_count": pixel_count,
+                     "robustness": max_robustness}
             cluster_outputs.append(c_out)
             if(robustness > max_robustness):
                 max_robustness = robustness
@@ -383,16 +387,16 @@ class RLWrapper(gym.Wrapper):
 
         # p.removeAllUserDebugItems()
 
-        # self.unwrapped.current_target = target_world
+        # self.env.unwrapped.current_target = target_world
         # Maximum distance given the task
         for out_dict in cluster_outputs:
             c = out_dict["center"]
             # If aff detects closer target which is large enough
             # and Detected affordance close to target
-            if(np.linalg.norm(self.env.current_target - c) < 0.05):
-                self.env.current_target = c
+            if(np.linalg.norm(self.env.unwrapped.current_target - c) < 0.05):
+                self.env.unwrapped.current_target = c
 
         # See selected point
         # p.addUserDebugText("target",
-        #                    textPosition=self.unwrapped.current_target,
+        #                    textPosition=self.env.unwrapped.current_target,
         #                    textColorRGB=[1, 0, 0])

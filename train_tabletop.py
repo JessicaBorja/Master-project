@@ -30,9 +30,9 @@ def main(cfg):
         log.info("model: %s" % cfg.model_name)
         model = Combined(cfg,
                          sac_cfg=sac_cfg,
-                         target_search_mode="affordance")
-                         #  rand_target=True,
-                         #  target_search_mode="affordance")
+                         target_search_mode="affordance",
+                         rand_target=True)
+                         #  target_search_mode="affordace")
         model.learn(**cfg.agent.learn_config)
         training_env.close()
         # eval_env.close()

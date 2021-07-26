@@ -4,8 +4,8 @@ optim_res: False
 # Absolute path where models are stored
 models_dir: ${project_path}/Master-project/combined/hydra_outputs
 
-model_name: slide_rgb_img_depth_dist_affMask_dense_15-07_00-02_best_eval
-folder_name: ${test.models_dir}/2021-07-15/00-02-16_aff_rl
+model_name: slide_rgb_img_depth_dist_affMask_dense_24-07_16-11_best_eval
+folder_name: ${test.models_dir}/slide/16-11-30_aff_rl
 
 
 eval_cfg:

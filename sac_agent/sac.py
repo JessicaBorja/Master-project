@@ -289,6 +289,9 @@ class SAC():
         writer.add_scalar('eval/mean_ep_length(%dep)' %
                           (n_eval_ep), mean_length, t)
 
+        # If environment definition allows for randoming environment
+        if(self.eval_env.task == "pickup" and self.env.rand_scenes):
+            self.env.load_rand_scene()
         return best_eval_return, plot_data
 
     def save(self, path):

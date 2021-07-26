@@ -14,7 +14,7 @@ models_path: "${project_path}/Master-project/trained_models/"
 
 # Static cam affordance model to detect the targets
 target_search_aff:
-  model_path: ${models_path}/static_centers_2-5_1_5_1_200px_epoch_13.ckpt
+  model_path: ${models_path}/tabletop_multiscene_static.ckpt # static_centers_2-5_1_5_1_200px_epoch_13.ckpt
   img_size: 200
   hyperparameters:
     n_classes: 2
@@ -53,10 +53,7 @@ env_wrapper:
   history_length: 1
   skip_frames: 0
   img_size: ${img_size}
-
-# Use aff detected target to terminate episode
-termination_wrapper:
-  use_aff: False
+  use_aff_termination: True
 
 # Affordance configuration for RL agent observation inputs
 affordance:
@@ -79,7 +76,7 @@ affordance:
         decoder_channels: [128, 64, 32]
     static_cam:
       use: False
-      model_path: ${models_path}/static_cam_center_preds_1.ckpt
+      model_path: ${models_path}/tabletop_multiscene_static.ckpt
       img_size: 200
       hough_voting:
         skip_pixels: 2
@@ -93,7 +90,7 @@ affordance:
       use_distance: False
       densify_reward: False  # Use affordance to shape the reward function
       target_in_obs: False  # Add target detected by affordance into observation
-      model_path: ${models_path}/gripper_centers_2-5_1_5_1_64px_epoch_40.ckpt
+      model_path: ${models_path}/tabletop_multiscene_gripper.ckpt # gripper_centers_2-5_1_5_1_64px_epoch_40.ckpt
       hough_voting:
         skip_pixels: 2
         inlier_threshold: 0.7
@@ -181,6 +178,17 @@ all_cameras:
     height: 760
     look_at: [0.2773292660713196, 0.7766451239585876, 0.20271989703178406]
     look_from: [-0.21922546214082672, 0.22516583397073475, 1.1457490759304818]
+  tabletop_multiscene:
+    _target_: vr_env.camera.static_camera.StaticCamera
+    name: tabletop_topview
+    fov: 45
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 200
+    height: 200
+    look_at: [0.22791078686714172, 0.008461681194603443, -0.24000032246112823]
+    look_from: [0.22790421545536008, 1.570319612342189, 1.5822541675395883]
 
 hydra:
   run:

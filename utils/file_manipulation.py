@@ -34,7 +34,7 @@ def merge_datasets(directory_list, output_dir):
         for split, episode in zip(data_split, episode_it):
             dataset_name = os.path.basename(os.path.normpath(dir))
             for key in data[split].keys():
-                new_data[split]["../%s/%s" % (dataset_name, key) ] = \
+                new_data[split]["/%s/%s" % (dataset_name, key)] = \
                     data[split][key]
                 episode += 1
     # Write output

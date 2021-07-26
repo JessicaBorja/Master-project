@@ -32,7 +32,8 @@ class RLWrapper(gym.Wrapper):
                  gripper_cam, static_cam, transforms=None,
                  use_pos=False, use_aff_termination=False,
                  affordance_cfg=None,
-                 train=False, save_images=False, viz=False):
+                 train=False, save_images=False, viz=False,
+                 history_length=None, skip_frames=None):
         # ENV definition
         if(env_cfg.use_egl):
             device = torch.device(torch.cuda.current_device())

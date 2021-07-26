@@ -196,10 +196,10 @@ hydra:
 
 defaults:
   - robot: panda_tabletop
-  - scene: clutter_tabletop
+  - scene: tabletop_random
   - env: env_combined
   - env@eval_env: env_combined
-  - camera_conf: tabletop_topview
+  - camera_conf: tabletop_multiscene
   - agent: default
   - test: test_tabletop
   - transforms@affordance.transforms: aff_transforms

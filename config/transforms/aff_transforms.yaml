@@ -2,6 +2,7 @@
 train:
   - _target_: torchvision.transforms.Resize
     size: ${img_size}
+  - _target_: affordance_model.utils.transforms.ColorTransform
   - _target_: torchvision.transforms.Grayscale
     num_output_channels: 1
   - _target_: affordance_model.utils.transforms.ScaleImageTensor  # Scale 0-255 to 0-1

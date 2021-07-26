@@ -1,6 +1,7 @@
 import torch
 import cv2
 import numpy as np
+import torchvision.transforms as T
 
 
 class ScaleImageTensor(object):
@@ -53,6 +54,20 @@ class NormalizeVector(object):
 
     def __repr__(self):
         return self.__class__.__name__ + "(mean={0}, std={1})".format(self.mean, self.std)
+
+
+class ColorTransform(object):
+    def __init__(self) -> None:
+        super().__init__()
+        self.jitter = T.ColorJitter(contrast=.3, brightness=.3, hue=.3)
+
+    # Change image color
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+        assert isinstance(tensor, torch.Tensor)
+        apply = np.random.rand() < 0.30  # 40% chance
+        if(apply):
+            tensor = self.jitter(tensor)
+        return tensor
 
 
 class DistanceTransform(object):

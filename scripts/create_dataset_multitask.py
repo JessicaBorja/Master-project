@@ -123,7 +123,7 @@ def label_gripper(cam_properties, img_hist, point, viz,
             directions = np.stack(
                             [np.ones((H, W)),
                              np.zeros((H, W))], axis=-1).astype(np.float32)
-            if(robot_obs[-1] > 0.03):
+            if(robot_obs[-1] > 0.018):
                 # Center and directions in matrix convention (row, column)
                 mask, center_px = get_gripper_mask(img, robot_obs[:6], point,
                                                    cam_properties, radius=radius)
@@ -137,7 +137,7 @@ def label_gripper(cam_properties, img_hist, point, viz,
                                               "gripper")
             else:
                 mask = np.zeros(out_img_size)
-                center_px = [1, 0]
+                center_px = np.array([1, 0])
 
             # Visualize results
             img = cv2.resize(img, out_img_size)

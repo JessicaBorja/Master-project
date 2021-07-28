@@ -20,7 +20,7 @@ objects:
   hammer:
     file: tabletop/hammer/hammer.urdf
     initial_pos: [0.18, 0.67, 0.6146252633582707]
-    initial_orn: [0, 0, -2]
+    initial_orn: [0, 0, -1.8]
     fixed: false
   hammer_2:
     file: tabletop/hammer_2/hammer.urdf

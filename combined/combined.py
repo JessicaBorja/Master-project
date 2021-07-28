@@ -284,7 +284,7 @@ class Combined(SAC):
         # One episode per task
         for episode in range(n_episodes):
             s = env.reset()
-            if(env.task == "pickup"):
+            if(env.task == "pickup" and self.target_search.mode=="env"):
                 env.unwrapped.target = tasks[task_id]
                 task_id += 1
             episode_length, episode_return = 0, 0

@@ -117,23 +117,27 @@ def create_gripper_cam_properties(cam_cfg):
 def label_gripper(cam_properties, img_hist, point, viz,
                   save_dict, out_img_size, radius=25):
     for idx, (fr_idx, im_id, robot_obs, img) in enumerate(img_hist):
-        if(im_id not in save_dict and robot_obs[-1] > 0.03):  # not completely closed
+        if(im_id not in save_dict):  # not completely closed
             # Shape: [H x W x 2]
             H, W = out_img_size  # img.shape[:2]
             directions = np.stack(
                             [np.ones((H, W)),
                              np.zeros((H, W))], axis=-1).astype(np.float32)
-            # Center and directions in matrix convention (row, column)
-            mask, center_px = get_gripper_mask(img, robot_obs[:6], point,
-                                               cam_properties, radius=radius)
-            mask, center_px = resize_mask_and_center(mask, center_px,
-                                                     out_img_size)
-            if(np.any(center_px < 0) or np.any(center_px >= H)):
-                continue  # Outside of image FOV
-            directions = label_directions(center_px,
-                                          mask,
-                                          directions,
-                                          "gripper")
+            if(robot_obs[-1] > 0.03):
+                # Center and directions in matrix convention (row, column)
+                mask, center_px = get_gripper_mask(img, robot_obs[:6], point,
+                                                   cam_properties, radius=radius)
+                mask, center_px = resize_mask_and_center(mask, center_px,
+                                                         out_img_size)
+                if(np.any(center_px < 0) or np.any(center_px >= H)):
+                    continue  # Outside of image FOV
+                directions = label_directions(center_px,
+                                              mask,
+                                              directions,
+                                              "gripper")
+            else:
+                mask = np.zeros(out_img_size)
+                center_px = [1, 0]
 
             # Visualize results
             img = cv2.resize(img, out_img_size)
@@ -156,7 +160,8 @@ def label_gripper(cam_properties, img_hist, point, viz,
                 "centers": np.stack([center_px]),
                 "directions": directions,
                 "viz_out": out_img,
-                "viz_dir": flow_over_img}
+                "viz_dir": flow_over_img,
+                "gripper_width": robot_obs[-1]}
     return save_dict
 
 

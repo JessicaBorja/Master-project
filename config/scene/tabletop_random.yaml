@@ -80,7 +80,7 @@ objects:
   utility_knife:
     file: tabletop/utility_knife/utility_knife.urdf
     initial_pos: [0.4, 0.5, 0.6081272152736463]
-    initial_orn: [0, 0, 1.54]
+    initial_orn: [0, 0, -1.54]
     fixed: false
   flashlight:
     file: tabletop/flashlight/flashlight.urdf

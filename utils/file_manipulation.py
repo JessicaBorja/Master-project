@@ -51,7 +51,7 @@ def select_files(data, split, ep, episode_files,
     # affordances are incomplete at the beginning of episodes
     if skip_first_frames:
         episode_files.sort()
-        fraction = len(episode_files)//3  # Discard first third
+        fraction = len(episode_files)//5  # Discard first fifth
         iter_files = episode_files[fraction:]
     else:
         iter_files = episode_files
@@ -64,8 +64,11 @@ def select_files(data, split, ep, episode_files,
         file_relative_path = os.path.basename(os.path.normpath(head))
         file_name = os.path.join(file_relative_path, file_name)
         if(remove_blank_masks):
-            mask = np.load(file)["mask"]  # (H, W)
-            if(mask.max() > 0):  # at least one pixel is not background
+            np_file = np.load(file)
+            mask = np_file["mask"]  # (H, W)
+            closed_gripper = "gripper_width" in np_file and \
+                np_file["gripper_width"] < 0.018
+            if(mask.max() > 0 or closed_gripper):  # at least one pixel is not background
                 data[split]['episode_%02d' % ep].append(file_name)
         else:
             data[split]['episode_%02d' % ep].append(file_name)
@@ -104,8 +107,8 @@ def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
                             remove_blank_mask_instances)
 
         static_cam_files = glob.glob("%s/data/*/*static*" % ep_dir)
-        # if(split == "validation"):
-        #     skip_first_frames = True
+        if(split == "validation"):
+            skip_first_frames = True
         data = select_files(data, split, ep, static_cam_files,
                             remove_blank_mask_instances,
                             skip_first_frames=skip_first_frames)

@@ -290,7 +290,9 @@ class SAC():
                           (n_eval_ep), mean_length, t)
 
         # If environment definition allows for randoming environment
-        if(self.eval_env.task == "pickup" and self.env.rand_scenes):
+        if(self.eval_env.task == "pickup"
+           and self.env.rand_scenes
+           and n_success >= 3):  # Change scene when method already does something
             self.env.load_rand_scene()
         return best_eval_return, plot_data
 

@@ -163,9 +163,6 @@ class Combined(SAC):
         env.unwrapped.current_target = target_pos
         # self.eval_env.unwrapped.current_target = target
 
-        # p.addUserDebugText("a_center",
-        #                    textPosition=self.target_pos,
-        #                    textColorRGB=[0, 0, 1])
         if(np.linalg.norm(tcp_pos - target_pos) > self.radius):
             if(env.task == "pickup" or env.task == "drawer"):
                 # To never collide with the box
@@ -186,7 +183,7 @@ class Combined(SAC):
                     move_to = self.target_pos + np.array([0, 0, 0.07])
                 else:
                     # Affordances detect the surface of an object
-                    move_to = self.target_pos + np.array([0, 0, 0.05])
+                    move_to = self.target_pos + np.array([0, 0, 0.02])  # 0.05
             else:
                 # Move in x-z dir
                 # x_target = [self.target_pos[0], tcp_pos[1], self.target_pos[2]]
@@ -200,7 +197,7 @@ class Combined(SAC):
             a = [move_to, self.target_orn, 1]
             self.move_to_target(env, tcp_pos, a, dict_obs)
             # p.addUserDebugText("target",
-            #                    textPosition=target,
+            #                    textPosition=self.target_pos,
             #                    textColorRGB=[0, 0, 1])
         # as we moved robot, need to update target and obs
         # for rl policy

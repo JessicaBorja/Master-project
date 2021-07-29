@@ -34,6 +34,7 @@ class TargetSearch():
             res = self._compute_target_aff(env, *args)
             if env.task == "slide" or env.task == "hinge":
                 target_pos, no_target = res
+                # Because it most likely will detect the door and not the handle
                 target_pos = [target_pos[0], target_pos[1] - 0.07, target_pos[2]]
                 res = (target_pos, no_target)
         else:

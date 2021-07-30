@@ -8,7 +8,7 @@ img_size:
 mask_on_close: True
 
 # For collecting dataset with playdata
-folder_name: tabletop_multiscene
+folder_name: tabletop_multiscene/tabletop_kitchen
 play_data_dir: ${project_path}/datasets/rendered_data/${folder_name}
 
 

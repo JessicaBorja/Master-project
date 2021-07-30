@@ -385,7 +385,7 @@ class RLWrapper(gym.Wrapper):
                 target_px = o
                 target_world = world_pt
 
-        # p.removeAllUserDebugItems()
+        p.removeAllUserDebugItems()
 
         # self.env.unwrapped.current_target = target_world
         # Maximum distance given the task
@@ -397,6 +397,6 @@ class RLWrapper(gym.Wrapper):
                 self.env.unwrapped.current_target = c
 
         # See selected point
-        # p.addUserDebugText("target",
-        #                    textPosition=self.env.unwrapped.current_target,
-        #                    textColorRGB=[1, 0, 0])
+        p.addUserDebugText("target",
+                           textPosition=self.env.unwrapped.current_target,
+                           textColorRGB=[1, 0, 0])

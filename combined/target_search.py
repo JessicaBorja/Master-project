@@ -27,16 +27,18 @@ class TargetSearch():
         if(env.task == "pickup"):
             self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(self.env)
 
-    def compute(self, env=None, *args):
+    def compute(self, env=None, global_it=0, return_all_centers=False):
         if(env is None):
             env = self.env
         if(self.mode == "affordance"):
-            res = self._compute_target_aff(env, *args)
+            res = self._compute_target_aff(env, global_it)
+            target_pos, no_target, object_centers = res
+            res = (target_pos, no_target)
             if env.task == "slide" or env.task == "hinge":
-                target_pos, no_target = res
                 # Because it most likely will detect the door and not the handle
                 target_pos = [target_pos[0], target_pos[1] - 0.07, target_pos[2]]
-                res = (target_pos, no_target)
+            if(return_all_centers):
+                res = (target_pos, no_target, object_centers)
         else:
             res = self._env_compute_target(env)
         return res
@@ -115,8 +117,8 @@ class TargetSearch():
         obj_class = obj_class[obj_class != 0]  # remove background class
 
         if(self.random_target):
-            rand_target = np.random.randint(len(object_centers))
-            target_px = object_centers[rand_target]
+            target_idx = np.random.randint(len(object_centers))
+            # target_idx = object_centers[rand_target]
         else:
             # Look for most likely center
             for i, o in enumerate(object_centers):
@@ -124,16 +126,24 @@ class TargetSearch():
                 robustness = np.mean(aff_probs[object_masks == obj_class[i], 1])
                 if(robustness > max_robustness):
                     max_robustness = robustness
-                    target_px = o
+                    target_idx = i
 
         # Convert back to observation size
         pred_shape = aff_probs.shape[:2]
         orig_shape = depth_obs.shape[:2]
-        target_px = target_px.detach().cpu().numpy()
-        target_px = (target_px * orig_shape / pred_shape).astype("int64")
 
-        # world cord
-        v, u = target_px
+        # World coords
+        world_pts = []
+        for o in object_centers:
+            x = o.detach().cpu().numpy()
+            x = (x * orig_shape / pred_shape).astype("int64")
+            v, u = x
+            world_pt = np.array(pixel2world(cam, u, v, depth_obs))
+            world_pts.append(world_pt)
+
+        # Recover target
+        v, u = object_centers[target_idx]
+        target_pos = world_pts[target_idx]
         if(self.env.save_images):
             out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
                                      (u, v),
@@ -146,13 +156,10 @@ class TargetSearch():
             cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
                         out_img)
 
-        # Compute depth
-        target_pos = pixel2world(cam, u, v, depth_obs)
-        target_pos = np.array(target_pos)
         # p.addUserDebugText("t",
         #                    textPosition=target_pos,
         #                    textColorRGB=[0, 1, 0])
-        return target_pos, no_target
+        return target_pos, no_target, world_pts
 
     def get_box_pos_mask(self, env):
         if(not env):

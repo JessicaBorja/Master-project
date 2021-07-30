@@ -143,7 +143,17 @@ class Combined(SAC):
             #                 im)
             #     self.global_obs_it += 1
 
-    def correct_position(self, env, s):
+    def detect_and_correct(self, env, obs):
+        # Compute target in case it moved
+        # Area center is the target position + 5cm in z direction
+        target_pos, no_target = \
+            self.target_search.compute(env, self.global_obs_it)
+        if(no_target):
+            self.no_detected_target += 1
+        res = self.correct_position(env, obs, target_pos, no_target)
+        return res
+
+    def correct_position(self, env, s, target_pos, no_target):
         dict_obs = False
         # Take current robot state
         if(isinstance(s, dict)):
@@ -151,19 +161,12 @@ class Combined(SAC):
             dict_obs = True
         tcp_pos, gripper_action = s[:3], s[-1]
 
-        # Compute target in case it moved
-        # Area center is the target position + 5cm in z direction
-        self.target_pos, no_target = \
-            self.target_search.compute(env, self.global_obs_it)
-        if(no_target):
-            self.no_detected_target += 1
-        target_pos = self.target_pos
-
         # Set current_target in each episode
+        self.target_pos = target_pos
         env.unwrapped.current_target = target_pos
         env.initial_target_pos = target_pos
-        # self.eval_env.unwrapped.current_target = target
 
+        # Move
         if(np.linalg.norm(tcp_pos - target_pos) > self.radius):
             if(env.task == "pickup" or env.task == "drawer"):
                 # To never collide with the box
@@ -228,7 +231,7 @@ class Combined(SAC):
         # correct_every_ts = 20
         # Move to target position only one
         # Episode ends if outside of radius
-        self.env, s, _ = self.correct_position(self.env, s)
+        self.env, s, _ = self.detect_and_correct(self.env, s)
         for t in range(1, total_timesteps+1):
             s, done, success, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, t, episode_return, episode_length,
@@ -258,7 +261,7 @@ class Combined(SAC):
                 episode += 1
                 episode_return, episode_length = 0, 0
                 s = self.env.reset()
-                self.env, s, _ = self.correct_position(self.env, s)
+                self.env, s, _ = self.detect_and_correct(self.env, s)
 
         # Evaluate at end of training
         best_eval_return, plot_data = \
@@ -271,24 +274,36 @@ class Combined(SAC):
         stats = EpisodeStats(episode_lengths=[],
                              episode_rewards=[],
                              validation_reward=[])
-        tasks, task_id = [], 0
+        tasks, task_it = [], 0
         if(env.task == "pickup"):
-            tasks = list(self.env.objects.keys())
-            tasks.remove("table")
-            tasks.remove("bin")
-            n_episodes = len(tasks)
+            if(self.target_search.mode == "env"):
+                tasks = list(self.env.objects.keys())
+                tasks.remove("table")
+                tasks.remove("bin")
+                n_episodes = len(tasks)
+            else:
+                s = env.reset()
+                target_pos, no_target, center_lst = \
+                    self.target_search.compute(env,
+                                               self.global_obs_it,
+                                               return_all_centers=True)
 
         ep_success = []
         # One episode per task
         for episode in range(n_episodes):
             s = env.reset()
-            if(env.task == "pickup" and self.target_search.mode=="env"):
-                env.unwrapped.target = tasks[task_id]
-                task_id += 1
+            if(env.task == "pickup"):
+                if(self.target_search.mode == "env"):
+                    env.unwrapped.target = tasks[task_it]
+                    target_pos, no_target = \
+                        self.target_search.compute(env, self.global_obs_it)
+                else:
+                    target_pos = center_lst[task_it]
+                task_it += 1
             episode_length, episode_return = 0, 0
             done = False
             # Correct Position
-            env, s, _ = self.correct_position(env, s)
+            env, s, _ = self.correct_position(env, s, target_pos, no_target)
             while(episode_length < max_episode_length // 2 and not done):
                 # sample action and scale it to action space
                 a, _ = self._pi.act(tt(s), deterministic=True)
@@ -355,11 +370,11 @@ class Combined(SAC):
             episode_length, episode_return = 0, 0
             done = False
             # Search affordances and correct position:
-            env, s, no_target = self.correct_position(env, self.env.get_obs())
+            env, s, no_target = self.detect_and_correct(env, self.env.get_obs())
             if(no_target):
                 # If no target model will move to initial position.
                 # Search affordance from this position again
-                self.correct_position(env, self.env.get_obs())
+                self.detect_and_correct(env, self.env.get_obs())
 
             # If it did not find a target again, terminate everything
             while(episode_length < max_episode_length // 2

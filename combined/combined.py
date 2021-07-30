@@ -161,6 +161,7 @@ class Combined(SAC):
 
         # Set current_target in each episode
         env.unwrapped.current_target = target_pos
+        env.initial_target_pos = target_pos
         # self.eval_env.unwrapped.current_target = target
 
         if(np.linalg.norm(tcp_pos - target_pos) > self.radius):
@@ -196,7 +197,7 @@ class Combined(SAC):
             # Move to target
             a = [move_to, self.target_orn, 1]
             self.move_to_target(env, tcp_pos, a, dict_obs)
-            # p.addUserDebugText("target",
+            # p.addUserDebugText("init_pos",
             #                    textPosition=self.target_pos,
             #                    textColorRGB=[0, 0, 1])
         # as we moved robot, need to update target and obs

@@ -39,6 +39,7 @@ class RLWrapper(gym.Wrapper):
             device = torch.device(torch.cuda.current_device())
             self.set_egl_device(device)
         self.env = EnvClass(**env_cfg)
+        self.initial_target_pos = None
 
         super(RLWrapper, self).__init__(self.env)
         self.task = self.env.task
@@ -131,6 +132,7 @@ class RLWrapper(gym.Wrapper):
 
     def reset(self, **kwargs):
         observation = self.env.reset(**kwargs)
+        self.initial_target_pos=None
         return self.observation(observation)
 
     def step(self, action):
@@ -221,7 +223,7 @@ class RLWrapper(gym.Wrapper):
         #                    textPosition=self.env.unwrapped.current_target,
         #                    textColorRGB=[0, 1, 0])
         if(self.use_aff_termination):
-            distance = np.linalg.norm(self.env.unwrapped.current_target
+            distance = np.linalg.norm(self.initial_target_pos
                                       - obs["robot_obs"][:3])
         else:
             # Real distance
@@ -385,7 +387,7 @@ class RLWrapper(gym.Wrapper):
                 target_px = o
                 target_world = world_pt
 
-        p.removeAllUserDebugItems()
+        # p.removeAllUserDebugItems()
 
         # self.env.unwrapped.current_target = target_world
         # Maximum distance given the task
@@ -397,6 +399,6 @@ class RLWrapper(gym.Wrapper):
                 self.env.unwrapped.current_target = c
 
         # See selected point
-        p.addUserDebugText("target",
-                           textPosition=self.env.unwrapped.current_target,
-                           textColorRGB=[1, 0, 0])
+        # p.addUserDebugText("target",
+        #                    textPosition=self.env.unwrapped.current_target,
+        #                    textColorRGB=[1, 0, 0])

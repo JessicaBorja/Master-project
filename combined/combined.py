@@ -287,6 +287,7 @@ class Combined(SAC):
                     self.target_search.compute(env,
                                                self.global_obs_it,
                                                return_all_centers=True)
+                n_episodes = len(center_lst)
 
         ep_success = []
         # One episode per task

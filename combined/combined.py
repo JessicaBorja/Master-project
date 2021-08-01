@@ -184,7 +184,7 @@ class Combined(SAC):
                 tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
                 if(self.target_search.mode == "env"):
                     # Environment returns the center of mass..
-                    move_to = self.target_pos + np.array([0, 0, 0.07])
+                    move_to = self.target_pos + np.array([0, 0, 0.06])
                 else:
                     # Affordances detect the surface of an object
                     move_to = self.target_pos + np.array([0, 0, 0.035])  # 0.05

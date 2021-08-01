@@ -222,7 +222,11 @@ class RLWrapper(gym.Wrapper):
     def termination(self, done, obs):
         # If distance between detected target and robot pos
         #  deviates more than target_radius
-        # p.addUserDebugText("HOLA",
+        # p.removeAllUserDebugItems()
+        # p.addUserDebugText("i",
+        #                    textPosition=self.initial_target_pos,
+        #                    textColorRGB=[0, 0, 1])
+        # p.addUserDebugText("h",
         #                    textPosition=self.env.unwrapped.current_target,
         #                    textColorRGB=[0, 1, 0])
         if(self.use_aff_termination):

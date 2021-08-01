@@ -16,7 +16,7 @@ objects:
       top_left_door_joint:
         initial_state: 0  # revolute
   drawer:
-    file: own_objects/drawer/urdf/drawer.urdf
+    file: own_objects/drawer/drawer.urdf
     initial_pos: [0.475, 1.0, -0.004]
     initial_orn: [0, 0, 3.141592653589793]
     fixed: true

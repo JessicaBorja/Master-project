@@ -41,6 +41,8 @@ target_search_aff:
     unet_cfg:
       decoder_channels: [128, 64, 32]
 
+#
+target_search: "affordance"
 # Define types of observation input to the RL agent
 env_wrapper:
   gripper_cam:
@@ -54,6 +56,7 @@ env_wrapper:
   skip_frames: 0
   img_size: ${img_size}
   use_aff_termination: True
+  max_target_dist: 0.10
 
 # Affordance configuration for RL agent observation inputs
 affordance:

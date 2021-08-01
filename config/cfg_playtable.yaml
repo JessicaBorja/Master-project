@@ -41,7 +41,8 @@ target_search_aff:
       weight_decay: 1e-3
     unet_cfg:
       decoder_channels: [128, 64, 32]
-
+#
+target_search: "affordance"
 # Define types of observation input to the RL agent
 env_wrapper:
   gripper_cam:

@@ -16,6 +16,7 @@ def main(cfg):
         training_env = RLWrapper(PlayTableSimEnv, cfg.env, max_ts,
                                  train=True,
                                  affordance_cfg=cfg.affordance,
+                                 target_search=cfg.target_search,
                                  viz=cfg.viz_obs,
                                  **cfg.env_wrapper)
 
@@ -30,9 +31,8 @@ def main(cfg):
         log.info("model: %s" % cfg.model_name)
         model = Combined(cfg,
                          sac_cfg=sac_cfg,
-                         target_search_mode="affordance",
+                         target_search_mode=cfg.target_search,
                          rand_target=True)
-                         #  target_search_mode="affordace")
         model.learn(**cfg.agent.learn_config)
         training_env.close()
         # eval_env.close()

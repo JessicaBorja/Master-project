@@ -31,7 +31,8 @@ class RLWrapper(gym.Wrapper):
     def __init__(self, EnvClass, env_cfg, max_ts, img_size,
                  gripper_cam, static_cam, transforms=None,
                  use_pos=False, use_aff_termination=False,
-                 affordance_cfg=None,
+                 affordance_cfg=None, target_search="env",
+                 max_target_dist=0.15,
                  train=False, save_images=False, viz=False,
                  history_length=None, skip_frames=None):
         # ENV definition
@@ -39,6 +40,7 @@ class RLWrapper(gym.Wrapper):
             device = torch.device(torch.cuda.current_device())
             self.set_egl_device(device)
         self.env = EnvClass(**env_cfg)
+        self.env.target_radius = max_target_dist
         self.initial_target_pos = None
 
         super(RLWrapper, self).__init__(self.env)
@@ -46,7 +48,8 @@ class RLWrapper(gym.Wrapper):
         self.target_radius = self.env.target_radius
 
         # TERMINATION
-        self.use_aff_termination = use_aff_termination
+        self.use_aff_termination = use_aff_termination or \
+            target_search == "affordance"
 
         # REWARD FUNCTION
         self.affordance_cfg = affordance_cfg

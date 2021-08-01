@@ -187,7 +187,7 @@ class Combined(SAC):
                     move_to = self.target_pos + np.array([0, 0, 0.07])
                 else:
                     # Affordances detect the surface of an object
-                    move_to = self.target_pos + np.array([0, 0, 0.02])  # 0.05
+                    move_to = self.target_pos + np.array([0, 0, 0.035])  # 0.05
             else:
                 # Move in x-z dir
                 # x_target = [self.target_pos[0], tcp_pos[1], self.target_pos[2]]

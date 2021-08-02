@@ -33,12 +33,13 @@ class TargetSearch():
         if(self.mode == "affordance"):
             res = self._compute_target_aff(env, global_it)
             target_pos, no_target, object_centers = res
-            res = (target_pos, no_target)
             if env.task == "slide" or env.task == "hinge":
                 # Because it most likely will detect the door and not the handle
-                target_pos = [target_pos[0], target_pos[1] - 0.07, target_pos[2]]
+                target_pos = [target_pos[0], target_pos[1] - 0.075, target_pos[2]]
             if(return_all_centers):
                 res = (target_pos, no_target, object_centers)
+            else:
+                res = (target_pos, no_target)
         else:
             res = self._env_compute_target(env)
         return res
@@ -110,7 +111,7 @@ class TargetSearch():
             # No center detected
             default = self.initial_pos
             no_target = True
-            return np.array(default), no_target
+            return np.array(default), no_target, []
 
         max_robustness = 0
         obj_class = np.unique(object_masks)[1:]

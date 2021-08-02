@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 from torch.utils.tensorboard import SummaryWriter
 import sys
 import os
@@ -25,7 +24,7 @@ class Combined(SAC):
             cfg.target_search_aff.img_size)
         # initial angle
         _initial_obs = self.env.get_obs()["robot_obs"]
-        _initial_pos = _initial_obs[:3]
+        self._initial_pos = _initial_obs[:3]
         _initial_orn = _initial_obs[3:6]
         if(self.env.task == "pickup"):
             self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
@@ -40,7 +39,7 @@ class Combined(SAC):
         self.no_detected_target = 0
 
         args = {"cam_id": _cam_id,
-                "initial_pos": _initial_pos,
+                "initial_pos": self._initial_pos,
                 "aff_cfg": cfg.target_search_aff,
                 "aff_transforms": _aff_transforms,
                 "rand_target": rand_target}
@@ -54,6 +53,7 @@ class Combined(SAC):
                 self.target_search.get_box_pos_mask(self.env)
 
         self.target_pos, _ = self.target_search.compute()
+        self.last_detected_target = self.target_pos
 
         # Target specifics
         self.env.unwrapped.current_target = self.target_pos
@@ -150,6 +150,9 @@ class Combined(SAC):
             self.target_search.compute(env, self.global_obs_it)
         if(no_target):
             self.no_detected_target += 1
+            target_pos = self.last_detected_target
+        else:
+            self.last_detected_target = target_pos
         res = self.correct_position(env, obs, target_pos, no_target)
         return res
 
@@ -190,9 +193,9 @@ class Combined(SAC):
                     move_to = self.target_pos + np.array([0, 0, 0.035])  # 0.05
             else:
                 # Move in x-z dir
-                # x_target = [self.target_pos[0], tcp_pos[1], self.target_pos[2]]
-                # a = [x_target, self.target_orn, 1]
-                # tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
+                x_target = [self.target_pos[0], tcp_pos[1], self.target_pos[2]]
+                a = [x_target, self.target_orn, 1]
+                tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
 
                 # Move up y dir
                 move_to = self.target_pos
@@ -238,12 +241,13 @@ class Combined(SAC):
                                    plot_data)
 
             # End episode
-            end_ep = done or (max_episode_length
-                              and (episode_length >= max_episode_length))
+            timeout = (max_episode_length
+                        and (episode_length >= max_episode_length))
+            end_ep = timeout or done
 
             # Log interval (sac)
             if((t % log_interval == 0 and not self._log_by_episodes)
-               or (self._log_by_episodes and end_ep
+               or (self._log_by_episodes and (timeout or done)
                    and episode % _log_n_ep == 0)):
                 best_eval_return, plot_data = \
                      self._eval_and_log(self.writer, t, episode,
@@ -257,11 +261,20 @@ class Combined(SAC):
                                           total_timesteps, best_return,
                                           episode_length, episode_return,
                                           success)
+                # Do not reset environment but keep going
+                no_target = False
+                if(done and not success):
+                    # Return with model based
+                    a = [self._initial_pos, self.target_orn, 1]
+                    self.move_to_target(self.env, s["robot_obs"][:3], a)
+                    self.env, s, no_target = self.detect_and_correct(self.env, s)
+
+                if(no_target or (done and success) or timeout):
+                    s = self.env.reset()
+                    self.env, s, no_target = self.detect_and_correct(self.env, s)
                 # Reset everything
                 episode += 1
                 episode_return, episode_length = 0, 0
-                s = self.env.reset()
-                self.env, s, _ = self.detect_and_correct(self.env, s)
 
         # Evaluate at end of training
         best_eval_return, plot_data = \
@@ -301,6 +314,9 @@ class Combined(SAC):
                 else:
                     target_pos = center_lst[task_it]
                 task_it += 1
+            else:
+                target_pos, no_target = \
+                        self.target_search.compute(env, self.global_obs_it)
             episode_length, episode_return = 0, 0
             done = False
             # Correct Position

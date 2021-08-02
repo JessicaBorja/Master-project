@@ -201,6 +201,11 @@ class RLWrapper(gym.Wrapper):
                 scale_dist = min(distance / self.target_radius, 1)
                 if(self.task == "pickup"):
                     rew += (1 - scale_dist)**0.4
+                elif(self.task == "slide"):
+                    goal_pose = np.array([0.079, 0.75, 0.74])
+                    dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
+                    dist_to_goal /= 0.38  # max posible distance
+                    rew -= scale_dist - dist_to_goal
                 else:
                     rew -= scale_dist
                 self.ts_counter += 1

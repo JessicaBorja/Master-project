@@ -53,7 +53,8 @@ env_wrapper:
     use_depth: False
   use_pos: True
   img_size: ${img_size}
-  use_aff_termination: False
+  use_aff_termination: True
+  max_target_dist: 0.15
 
 # Use aff detected target to terminate episode
 termination_wrapper:

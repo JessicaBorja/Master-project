@@ -195,7 +195,7 @@ class RLWrapper(gym.Wrapper):
 
             # If episode is not done because of moving to far away
             if(not self.termination(self.env._termination(), obs_dict)
-               and self.ts_counter <= self.max_ts):
+               and self.ts_counter < self.max_ts - 1):
                 distance = np.linalg.norm(tcp_pos - self.env.unwrapped.current_target)
                 # cannot be larger than 1
                 # scale dist increases as it falls away from object
@@ -215,14 +215,14 @@ class RLWrapper(gym.Wrapper):
                 # If episode was successful
                 if(rew >= 1 and self.env.task == "pickup"):
                     # Reward for remaining ts
-                    rew += self.max_ts - self.ts_counter
+                    rew += self.max_ts - 1 - self.ts_counter
 
                 # If terminated because it went far away
                 if(rew <= -1 and self.env.task != "pickup"):
                     # Penalize for remaining ts
                     # it would have gotten -1 for being far 
                     # and -1 for not completing task
-                    rew -= (self.max_ts - self.ts_counter) * 2
+                    rew -= (self.max_ts - 1 - self.ts_counter) * 2
                 self.ts_counter = 0
         return rew
 

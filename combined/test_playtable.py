@@ -37,7 +37,6 @@ def main(cfg):
                     save_images=save_images,
                     **run_cfg.env_wrapper)
 
-
     sac_cfg = {"env": env,
                "model_name": run_cfg.model_name,
                "save_dir": run_cfg.agent.save_dir,
@@ -46,7 +45,7 @@ def main(cfg):
 
     model = Combined(run_cfg,
                      sac_cfg=sac_cfg,
-                     target_search_mode="env")
+                     target_search_mode=run_cfg.target_search)
     path = "%s/trained_models/%s.pth" % (
             test_cfg.folder_name,
             test_cfg.model_name)

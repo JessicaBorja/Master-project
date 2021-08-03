@@ -35,7 +35,9 @@ class TargetSearch():
             target_pos, no_target, object_centers = res
             if env.task == "slide" or env.task == "hinge":
                 # Because it most likely will detect the door and not the handle
-                target_pos = [target_pos[0], target_pos[1] - 0.075, target_pos[2]]
+                target_pos = np.array([target_pos[0],
+                                       target_pos[1] - 0.075,
+                                       target_pos[2]])
             if(return_all_centers):
                 res = (target_pos, no_target, object_centers)
             else:

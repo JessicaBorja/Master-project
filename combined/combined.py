@@ -261,20 +261,11 @@ class Combined(SAC):
                                           total_timesteps, best_return,
                                           episode_length, episode_return,
                                           success)
-                # Do not reset environment but keep going
-                no_target = False
-                if(done and not success):
-                    # Return with model based
-                    a = [self._initial_pos, self.target_orn, 1]
-                    self.move_to_target(self.env, s["robot_obs"][:3], a)
-                    self.env, s, no_target = self.detect_and_correct(self.env, s)
-
-                if(no_target or (done and success) or timeout):
-                    s = self.env.reset()
-                    self.env, s, no_target = self.detect_and_correct(self.env, s)
                 # Reset everything
                 episode += 1
                 episode_return, episode_length = 0, 0
+                s = self.env.reset()
+                self.env, s, _ = self.detect_and_correct(self.env, s)
 
         # Evaluate at end of training
         best_eval_return, plot_data = \
@@ -427,8 +418,14 @@ class Combined(SAC):
                 return False
         return True
 
-    def eval_grasp_success(self, env):
-        success = env.obj_in_box(env.objects[env.target])
+    def eval_grasp_success(self, env, any=False):
+        if(any):
+            success = False
+            for name in env.table_objs:
+                if(env.obj_in_box(env.objects[name])):
+                    success = True
+        else:
+            success = env.obj_in_box(env.objects[env.target])
         return success
 
     # Save images

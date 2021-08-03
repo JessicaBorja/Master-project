@@ -188,7 +188,8 @@ class RLWrapper(gym.Wrapper):
             # Create positive reward relative to the distance
             # between the closest point detected by the affordances
             # and the end effector position
-            # p.addUserDebugText("target_reward",
+            # p.removeAllUserDebugItems()
+            # p.addUserDebugText("aff_target",
             #                    textPosition=self.env.unwrapped.current_target,
             #                    textColorRGB=[0, 1, 0])
 
@@ -202,9 +203,10 @@ class RLWrapper(gym.Wrapper):
                 if(self.task == "pickup"):
                     rew += (1 - scale_dist)**0.4
                 elif(self.task == "slide"):
-                    goal_pose = np.array([0.079, 0.75, 0.74])
+                    goal_pose = np.array([0, 0.75, 0.74])
                     dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
-                    dist_to_goal /= 0.38  # max posible distance
+                    # max posible distance clip
+                    dist_to_goal = min(dist_to_goal/0.6, 1)
                     rew -= scale_dist - dist_to_goal
                 else:
                     rew -= scale_dist
@@ -235,7 +237,7 @@ class RLWrapper(gym.Wrapper):
         #                    textPosition=self.env.unwrapped.current_target,
         #                    textColorRGB=[0, 1, 0])
         if(self.use_aff_termination):
-            distance = np.linalg.norm(self.initial_target_pos
+            distance = np.linalg.norm(self.env.unwrapped.current_target
                                       - obs["robot_obs"][:3])
         else:
             # Real distance
@@ -407,7 +409,7 @@ class RLWrapper(gym.Wrapper):
             c = out_dict["center"]
             # If aff detects closer target which is large enough
             # and Detected affordance close to target
-            if(np.linalg.norm(self.env.unwrapped.current_target - c) < 0.05):
+            if(np.linalg.norm(self.env.unwrapped.current_target - c) < self.target_radius/2):
                 self.env.unwrapped.current_target = c
 
         # See selected point

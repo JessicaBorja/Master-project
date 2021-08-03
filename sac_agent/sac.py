@@ -169,7 +169,9 @@ class SAC():
         success = False
         if(r >= 200 and self.env.task == "pickup"):
             self.move_to_box(self.env)
-            success = self.eval_grasp_success(self.env)
+            # We don't know which obj aff model chose,
+            # so give success if any in box
+            success = self.eval_grasp_success(self.env, any=True)
             # If lifted incorrectly get no reward
             if(not success):
                 r = 0

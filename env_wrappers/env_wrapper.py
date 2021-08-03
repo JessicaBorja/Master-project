@@ -207,7 +207,7 @@ class RLWrapper(gym.Wrapper):
                     dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
                     # max posible distance clip
                     dist_to_goal = min(dist_to_goal/0.6, 1)
-                    rew -= scale_dist - dist_to_goal
+                    rew -= (scale_dist + dist_to_goal)
                 else:
                     rew -= scale_dist
                 self.ts_counter += 1

@@ -4,13 +4,13 @@ optim_res: False
 # Absolute path where models are stored
 models_dir: ${project_path}/Master-project/combined/hydra_outputs
 
-model_name: slide_rgb_img_depth_dist_affMask_dense_24-07_16-11_best_eval
-folder_name: ${test.models_dir}/slide/16-11-30_aff_rl
+model_name: slide_rgb_img_depth_dist_affMask_dense_03-08_12-33_last
+folder_name: ${test.models_dir}/slide/2021-08-03/12-32-16_aff_rl
 
 
 eval_cfg:
   n_episodes: 5
   render: False
   print_all_episodes: True
-  max_episode_length: 100
+  max_episode_length: 200
   save_images: False

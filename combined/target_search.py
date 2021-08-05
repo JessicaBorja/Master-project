@@ -162,7 +162,25 @@ class TargetSearch():
         # p.addUserDebugText("t",
         #                    textPosition=target_pos,
         #                    textColorRGB=[0, 1, 0])
+        self.find_env_target(env, target_pos)
         return target_pos, no_target, world_pts
+
+    def find_env_target(self, env, target_pos):
+        min_dist = np.inf
+        env_target = env.target
+        for name in env.table_objs:
+            target_obj = env.objects[name]
+            base_pos = p.getBasePositionAndOrientation(target_obj["uid"],
+                                                       physicsClientId=env.cid)[0]
+            if(p.getNumJoints(target_obj["uid"]) == 0):
+                pos = base_pos
+            else:  # Grasp link
+                pos = p.getLinkState(target_obj["uid"], 0)[0]
+            dist = np.linalg.norm(pos - target_pos)
+            if(dist < min_dist):
+                env_target = name
+                min_dist = dist
+        env.target = env_target
 
     def get_box_pos_mask(self, env):
         if(not env):
@@ -171,7 +189,7 @@ class TargetSearch():
         x, y, z = box_pos
         # Homogeneous cords
         box_top_left = [x - 0.12, y + 0.2, z, 1]
-        box_bott_right = [x + 0.12, y - 0.2, z, 1]
+        box_bott_right = [x + 0.12, y - 0.2, z + 0.1, 1]
 
         # Static camera 
         cam = env.cameras[self.cam_id]
@@ -181,8 +199,8 @@ class TargetSearch():
 
         shape = (cam.width, cam.height)
         mask = np.zeros(shape, np.uint8)
-        mask[v1:v2, u1:u2] = 1
-
+        mask = cv2.rectangle(mask, (u1, v1), (u2, v2),
+                             (1, 1, 1), thickness=-1)
         shape = (self.affordance_cfg.img_size, self.affordance_cfg.img_size)
         mask = cv2.resize(mask, shape)
         # cv2.imshow("box_mask", mask)

@@ -413,7 +413,8 @@ class Combined(SAC):
         return ep_success
 
     def all_objs_in_box(self, env):
-        for obj_name, obj in env.table_objs.items():
+        for obj_name in env.table_objs:
+            obj = env.objects[obj_name]
             if(not env.obj_in_box(obj)):
                 return False
         return True

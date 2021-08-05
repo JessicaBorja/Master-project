@@ -202,7 +202,7 @@ defaults:
   - scene: tabletop_random
   - env: env_combined
   - env@eval_env: env_combined
-  - camera_conf: //tabletop_multiscene
+  - camera_conf: tabletop_multiscene
   - agent: default
   - test: test_tabletop
   - transforms@affordance.transforms: aff_transforms

@@ -373,7 +373,6 @@ class RLWrapper(gym.Wrapper):
         aff_probs = np.transpose(aff_probs[0], (1, 2, 0))  # H, W, 2
         object_masks = torch_to_numpy(object_masks[0])  # H, W
 
-        max_robustness = 0
         obj_class = np.unique(object_masks)[1:]
         obj_class = obj_class[obj_class != 0]  # remove background class
 
@@ -394,23 +393,27 @@ class RLWrapper(gym.Wrapper):
             world_pt = pixel2world(cam, u, v, depth)
             c_out = {"center": world_pt,
                      "pixel_count": pixel_count,
-                     "robustness": max_robustness}
+                     "robustness": robustness}
             cluster_outputs.append(c_out)
-            if(robustness > max_robustness):
-                max_robustness = robustness
-                target_px = o
-                target_world = world_pt
+            # if(robustness > max_robustness):
+            #     max_robustness = robustness
+            #     target_px = o
+            #     target_world = world_pt
 
         # p.removeAllUserDebugItems()
 
         # self.env.unwrapped.current_target = target_world
         # Maximum distance given the task
+        most_robust = 0
         for out_dict in cluster_outputs:
             c = out_dict["center"]
             # If aff detects closer target which is large enough
             # and Detected affordance close to target
-            if(np.linalg.norm(self.env.unwrapped.current_target - c) < self.target_radius/2):
-                self.env.unwrapped.current_target = c
+            dist = np.linalg.norm(self.env.unwrapped.current_target - c)
+            if(dist < self.target_radius/2):
+                if(out_dict["robustness"] > most_robust):
+                    self.env.unwrapped.current_target = c
+                    most_robust = out_dict["robustness"]
 
         # See selected point
         # p.addUserDebugText("target",

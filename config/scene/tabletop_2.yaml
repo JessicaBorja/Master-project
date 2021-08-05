@@ -16,31 +16,31 @@ objects:
     fixed: false
   marker:
     file: 040_large_marker/google_16k/textured.urdf
-    initial_pos: [0.35, 0.92, 0.61]
+    initial_pos: [0.43, 0.8, 0.61]
     initial_orn: [0, 0, 0]
     fixed: false
   spatula:
     file: tabletop/plaster_spatula/plaster_spatula.urdf
-    initial_pos: [0.2, 0.45, 0.62]
-    initial_orn: [0, 0, 0]
+    initial_pos: [0.1, 0.45, 0.62]
+    initial_orn: [0, 0, 0.5]
     fixed: false
   hammer:
     file: 048_hammer/google_16k/textured.urdf
-    initial_pos: [0.15, 0.9, 0.63]
-    initial_orn: [0, 0, 0]
+    initial_pos: [-0.1, 0.85, 0.63]
+    initial_orn: [0, 0, -0.3]
     fixed: false
   screwdriver:
     file: 044_flat_screwdriver/google_16k/textured.urdf
-    initial_pos: [-0.1, 0.6, 0.62]
-    initial_orn: [0, 0, 0]
+    initial_pos: [-0.1, 0.45, 0.62]
+    initial_orn: [0, 0, -0.5]
     fixed: false
   utility_knife:
     file: tabletop/utility_knife/utility_knife.urdf
     initial_pos: [0.4, 0.5, 0.61]
-    initial_orn: [0, 0, 0]
+    initial_orn: [0, 0, -1.54]
     fixed: false
   flashlight:
     file: tabletop/flashlight/flashlight.urdf
-    initial_pos: [-0.1, 0.85, 0.63]
-    initial_orn: [0, 0, 0]
+    initial_pos: [0.25, 0.9, 0.63]
+    initial_orn: [0, 0, 0.2]
     fixed: false

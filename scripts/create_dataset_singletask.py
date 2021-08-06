@@ -20,7 +20,7 @@ from utils.file_manipulation import get_files, save_data, check_file,\
 # Keep points in a distance larger than radius from new_point
 # Do not keep fixed points more than 100 frames
 def update_fixed_points(fixed_points, new_point,
-                        current_frame_idx, radius=0.1):
+                        current_frame_idx, radius=0.08):
     x = []
     for frame_idx, p in fixed_points:
         if np.linalg.norm(new_point - p) > radius:
@@ -220,7 +220,6 @@ def collect_dataset_close_open(cfg):
                      "static": np.indices(static_out_size,
                                           dtype=np.float32).transpose(1, 2, 0)}
     #
-    img_size = cfg.img_size
     mask_on_close = cfg.mask_on_close
     # Episodes info
     # ep_lens = np.load(os.path.join(cfg.play_data_dir, "ep_lens.npy"))
@@ -347,9 +346,9 @@ def collect_dataset_close_open(cfg):
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
     collect_dataset_close_open(cfg)
-    # data_lst = ["%s/datasets/tabletop_multiscene_MoC-True/tabletop_kitchen_MoC-True/" % cfg.project_path,
-    #             "%s/datasets/tabletop_multiscene_MoC-True/tabletop_tools_MoC-True/" % cfg.project_path,
-    #             "%s/datasets/tabletop_multiscene_MoC-True/tabletop_misc_MoC-True/" % cfg.project_path]
+    # data_lst = ["%s/datasets/tabletop_multiscene_MoC-True_gripper_w/tabletop_kitchen_MoC-True/" % cfg.project_path,
+    #             "%s/datasets/tabletop_multiscene_MoC-True_gripper_w/tabletop_tools_MoC-True/" % cfg.project_path,
+    #             "%s/datasets/tabletop_multiscene_MoC-True_gripper_w/tabletop_misc_MoC-True/" % cfg.project_path]
     # merge_datasets(data_lst, cfg.output_dir)
     # create_data_ep_split(cfg.output_dir)
 

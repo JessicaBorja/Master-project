@@ -93,7 +93,7 @@ affordance:
       use_distance: False
       densify_reward: False  # Use affordance to shape the reward function
       target_in_obs: False  # Add target detected by affordance into observation
-      model_path: ${models_path}/tabletop_multiscene_gripper.ckpt  # gripper_centers_2-5_1_5_1_64px_epoch_40.ckpt
+      model_path: ${models_path}/tabletop_multiscene_gripper_2.ckpt  # gripper_centers_2-5_1_5_1_64px_epoch_40.ckpt
       hough_voting:
         skip_pixels: 2
         inlier_threshold: 0.7

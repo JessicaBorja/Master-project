@@ -245,6 +245,13 @@ class Combined(SAC):
                         and (episode_length >= max_episode_length))
             end_ep = timeout or done
 
+            if(end_ep):
+                best_return = \
+                    self._on_train_ep_end(self.writer, t, episode,
+                                          total_timesteps, best_return,
+                                          episode_length, episode_return,
+                                          success)
+
             # Log interval (sac)
             if((t % log_interval == 0 and not self._log_by_episodes)
                or (self._log_by_episodes and (timeout or done)
@@ -255,12 +262,6 @@ class Combined(SAC):
                                         best_eval_return,
                                         n_eval_ep, max_episode_length)
 
-            if(end_ep):
-                best_return = \
-                    self._on_train_ep_end(self.writer, t, episode,
-                                          total_timesteps, best_return,
-                                          episode_length, episode_return,
-                                          success)
                 # Reset everything
                 episode += 1
                 episode_return, episode_length = 0, 0

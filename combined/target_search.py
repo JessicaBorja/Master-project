@@ -39,9 +39,18 @@ class TargetSearch():
                                        target_pos[1] - 0.075,
                                        target_pos[2]])
             if(return_all_centers):
-                res = (target_pos, no_target, object_centers)
+                obj_centers = []
+                for center in object_centers:
+                    obj = {}
+                    obj["target_pos"] = center
+                    obj["target_str"] = \
+                        self.find_env_target(env, center)
+                    obj_centers.append(obj)
+                res = (target_pos, no_target, obj_centers)
             else:
                 res = (target_pos, no_target)
+                env_target = self.find_env_target(env, target_pos)
+                env.target = env_target
         else:
             res = self._env_compute_target(env)
         return res
@@ -162,7 +171,6 @@ class TargetSearch():
         # p.addUserDebugText("t",
         #                    textPosition=target_pos,
         #                    textColorRGB=[0, 1, 0])
-        self.find_env_target(env, target_pos)
         return target_pos, no_target, world_pts
 
     def find_env_target(self, env, target_pos):
@@ -180,7 +188,7 @@ class TargetSearch():
             if(dist < min_dist):
                 env_target = name
                 min_dist = dist
-        env.target = env_target
+        return env_target
 
     def get_box_pos_mask(self, env):
         if(not env):

@@ -287,11 +287,11 @@ class Combined(SAC):
                 n_episodes = len(tasks)
             else:
                 s = env.reset()
-                target_pos, no_target, center_lst = \
+                target_pos, no_target, center_targets = \
                     self.target_search.compute(env,
                                                self.global_obs_it,
                                                return_all_centers=True)
-                n_episodes = len(center_lst)
+                n_episodes = len(center_targets)
 
         ep_success = []
         # One episode per task
@@ -303,7 +303,8 @@ class Combined(SAC):
                     target_pos, no_target = \
                         self.target_search.compute(env, self.global_obs_it)
                 else:
-                    target_pos = center_lst[task_it]
+                    target_pos = center_targets[task_it]["target_pos"]
+                    env.unwrapped.target = center_targets[task_it]["target_str"]
                 task_it += 1
             else:
                 target_pos, no_target = \

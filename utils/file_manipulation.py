@@ -67,7 +67,7 @@ def select_files(data, split, ep, episode_files,
             np_file = np.load(file)
             mask = np_file["mask"]  # (H, W)
             closed_gripper = "gripper_width" in np_file and \
-                np_file["gripper_width"] < 0.018
+                np_file["gripper_width"] < 0.02
             if(mask.max() > 0 or closed_gripper):  # at least one pixel is not background
                 data[split]['episode_%02d' % ep].append(file_name)
         else:

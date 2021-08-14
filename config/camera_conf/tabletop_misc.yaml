@@ -1,0 +1,4 @@
+
+cameras:
+  - '${all_cameras.tabletop_misc}'
+  - '${all_cameras.gripper}'

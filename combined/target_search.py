@@ -49,8 +49,9 @@ class TargetSearch():
                 res = (target_pos, no_target, obj_centers)
             else:
                 res = (target_pos, no_target)
-                env_target = self.find_env_target(env, target_pos)
-                env.target = env_target
+                if(env.task == "pickup"):
+                    env_target = self.find_env_target(env, target_pos)
+                    env.target = env_target
         else:
             res = self._env_compute_target(env)
         return res

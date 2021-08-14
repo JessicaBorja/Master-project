@@ -12,7 +12,7 @@ from sac_agent.sac_utils.utils import set_init_pos
 def main(cfg):
     if(cfg.init_angle):
         init_pos = cfg.env.robot_cfg.initial_joint_positions
-        init_pos = set_init_pos(cfg.task, init_pos) 
+        init_pos = set_init_pos(cfg.task, init_pos)
         cfg.env.robot_cfg.initial_joint_positions = init_pos
 
     # Auto generate names given dense, aff-mask, aff-target

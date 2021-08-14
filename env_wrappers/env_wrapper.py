@@ -222,7 +222,8 @@ class RLWrapper(gym.Wrapper):
                     # Penalize for remaining ts
                     # it would have gotten -1 for being far 
                     # and -1 for not completing task
-                    rew -= (self.max_ts - 1 - self.ts_counter) * 2
+                    # and -1 for not moving target to goal
+                    rew -= (self.max_ts - 1 - self.ts_counter) * 3
                 self.ts_counter = 0
         return rew
 

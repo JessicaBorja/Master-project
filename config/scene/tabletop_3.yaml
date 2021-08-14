@@ -32,7 +32,7 @@ objects:
   teapot:
     file: tabletop/teapot/teapot.urdf
     initial_pos: [-0.11, 0.83, 0.6026503452492561]
-    initial_orn: [0, 0, 2.8]
+    initial_orn: [0, 0, 1.8]
     fixed: false
   # teapot_lid:
   #   file: tabletop/teapot_lid/teapot_lid.urdf

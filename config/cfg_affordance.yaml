@@ -1,5 +1,5 @@
 project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd
-data_dir: ${project_path}/datasets/tabletop_multiscene_MoC-True_gripper_w/tabletop_misc_MoC-True_view1/
+data_dir: ${project_path}/datasets/tabletop_multiscene_MoC-True_gripper_w/
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: static_test

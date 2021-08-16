@@ -346,9 +346,9 @@ def collect_dataset_close_open(cfg):
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
     collect_dataset_close_open(cfg)
-    # data_lst = ["%s/datasets/tabletop_multiscene_MoC-True_gripper_w/tabletop_kitchen_MoC-True/" % cfg.project_path,
-    #             "%s/datasets/tabletop_multiscene_MoC-True_gripper_w/tabletop_tools_MoC-True/" % cfg.project_path,
-    #             "%s/datasets/tabletop_multiscene_MoC-True_gripper_w/tabletop_misc_MoC-True_view1/" % cfg.project_path]
+    # data_lst = ["%s/datasets/tabletop_multiscene_sideview/tabletop_kitchen_MoC-True/" % cfg.project_path,
+    #             "%s/datasets/tabletop_multiscene_sideview/tabletop_tools_MoC-True/" % cfg.project_path,
+    #             "%s/datasets/tabletop_multiscene_sideview/tabletop_misc_MoC-True/" % cfg.project_path]
     # merge_datasets(data_lst, cfg.output_dir)
     # create_data_ep_split(cfg.output_dir)
 

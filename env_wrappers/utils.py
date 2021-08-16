@@ -87,7 +87,7 @@ def init_aff_net(affordance_cfg, cam_str):
            and cam_str == "static"):
             path = affordance_cfg.static_cam.model_path
             # Configuration of the model
-            hp = {**affordance_cfg.hyperparameters,
+            hp = {**affordance_cfg.static_cam.hyperparameters,
                   "hough_voting": affordance_cfg.static_cam.hough_voting}
             hp = OmegaConf.create(hp)
 
@@ -109,7 +109,7 @@ def init_aff_net(affordance_cfg, cam_str):
             path = affordance_cfg.gripper_cam.model_path
 
             # Configuration of the model
-            hp = {**affordance_cfg.hyperparameters,
+            hp = {**affordance_cfg.gripper_cam.hyperparameters,
                   "hough_voting": affordance_cfg.gripper_cam.hough_voting}
             hp = OmegaConf.create(hp)
 

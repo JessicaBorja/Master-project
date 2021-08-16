@@ -1,0 +1,4 @@
+
+cameras:
+  - '${all_cameras.tabletop_sideview}'
+  - '${all_cameras.gripper}'

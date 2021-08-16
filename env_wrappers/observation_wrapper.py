@@ -14,6 +14,7 @@ from affordance_model.datasets import get_transforms
 
 from utils.cam_projections import pixel2world
 from utils.img_utils import torch_to_numpy, viz_aff_centers_preds, visualize
+from env_wrappers.utils import init_aff_net
 
 
 class ObservationWrapper(gym.ObservationWrapper):
@@ -59,7 +60,6 @@ class ObservationWrapper(gym.ObservationWrapper):
         self.viz = viz
 
         # Parameters to define observation
-        self.affordance = affordance
         self.gripper_cam_cfg = gripper_cam
         self.static_cam_cfg = static_cam
         self._use_robot_obs = use_pos
@@ -67,8 +67,9 @@ class ObservationWrapper(gym.ObservationWrapper):
         self._mask_transforms = DistanceTransform()
 
         # Parameters to store affordance
-        self.gripper_cam_aff_net = self.init_aff_net('gripper')
-        self.static_cam_aff_net = self.init_aff_net('static')
+        self.gripper_cam_aff_net, aff_cfg = init_aff_net(affordance, 'gripper')
+        self.static_cam_aff_net, aff_cfg = init_aff_net(affordance, 'static')
+        self.affordance = aff_cfg
         self.curr_raw_obs = None
 
         if(self.unwrapped.task == "pickup"):
@@ -128,51 +129,6 @@ class ObservationWrapper(gym.ObservationWrapper):
             obs_space_dict['target_distance'] = gym.spaces.Box(
                 low=-1, high=1, shape=(1,))
         return gym.spaces.Dict(obs_space_dict)
-
-    def init_aff_net(self, cam_str):
-        aff_net = None
-        if(self.affordance):
-            if(self.affordance.static_cam.use
-               and cam_str == "static"):
-                path = self.affordance.static_cam.model_path
-                # Configuration of the model
-                hp = {**self.affordance.hyperparameters,
-                      "hough_voting": self.affordance.static_cam.hough_voting}
-                hp = OmegaConf.create(hp)
-
-                # Create model
-                if(os.path.exists(path)):
-                    aff_net = Segmentator.load_from_checkpoint(
-                                        path,
-                                        cfg=hp)
-                    aff_net.cuda()
-                    aff_net.eval()
-                    print("obs_wrapper: Static cam affordance model loaded")
-                else:
-                    self.affordance = None
-                    path = os.path.abspath(path)
-                    raise TypeError("Path does not exist: %s" % path)
-            elif(cam_str == "gripper" and
-                 (self.affordance.gripper_cam.use or
-                  self.affordance.gripper_cam.densify_reward)):
-                path = self.affordance.gripper_cam.model_path
-
-                # Configuration of the model
-                hp = {**self.affordance.hyperparameters,
-                      "hough_voting": self.affordance.gripper_cam.hough_voting}
-                hp = OmegaConf.create(hp)
-
-                # Create model
-                if(os.path.exists(path)):
-                    aff_net = Segmentator.load_from_checkpoint(path, cfg=hp)
-                    aff_net.cuda()
-                    aff_net.eval()
-                    print("obs_wrapper: gripper affordance model loaded")
-                else:
-                    self.affordance = None
-                    path = os.path.abspath(path)
-                    raise TypeError("Path does not exist: %s" % path)
-        return aff_net
 
     def get_cam_obs(self, obs_dict, cam_type, aff_net,
                     obs_cfg, aff_cfg, cam_id):

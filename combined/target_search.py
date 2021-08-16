@@ -52,6 +52,7 @@ class TargetSearch():
                 if(env.task == "pickup"):
                     env_target = self.find_env_target(env, target_pos)
                     env.target = env_target
+                    env.unwrapped.target = env_target
         else:
             res = self._env_compute_target(env)
         return res

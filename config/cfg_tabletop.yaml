@@ -60,23 +60,6 @@ env_wrapper:
 
 # Affordance configuration for RL agent observation inputs
 affordance:
-    hyperparameters:
-      n_classes: 2
-      centers_loss:
-        weight: 2.5
-      aff_loss:
-        weight: 1
-        dice_loss:
-          add: True
-          weight: 5
-        ce_loss:
-          weight: 1
-          class_weights: [0.2, 0.8]
-      optimizer:
-        lr: 1e-5
-        weight_decay: 1e-3
-      unet_cfg:
-        decoder_channels: [128, 64, 32]
     static_cam:
       use: False
       model_path: ${models_path}/tabletop_multiscene_static_sideview.ckpt
@@ -88,6 +71,23 @@ affordance:
         inlier_distance: 10
         percentage_threshold: 0.3
         object_center_kernel_radius: 10
+      hyperparameters:
+        n_classes: 2
+        centers_loss:
+          weight: 2.5
+        aff_loss:
+          weight: 1
+          dice_loss:
+            add: True
+            weight: 5
+          ce_loss:
+            weight: 1
+            class_weights: [0.2, 0.8]
+        optimizer:
+          lr: 1e-5
+          weight_decay: 1e-3
+        unet_cfg:
+          decoder_channels: [128, 64, 32]
     gripper_cam:
       use: False  # Use affordance in observation
       use_distance: False
@@ -101,6 +101,23 @@ affordance:
         inlier_distance: 10
         percentage_threshold: 0.3
         object_center_kernel_radius: 10
+      hyperparameters:
+        n_classes: 2
+        centers_loss:
+          weight: 2.5
+        aff_loss:
+          weight: 1
+          dice_loss:
+            add: True
+            weight: 5
+          ce_loss:
+            weight: 1
+            class_weights: [0.2, 0.8]
+        optimizer:
+          lr: 1e-5
+          weight_decay: 1e-3
+        unet_cfg:
+          decoder_channels: [128, 64, 32]
 
 all_cameras:
   sideview_right: #Side view (slide)
@@ -192,7 +209,7 @@ all_cameras:
     height: 200
     look_at: [0.22791078686714172, 0.008461681194603443, -0.24000032246112823]
     look_from: [0.22790421545536008, 1.570319612342189, 1.5822541675395883]
-  tabletop_misc:
+  tabletop_sideview:
     _target_: vr_env.camera.static_camera.StaticCamera
     name: tabletop_sideview
     fov: 45
@@ -213,7 +230,7 @@ defaults:
   - scene: tabletop_random
   - env: env_combined
   - env@eval_env: env_combined
-  - camera_conf: tabletop_multiscene
+  - camera_conf: tabletop_sideview
   - agent: default
   - test: test_tabletop
   - transforms@affordance.transforms: aff_transforms

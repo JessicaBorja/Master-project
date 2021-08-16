@@ -48,8 +48,7 @@ class RLWrapper(gym.Wrapper):
         self.target_radius = self.env.target_radius
 
         # TERMINATION
-        self.use_aff_termination = use_aff_termination or \
-            target_search == "affordance"
+        self.use_aff_termination = use_aff_termination # or target_search == "affordance"
 
         # REWARD FUNCTION
         self.affordance_cfg = affordance_cfg

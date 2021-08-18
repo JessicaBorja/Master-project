@@ -28,6 +28,10 @@ class Combined(SAC):
         _initial_orn = _initial_obs[3:6]
         if(self.env.task == "pickup"):
             self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
+        elif(self.env.task == "slide"):
+            self.target_orn = np.array([-math.pi / 2, math.pi / 2, 0])
+        elif(self.env.task == "drawer"):
+            self.target_orn = np.array([-2.7, 0, 0])
         else:
             self.target_orn = _initial_orn
 
@@ -190,7 +194,10 @@ class Combined(SAC):
                     move_to = self.target_pos + np.array([0, 0, 0.04])
                 else:
                     # Affordances detect the surface of an object
-                    move_to = self.target_pos + np.array([0, 0, 0.035])  # 0.05
+                    if(env.task == "pickup"):
+                        move_to = self.target_pos + np.array([0, 0, 0.035])  # 0.05
+                    else:
+                        move_to = self.target_pos + np.array([0, 0.02, 0.015])
             else:
                 # Move in x-z dir
                 x_target = [self.target_pos[0], tcp_pos[1], self.target_pos[2]]

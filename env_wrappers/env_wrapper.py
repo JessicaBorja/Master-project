@@ -170,6 +170,11 @@ class RLWrapper(gym.Wrapper):
                 obs["robot_obs"] = np.array([*obs_dict["robot_obs"][:7],
                                             obs_dict["robot_obs"][-1]])
         self.obs_it += 1
+        # p.removeAllUserDebugItems()
+        # p.addUserDebugText("aff_target",
+        #                     textPosition=self.env.unwrapped.current_target,
+        #                     textColorRGB=[0, 1, 0])
+
         return obs
 
     def reward(self, rew):
@@ -206,6 +211,12 @@ class RLWrapper(gym.Wrapper):
                     dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
                     # max posible distance clip
                     dist_to_goal = min(dist_to_goal/0.6, 1)
+                    rew -= (scale_dist + dist_to_goal)
+                elif(self.task == "drawer"):
+                    goal_pose = np.array([0.15, 0.50, 0.42])
+                    dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
+                    # max posible distance clip
+                    dist_to_goal = min(dist_to_goal/0.25, 1)
                     rew -= (scale_dist + dist_to_goal)
                 else:
                     rew -= scale_dist

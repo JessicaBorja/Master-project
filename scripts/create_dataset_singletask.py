@@ -83,27 +83,38 @@ def create_gripper_cam_properties(cam_cfg):
     return cam_cfg
 
 
-def label_gripper(cam_properties, img_hist, point, viz,
-                  save_dict, out_img_size, radius=25):
+def label_gripper(cam_properties, img_hist, back_frames_max, curr_pt,
+                  last_pt, viz, save_dict, out_img_size,
+                  radius=25, closed_gripper=False):
     for idx, (fr_idx, im_id, robot_obs, img) in enumerate(img_hist):
-        if(im_id not in save_dict):  # not completely closed
+        if(im_id not in save_dict):
             # Shape: [H x W x 2]
             H, W = out_img_size  # img.shape[:2]
             directions = np.stack(
                             [np.ones((H, W)),
                              np.zeros((H, W))], axis=-1).astype(np.float32)
+            mask = np.zeros(out_img_size)
             if(robot_obs[-1] > 0.02):
-                # Center and directions in matrix convention (row, column)
-                mask, center_px = get_gripper_mask(img, robot_obs[:6], point,
-                                                   cam_properties, radius=radius)
-                mask, center_px = resize_mask_and_center(mask, center_px,
-                                                         out_img_size)
-                if(np.any(center_px < 0) or np.any(center_px >= H)):
-                    continue  # Outside of image FOV
-                directions = label_directions(center_px,
-                                              mask,
-                                              directions,
-                                              "gripper")
+                for point in [curr_pt, last_pt]:
+                    if point is not None:
+                        # Center and directions in matrix convention (row, column)
+                        new_mask, center_px = get_gripper_mask(img,
+                                                               robot_obs[:6],
+                                                               point,
+                                                               cam_properties,
+                                                               radius=radius)
+                        new_mask, center_px = resize_mask_and_center(new_mask,
+                                                                     center_px,
+                                                                     out_img_size)
+                        if(np.any(center_px < 0) or np.any(center_px >= H)):
+                            new_mask = np.zeros(out_img_size)
+                            center_px = np.array([1, 0])
+                            # continue  # Outside of image FOV
+                        directions = label_directions(center_px,
+                                                      new_mask,
+                                                      directions,
+                                                      "gripper")
+                        mask = overlay_mask(new_mask, mask, (255, 255, 255))
             else:
                 mask = np.zeros(out_img_size)
                 center_px = np.array([1, 0])
@@ -245,9 +256,10 @@ def collect_dataset_close_open(cfg):
     past_action = 1
     frame_idx = 0
     episode = 0
-    # Will segment 45 frames
-    back_frames_max = 50
+    # Will segment 55 frames
+    back_frames_max = 60
     back_frames_min = 5
+    last_pt = None
     for idx, filename in enumerate(tqdm.tqdm(files)):
         data = check_file(filename)
         if(data is None):
@@ -283,10 +295,11 @@ def collect_dataset_close_open(cfg):
                                            cfg.viz, save_static,
                                            static_out_size)
                 save_gripper = label_gripper(gripper_cam_properties,
-                                             gripper_hist, point,
+                                             gripper_hist,
+                                             back_frames_max,
+                                             point, last_pt,
                                              cfg.viz, save_gripper,
                                              gripper_out_size)
-
                 # If region was already labeled, delete previous point
                 fixed_points = update_fixed_points(
                         fixed_points,
@@ -300,15 +313,19 @@ def collect_dataset_close_open(cfg):
                 # Last element in gripper_hist is the newest
                 if(mask_on_close):
                     save_gripper = label_gripper(gripper_cam_properties,
-                                                 [gripper_hist[-1]], point,
+                                                 [gripper_hist[-1]],
+                                                 back_frames_max,
+                                                 point, last_pt,
                                                  cfg.viz, save_gripper,
-                                                 gripper_out_size)
+                                                 gripper_out_size,
+                                                 closed_gripper=True)
         # Open gripper
         else:
             # Closed -> open transition
             if(past_action <= 0):
                 curr_point = data['robot_obs'][:3]
                 fixed_points.append((frame_idx, curr_point))
+                last_pt = curr_point
 
         # Reset everything
         if(end_of_ep):
@@ -345,11 +362,11 @@ def collect_dataset_close_open(cfg):
 
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
-    collect_dataset_close_open(cfg)
-    # data_lst = ["%s/datasets/tabletop_multiscene_sideview/tabletop_kitchen_MoC-True/" % cfg.project_path,
-    #             "%s/datasets/tabletop_multiscene_sideview/tabletop_tools_MoC-True/" % cfg.project_path,
-    #             "%s/datasets/tabletop_multiscene_sideview/tabletop_misc_MoC-True/" % cfg.project_path]
-    # merge_datasets(data_lst, cfg.output_dir)
+    # collect_dataset_close_open(cfg)
+    data_lst = ["%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_kitchen_MoC-True/" % cfg.project_path,
+                "%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_tools_MoC-True/" % cfg.project_path,
+                "%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_misc_MoC-True/" % cfg.project_path]
+    merge_datasets(data_lst, cfg.output_dir)
     # create_data_ep_split(cfg.output_dir)
 
 

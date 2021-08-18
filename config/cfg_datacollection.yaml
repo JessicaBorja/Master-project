@@ -8,12 +8,12 @@ img_size:
 mask_on_close: True
 
 # For collecting dataset with playdata
-folder_name: tabletop_multiscene_sideview
+folder_name: tabletop_multiscene_sideview_MoC-${mask_on_close}
 play_data_dir: ${project_path}/datasets/rendered_data/${folder_name}
 
 
 #Output directory where dataset will be stored
-output_dir: ${project_path}/datasets/${folder_name}_MoC-${mask_on_close}/
+output_dir: ${project_path}/datasets/${folder_name}/ # _MoC-${mask_on_close}/
 viz: True
 
 
@@ -41,9 +41,9 @@ all_cameras:
     height: 200
     look_at: [0.22791078686714172, 0.008461681194603443, -0.24000032246112823]
     look_from: [0.22790421545536008, 1.570319612342189, 1.5822541675395883]
-  tabletop_misc:
+  tabletop_sideview:
     _target_: vr_env.camera.static_camera.StaticCamera
-    name: tabletop_topview
+    name: tabletop_sideview
     fov: 45
     aspect: 1
     nearval: 0.01

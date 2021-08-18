@@ -61,7 +61,7 @@ class VREnvData(Dataset):
         self.root_dir = root_dir
         _ids = self.read_json(os.path.join(root_dir, "episodes_split.json"))
         self.data = self._get_split_data(_ids, split, cam, n_train_ep)
-        self.add_rotation = split == "train" and cam == "gripper"
+        self.add_rotation = False  # split == "train" and cam == "gripper"
         self.transforms = get_transforms(transforms_cfg[split], img_size)
         _masks_t = "masks" if n_classes <= 2 else "masks_multitask"
         self.mask_transforms = get_transforms(transforms_cfg[_masks_t],

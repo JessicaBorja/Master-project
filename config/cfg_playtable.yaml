@@ -56,10 +56,6 @@ env_wrapper:
   use_aff_termination: False
   max_target_dist: 0.13
 
-# Use aff detected target to terminate episode
-termination_wrapper:
-  use_aff: False
-
 # Affordance configuration for RL agent observation inputs
 affordance:
     static_cam:

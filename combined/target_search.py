@@ -1,5 +1,4 @@
 import numpy as np
-from utils.cam_projections import pixel2world, world2pixel
 from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
 from affordance_model.segmentator_centers import Segmentator
 from omegaconf import OmegaConf
@@ -152,7 +151,7 @@ class TargetSearch():
             x = o.detach().cpu().numpy()
             x = (x * orig_shape / pred_shape).astype("int64")
             v, u = x
-            world_pt = np.array(pixel2world(cam, u, v, depth_obs))
+            world_pt = np.array(cam.deproject([u, v], depth_obs))
             world_pts.append(world_pt)
 
         # Recover target
@@ -204,8 +203,8 @@ class TargetSearch():
         # Static camera 
         cam = env.cameras[self.cam_id]
 
-        u1, v1 = world2pixel(np.array(box_top_left), cam)
-        u2, v2 = world2pixel(np.array(box_bott_right), cam)
+        u1, v1 = cam.project(np.array(box_top_left))
+        u2, v2 = cam.project(np.array(box_bott_right))
 
         shape = (cam.width, cam.height)
         mask = np.zeros(shape, np.uint8)

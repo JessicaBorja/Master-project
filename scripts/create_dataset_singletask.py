@@ -1,10 +1,11 @@
-
 import hydra
 import cv2
 import numpy as np
 import tqdm
 import os
 import sys
+from omegaconf import OmegaConf
+import pybullet as p
 
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, parent_dir)
@@ -15,6 +16,7 @@ from utils.img_utils import overlay_mask, tresh_np, overlay_flow
 from utils.label_segmentation import get_static_mask, get_gripper_mask
 from utils.file_manipulation import get_files, save_data, check_file,\
                                     create_data_ep_split, merge_datasets
+from scripts.cameras.real_cameras import CamProjections
 
 
 # Keep points in a distance larger than radius from new_point
@@ -49,14 +51,16 @@ def label_directions(center, object_mask, direction_labels, camtype):
 
 
 def update_mask(fixed_points, mask, directions,
-                frame_img_tuple, cam, out_img_size):
+                frame_img_tuple, cam, out_img_size,
+                teleop_data=False, radius=10):
     # Update masks with fixed_points
     centers = []
     (frame_timestep, img) = frame_img_tuple
     for point_timestep, p in fixed_points:
         # Only add point if it was fixed before seing img
         if(frame_timestep >= point_timestep):
-            new_mask, center_px = get_static_mask(cam, img, p)
+            new_mask, center_px = get_static_mask(cam, img, p, r=radius,
+                                                  teleop_data=teleop_data)
             new_mask, center_px = resize_mask_and_center(new_mask, center_px,
                                                          out_img_size)
             centers.append(center_px)
@@ -66,26 +70,10 @@ def update_mask(fixed_points, mask, directions,
     return mask, centers, directions
 
 
-def create_gripper_cam_properties(cam_cfg):
-    proj_m = {}
-    cam_cfg = dict(cam_cfg)
-    # Properties for projection matrix
-    proj_m["fov"] = cam_cfg.pop("fov")
-    proj_m["aspect"] = cam_cfg.pop("aspect")
-    proj_m["nearVal"] = cam_cfg.pop("nearval")
-    proj_m["farVal"] = cam_cfg.pop("farval")
-
-    cam_cfg["proj_matrix"] = proj_m
-
-    del_keys = ["_target_", "name", "gripper_cam_link"]
-    for k in del_keys:
-        cam_cfg.pop(k)
-    return cam_cfg
-
-
-def label_gripper(cam_properties, img_hist, back_frames_max, curr_pt,
+def label_gripper(cam, img_hist, back_frames_max, curr_pt,
                   last_pt, viz, save_dict, out_img_size,
-                  radius=25, closed_gripper=False):
+                  closed_gripper=False, teleop_data=False,
+                  radius=25):
     for idx, (fr_idx, im_id, robot_obs, img) in enumerate(img_hist):
         if(im_id not in save_dict):
             # Shape: [H x W x 2]
@@ -99,10 +87,11 @@ def label_gripper(cam_properties, img_hist, back_frames_max, curr_pt,
                     if point is not None:
                         # Center and directions in matrix convention (row, column)
                         new_mask, center_px = get_gripper_mask(img,
-                                                               robot_obs[:6],
+                                                               robot_obs[:-1],
                                                                point,
-                                                               cam_properties,
-                                                               radius=radius)
+                                                               cam,
+                                                               radius=radius,
+                                                               teleop_data=teleop_data)
                         new_mask, center_px = resize_mask_and_center(new_mask,
                                                                      center_px,
                                                                      out_img_size)
@@ -153,7 +142,8 @@ def resize_mask_and_center(mask, center, new_size):
 
 
 def label_static(static_cam, static_hist, back_min, back_max,
-                 fixed_points, pt, viz, save_dict, out_img_size):
+                 fixed_points, pt, viz, save_dict, out_img_size,
+                 teleop_data=False, radius=10):
     for idx, (fr_idx, im_id, img) in enumerate(static_hist):
         # For static mask assume oclusion
         # until back_frames_min before
@@ -167,13 +157,16 @@ def label_static(static_cam, static_hist, back_min, back_max,
             directions,
             (fr_idx, img),
             static_cam,
-            out_img_size)
+            out_img_size,
+            teleop_data=teleop_data,
+            radius=radius)
         # first create fp masks and place current(newest)
         # mask and optical flow on top
         if(idx <= len(static_hist) - back_min and
                 idx > len(static_hist) - back_max):
             # Get new grip
-            mask, center_px = get_static_mask(static_cam, img, pt)
+            mask, center_px = get_static_mask(static_cam, img, pt, r=radius,
+                                              teleop_data=teleop_data)
             mask, center_px = resize_mask_and_center(mask, center_px,
                                                      out_img_size)
             directions = label_directions(center_px, mask,
@@ -222,6 +215,46 @@ def label_static(static_cam, static_hist, back_min, back_max,
     return save_dict
 
 
+def instantiate_cameras(cfg, teleop_data):
+    if(not teleop_data):
+        # Instantiate camera to get projection and view matrices
+        static_cam = hydra.utils.instantiate(
+            cfg.env.cameras[0],
+            cid=0, robot_id=None, objects=None)
+
+        # Set properties needed to compute proj. matrix
+        # fov=self.fov, aspect=self.aspect,
+        # nearVal=self.nearval, farVal=self.farval
+        gripper_cam = hydra.utils.instantiate(
+            cfg.env.cameras[1],
+            cid=1, robot_id=None, objects=None)
+    else:
+        cam_info = np.load(os.path.join(
+                            cfg.play_data_dir,
+                            "camera_info.npz"),
+                            allow_pickle=True)
+        teleop_cfg = OmegaConf.load(os.path.join(
+                                        cfg.play_data_dir,
+                                        ".hydra/config.yaml"))
+        gripper_cfg = teleop_cfg.cams.gripper_cam
+        gripper_cam = CamProjections(
+                             cam_info["gripper_intrinsics"].item(),
+                             cam_info["gripper_extrinsic_calibration"],
+                             resize_resolution=gripper_cfg.resize_resolution,
+                             crop_coords=gripper_cfg.crop_coords,
+                             resolution=gripper_cfg.resolution,
+                             name=gripper_cfg.name)
+        static_cfg = teleop_cfg.cams.gripper_cam
+        static_cam = CamProjections(
+                            cam_info["static_intrinsics"].item(),
+                            cam_info['static_extrinsic_calibration'],
+                            resize_resolution=static_cfg.resize_resolution,
+                            crop_coords=static_cfg.crop_coords,
+                            resolution=static_cfg.resolution,
+                            name=static_cfg.name)
+    return static_cam, gripper_cam
+
+
 def collect_dataset_close_open(cfg):
     global pixel_indices
     gripper_out_size = (cfg.img_size.gripper, cfg.img_size.gripper)
@@ -230,36 +263,37 @@ def collect_dataset_close_open(cfg):
                                            dtype=np.float32).transpose(1, 2, 0),
                      "static": np.indices(static_out_size,
                                           dtype=np.float32).transpose(1, 2, 0)}
-    #
+    # Hyperparameters
     mask_on_close = cfg.mask_on_close
+    back_frames_max = cfg.labeling.back_frames_max
+    back_frames_min = cfg.labeling.back_frames_min
+    static_r = cfg.labeling.label_size.static_cam
+    gripper_r = cfg.labeling.label_size.gripper_cam
+    teleop_data = cfg.labeling.teleop_data
+    fixed_pt_radius = cfg.labeling.fixed_pt_radius
+
     # Episodes info
-    # ep_lens = np.load(os.path.join(cfg.play_data_dir, "ep_lens.npy"))
-    ep_start_end_ids = np.load(os.path.join(
-        cfg.play_data_dir,
-        "ep_start_end_ids.npy"))
-    end_ids = ep_start_end_ids[:, -1]
-
+    # Sorted files
+    files = get_files(cfg.play_data_dir, "npz")
+    if(not teleop_data):
+        # Simulation
+        # ep_lens = np.load(os.path.join(cfg.play_data_dir, "ep_lens.npy"))
+        ep_start_end_ids = np.load(os.path.join(
+            cfg.play_data_dir,
+            "ep_start_end_ids.npy"))
+        end_ids = ep_start_end_ids[:, -1]
+    else:
+        # Real life experiments
+        files.remove(os.path.join(cfg.play_data_dir, "camera_info.npz"))
     save_static, save_gripper = {}, {}
-    # Instantiate camera to get projection and view matrices
-    static_cam = hydra.utils.instantiate(
-        cfg.env.cameras[0],
-        cid=0, robot_id=None, objects=None)
+    static_cam, gripper_cam = instantiate_cameras(cfg, teleop_data)
 
-    # Set properties needed to compute proj. matrix
-    # fov=self.fov, aspect=self.aspect,
-    # nearVal=self.nearval, farVal=self.farval
-    gripper_cam_properties = create_gripper_cam_properties(cfg.env.cameras[1])
-
-    # Iterate rendered_data
-    files = get_files(cfg.play_data_dir, "npz")  # Sorted files
     static_hist, gripper_hist, fixed_points = [], [], []
     past_action = 1
     frame_idx = 0
     episode = 0
-    # Will segment 55 frames
-    back_frames_max = 60
-    back_frames_min = 5
     last_pt = None
+    # Iterate rendered_data
     for idx, filename in enumerate(tqdm.tqdm(files)):
         data = check_file(filename)
         if(data is None):
@@ -269,7 +303,15 @@ def collect_dataset_close_open(cfg):
 
         # Initialize img, mask, id
         img_id = tail[:-4]
-        robot_obs = data['robot_obs'][:7]  # 3 pos, 3 euler angle
+        if(teleop_data):
+            proprio = data["robot_state"].item()
+            # orn = p.getEulerFromQuaternion(proprio["tcp_orn"])
+            orn = proprio["tcp_orn"]
+            robot_obs = np.array([*proprio["tcp_pos"],
+                                  *orn,
+                                  proprio["gripper_opening_width"]])
+        else:
+            robot_obs = data["robot_obs"][:7]  # 3 pos, 3 euler angle
         static_hist.append(
             (frame_idx, "static_%s" % img_id,
              data['rgb_static'][:, :, ::-1]))
@@ -282,9 +324,14 @@ def collect_dataset_close_open(cfg):
         point = robot_obs[:3]
 
         # Start of interaction
-        ep_id = int(tail[:-4].split('_')[-1])
-        end_of_ep = ep_id >= end_ids[0] + 1 and len(end_ids) > 1
-        if(data['actions'][-1] <= 0 or end_of_ep):  # closed gripper
+        if(not teleop_data):
+            ep_id = int(tail[:-4].split('_')[-1])
+            end_of_ep = ep_id >= end_ids[0] + 1 and len(end_ids) > 1
+            gripper_action = data['actions'][-1]  # 1 -> closed, 0 -> open
+        else:
+            end_of_ep = False
+            gripper_action = robot_obs[-1] > 0.077  # Open
+        if(gripper_action <= 0 or end_of_ep):  # closed gripper
             # Get mask for static images
             # open -> closed
             if(past_action == 1):
@@ -293,18 +340,23 @@ def collect_dataset_close_open(cfg):
                                            back_frames_min, back_frames_max,
                                            fixed_points, point,
                                            cfg.viz, save_static,
-                                           static_out_size)
-                save_gripper = label_gripper(gripper_cam_properties,
+                                           static_out_size,
+                                           teleop_data=teleop_data,
+                                           radius=static_r)
+                save_gripper = label_gripper(gripper_cam,
                                              gripper_hist,
                                              back_frames_max,
                                              point, last_pt,
                                              cfg.viz, save_gripper,
-                                             gripper_out_size)
+                                             gripper_out_size,
+                                             teleop_data=teleop_data,
+                                             radius=gripper_r)
                 # If region was already labeled, delete previous point
                 fixed_points = update_fixed_points(
                         fixed_points,
                         point,
-                        frame_idx)
+                        frame_idx,
+                        radius=fixed_pt_radius)
 
                 static_hist, gripper_hist = [], []
             else:
@@ -312,18 +364,20 @@ def collect_dataset_close_open(cfg):
                 # Was closed and remained closed
                 # Last element in gripper_hist is the newest
                 if(mask_on_close):
-                    save_gripper = label_gripper(gripper_cam_properties,
+                    save_gripper = label_gripper(gripper_cam,
                                                  [gripper_hist[-1]],
                                                  back_frames_max,
                                                  point, last_pt,
                                                  cfg.viz, save_gripper,
                                                  gripper_out_size,
-                                                 closed_gripper=True)
+                                                 closed_gripper=True,
+                                                 teleop_data=teleop_data,
+                                                 radius=gripper_r)
         # Open gripper
         else:
             # Closed -> open transition
             if(past_action <= 0):
-                curr_point = data['robot_obs'][:3]
+                curr_point = point
                 fixed_points.append((frame_idx, curr_point))
                 last_pt = curr_point
 
@@ -349,7 +403,7 @@ def collect_dataset_close_open(cfg):
                       cfg.output_dir + "episode_%02d" % episode,
                       sub_dir="gripper_cam")
             save_static, save_gripper = {}, {}
-        past_action = data['actions'][-1]
+        past_action = gripper_action
 
     save_data(save_static,
               cfg.output_dir + "episode_%02d" % episode,
@@ -357,17 +411,17 @@ def collect_dataset_close_open(cfg):
     save_data(save_gripper,
               cfg.output_dir + "episode_%02d" % episode,
               sub_dir="gripper_cam")
-    create_data_ep_split(cfg.output_dir)
+    create_data_ep_split(cfg.output_dir, cfg.labeling.split_by_episodes)
 
 
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
     # collect_dataset_close_open(cfg)
-    data_lst = ["%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_kitchen_MoC-True/" % cfg.project_path,
-                "%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_tools_MoC-True/" % cfg.project_path,
-                "%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_misc_MoC-True/" % cfg.project_path]
-    merge_datasets(data_lst, cfg.output_dir)
-    # create_data_ep_split(cfg.output_dir)
+    # data_lst = ["%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_kitchen_MoC-True/" % cfg.project_path,
+    #             "%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_tools_MoC-True/" % cfg.project_path,
+    #             "%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_misc_MoC-True/" % cfg.project_path]
+    # merge_datasets(data_lst, cfg.output_dir)
+    create_data_ep_split(cfg.output_dir, cfg.labeling.split_by_episodes)
 
 
 if __name__ == "__main__":

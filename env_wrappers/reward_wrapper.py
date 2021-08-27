@@ -2,14 +2,6 @@ import gym
 import numpy as np
 import cv2
 import pybullet as p
-import torch
-from utils.cam_projections import pixel2world
-from utils.img_utils import overlay_mask
-from sklearn.cluster import DBSCAN
-from matplotlib import cm
-
-from sac_agent.sac_utils.utils import tt
-from utils.cam_projections import pixel2world
 from utils.img_utils import overlay_mask
 
 
@@ -101,7 +93,7 @@ class RewardWrapper(gym.RewardWrapper):
             mid_point = np.mean(cluster, 0).astype('int')
             u, v = mid_point[1], mid_point[0]
             # Unprojection
-            world_pt = pixel2world(cam, u, v, depth)
+            world_pt = cam.deproject([u, v], depth)
             robustness = np.mean(mask_scaled[cluster])
             c_out = {"center": world_pt,
                      "pixel_count": pixel_count,

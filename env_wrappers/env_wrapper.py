@@ -8,7 +8,6 @@ import pybullet as p
 import gym
 from gym import spaces
 
-from utils.cam_projections import pixel2world
 from vr_env.utils.utils import EglDeviceNotFoundError, get_egl_device_id
 from utils.img_utils import torch_to_numpy, viz_aff_centers_preds, visualize
 from .utils import get_obs_space, get_transforms_and_shape, find_cam_ids, \
@@ -401,7 +400,7 @@ class RLWrapper(gym.Wrapper):
             o = (o * orig_shape / pred_shape).astype("int64")
             v, u = o
 
-            world_pt = pixel2world(cam, u, v, depth)
+            world_pt = cam.deproject([u, v], depth)
             c_out = {"center": world_pt,
                      "pixel_count": pixel_count,
                      "robustness": robustness}

@@ -1,0 +1,8 @@
+split_by_episodes: True
+teleop_data: False
+back_frames_max: 50
+back_frames_min: 5
+fixed_pt_radius: 0.08  # Meters
+label_size:
+  static_cam: 10
+  gripper_cam: 25

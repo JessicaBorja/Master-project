@@ -77,8 +77,8 @@ def select_files(data, split, ep, episode_files,
     return data
 
 
-# Split episodes into train and validation
-def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
+def split_by_ep(root_dir, remove_blank_mask_instances=False):
+    data = {"train": [], "validation": []}
     # Episodes are subdirectories
     n_episodes = 0
     if(isinstance(root_dir, list)):
@@ -86,7 +86,6 @@ def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
             n_episodes += len(glob.glob(dir_i + "/*/"))
     n_episodes = len(glob.glob(root_dir + "/*/"))
     # Split data
-    data = {"train": [], "validation": []}
     # if(n_episodes >= 13):
     #     n_eval_ep = n_episodes // 4
     #     val_ep = np.random.choice(n_episodes, n_eval_ep, replace=False)
@@ -114,7 +113,56 @@ def create_data_ep_split(root_dir, remove_blank_mask_instances=True):
         data = select_files(data, split, ep, static_cam_files,
                             remove_blank_mask_instances,
                             skip_first_frames=skip_first_frames)
+    return data
 
+
+def split_by_ts(root_dir, remove_blank_mask_instances=False):
+    data = {"train": [], "validation": []}
+
+    # Count episodes
+    n_episodes = 0
+    if(isinstance(root_dir, list)):
+        for dir_i in root_dir:
+            n_episodes += len(glob.glob(dir_i + "/*/"))
+    n_episodes = len(glob.glob(root_dir + "/*/"))
+    data["validation"] = {"episode_%02d" % e: [] for e in range(n_episodes)}
+    data["train"] = {"episode_%02d" % e: [] for e in range(n_episodes)}
+    # Iterate episodes
+    for ep in tqdm.tqdm(range(n_episodes)):
+        ep_dir = os.path.join(root_dir, "episode_%02d" % ep)
+        full_gripper_cam_files = glob.glob("%s/data/*/*gripper*" % ep_dir)
+        gripper_val_data = len(full_gripper_cam_files)//4
+
+        full_static_cam_files = glob.glob("%s/data/*/*static*" % ep_dir)
+        static_val_data = len(full_static_cam_files)//4
+        for split in ["validation", "train"]:
+            if(split == "validation"):
+                gripper_cam_files = full_gripper_cam_files[-gripper_val_data:]
+                static_cam_files = full_static_cam_files[-static_val_data:]
+            else:
+                gripper_cam_files = full_gripper_cam_files[:-gripper_val_data]
+                static_cam_files = full_static_cam_files[:-static_val_data]
+
+            # data[split]["episode_%02d" % ep] = gripper_cam_files
+            data = select_files(data, split, ep, gripper_cam_files,
+                                remove_blank_mask_instances)
+
+            if(split == "validation"):
+                skip_first_frames = True
+            # data[split]["episode_%02d" % ep].append(static_cam_files)
+            data = select_files(data, split, ep, static_cam_files,
+                                remove_blank_mask_instances,
+                                skip_first_frames=skip_first_frames)
+    return data
+
+
+# Split episodes into train and validation
+def create_data_ep_split(root_dir, label_by_ep,
+                         remove_blank_mask_instances=True):
+    if(label_by_ep):
+        data = split_by_ep(root_dir, remove_blank_mask_instances)
+    else:
+        data = split_by_ts(root_dir, remove_blank_mask_instances)
     with open(root_dir+'/episodes_split.json', 'w') as outfile:
         json.dump(data, outfile, indent=2)
 

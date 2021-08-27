@@ -12,7 +12,6 @@ from affordance_model.segmentator_centers import Segmentator
 from affordance_model.utils.transforms import DistanceTransform
 from affordance_model.datasets import get_transforms
 
-from utils.cam_projections import pixel2world
 from utils.img_utils import torch_to_numpy, viz_aff_centers_preds, visualize
 from env_wrappers.utils import init_aff_net
 
@@ -342,7 +341,7 @@ class ObservationWrapper(gym.ObservationWrapper):
             o = (o * orig_shape / pred_shape).astype("int64")
             v, u = o
 
-            world_pt = pixel2world(cam, u, v, depth)
+            world_pt = cam.deproject([u, v], depth)
             c_out = {"center": world_pt,
                      "pixel_count": pixel_count,
                      "robustness": max_robustness}

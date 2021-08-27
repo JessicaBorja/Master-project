@@ -1,9 +1,9 @@
+from os import stat
 import cv2
 import numpy as np
-from utils.img_utils import overlay_mask, smoothen
+from utils.img_utils import overlay_mask
 import pybullet as p
-from .cam_projections import world2pixel
-
+from vr_env.camera.gripper_camera import GripperCamera
 
 # Masks generation #
 def get_elipse_angle(cam_name):
@@ -58,10 +58,10 @@ def get_img_mask_rl_agent(env, viz=False):
 
     # Project point to camera
     # x, y <- pixel coords
-    x, y = world2pixel(point, cam)
+    x, y = cam.project(point)
 
     # Euclidian distance on image space
-    robot_x, robot_y = world2pixel(robot_pose, cam)
+    robot_x, robot_y = cam.project(robot_pose)
     # euclidian_dist = np.linalg.norm(
     #   np.array([x,y])-np.array([robot_x,robot_y]))
     # if( euclidian_dist < 20.0 ):
@@ -88,7 +88,20 @@ def create_circle_mask(img, xy_coords, r=10):
     return mask
 
 
-def get_static_mask(static_cam, static_im, point, r=10):
+def get_px_after_crop_resize(cam, px):
+    tcp_x, tcp_y = px
+    # Img coords after crop
+    tcp_x = tcp_x - cam.crop_coords[2]
+    tcp_y = tcp_y - cam.crop_coords[0]
+    # Get img coords after resize
+    old_w = cam.crop_coords[3] - cam.crop_coords[2]
+    old_h = cam.crop_coords[1] - cam.crop_coords[0]
+    tcp_x = int((tcp_x/old_w)*cam.resize_resolution[0])
+    tcp_y = int((tcp_y/old_h)*cam.resize_resolution[1])
+    return tcp_x, tcp_y
+
+
+def get_static_mask(static_cam, static_im, point, r=10, teleop_data=False):
     # Img history containes previus frames where gripper action was open
     # Point is the point in which the gripper closed for the 1st time
     # TCP in homogeneus coord.
@@ -96,39 +109,54 @@ def get_static_mask(static_cam, static_im, point, r=10):
 
     # Project point to camera
     # x,y <- pixel coords
-    tcp_x, tcp_y = world2pixel(point, static_cam)
+    tcp_x, tcp_y = static_cam.project(point)
+    if(teleop_data):
+        tcp_x, tcp_y = get_px_after_crop_resize(static_cam, (tcp_x, tcp_y))
     static_mask = create_circle_mask(static_im, (tcp_x, tcp_y), r=r)
     return static_mask, (tcp_y, tcp_x)  # matrix coord
 
 
-def get_gripper_mask(img, robot_obs, point, cam_properties=None, radius=25):
+def get_gripper_mask(img, robot_obs, point,
+                     cam=None, radius=25, teleop_data=False):
     pt, orn = robot_obs[:3], robot_obs[3:]
-    orn = p.getQuaternionFromEuler(orn)
-    cam2tcp_pos = [0.1, 0, -0.1]
-    cam2tcp_orn = [0.430235, 0.4256151, 0.559869, 0.5659467]
-    cam_pos, cam_orn = p.multiplyTransforms(
-                                pt, orn,
-                                cam2tcp_pos, cam2tcp_orn)
+    if(teleop_data):
+        transform_matrix = np.reshape(p.getMatrixFromQuaternion(orn), (3, 3))
+        transform_matrix = np.vstack([transform_matrix, np.zeros(3)])
+        transform_matrix = np.hstack([transform_matrix,
+                                      np.expand_dims(np.array([*pt, 1]), 0).T])
+        transform_matrix = np.linalg.inv(transform_matrix)
+        point = transform_matrix @ np.array([*point, 1])
+        point = point[:3]
 
-    # Create projection and view matrix
-    cam_rot = p.getMatrixFromQuaternion(cam_orn)
-    cam_rot = np.array(cam_rot).reshape(3, 3)
-    cam_rot_y, cam_rot_z = cam_rot[:, 1], cam_rot[:, 2]
-    # camera: eye position, target position, up vector
-    view_matrix = p.computeViewMatrix(cam_pos, cam_pos + cam_rot_y, -cam_rot_z)
-    projection_matrix = p.computeProjectionMatrixFOV(
-                                **cam_properties["proj_matrix"])
+        # Transform pt to homogeneus cords and project
+        tcp_x, tcp_y = cam.project(point)
 
-    # Create camera obj since transform_point receives and obj
-    gripper_cam = type('obj', (object,),
-                       {'projectionMatrix': projection_matrix,
-                        'viewMatrix': view_matrix,
-                        "width": cam_properties["width"],
-                        "height": cam_properties["height"]
-                        })()
+        # Get img coords after resize
+        tcp_x, tcp_y = get_px_after_crop_resize(cam, (tcp_x, tcp_y))
+    else:
+        orn = p.getQuaternionFromEuler(orn)
+        cam2tcp_pos = [0.1, 0, -0.1]
+        cam2tcp_orn = [0.430235, 0.4256151, 0.559869, 0.5659467]
+        cam_pos, cam_orn = p.multiplyTransforms(
+                                    pt, orn,
+                                    cam2tcp_pos, cam2tcp_orn)
 
-    # Transform pt to homogeneus cords and project
-    point = np.append(point, 1)
-    tcp_x, tcp_y = world2pixel(point, gripper_cam)
-    mask = create_circle_mask(img, (tcp_x, tcp_y), r=radius)
+        # Create projection and view matrix
+        cam_rot = p.getMatrixFromQuaternion(cam_orn)
+        cam_rot = np.array(cam_rot).reshape(3, 3)
+        cam_rot_y, cam_rot_z = cam_rot[:, 1], cam_rot[:, 2]
+
+        # Extrinsics change as robot moves
+        cam.viewMatrix = p.computeViewMatrix(cam_pos,
+                                             cam_pos + cam_rot_y,
+                                             - cam_rot_z)
+
+        # Transform pt to homogeneus cords and project
+        point = np.append(point, 1)
+        tcp_x, tcp_y = cam.project(point)
+
+    if(tcp_x > 0 and tcp_y > 0):
+        mask = create_circle_mask(img, (tcp_x, tcp_y), r=radius)
+    else:
+        mask = np.zeros((img.shape[0], img.shape[1], 1))
     return mask, (tcp_y, tcp_x)

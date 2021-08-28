@@ -217,10 +217,11 @@ def save_data(data_dict, directory, sub_dir, save_viz=False):
 
 
 # Ger valid numpy files with raw data
-def get_files(path, extension):
+def get_files(path, extension, recursive=False):
     if(not os.path.isdir(path)):
         print("path does not exist: %s" % path)
-    files = glob.glob(path + "/*.%s" % extension)
+    search_str = "/*.%s" % extension if not recursive else "**/*.%s" % extension
+    files = glob.glob(path + search_str)
     if not files:
         print("No *.%s files found in %s" % (extension, path))
     files.sort()

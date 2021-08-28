@@ -7,6 +7,7 @@ import torch
 import sys
 from omegaconf import OmegaConf
 from omegaconf.listconfig import ListConfig
+from torchvision import transforms
 import tqdm
 import numpy as np
 parent_dir = os.path.dirname(os.getcwd())
@@ -22,7 +23,7 @@ import matplotlib.pyplot as plt
 import json
 
 
-def get_filenames(data_dir):
+def get_filenames(data_dir, get_eval_files=False, cam_type='gripper_cam'):
     files = []
     np_comprez = False
     if(isinstance(data_dir, ListConfig)):
@@ -38,27 +39,35 @@ def get_filenames(data_dir):
             files += get_files(dir_i, "jpg")
             files += get_files(dir_i, "png")
     else:
-        data_dir = to_absolute_path(data_dir)
-        data_dir = os.path.abspath(data_dir)
-        if(not os.path.exists(data_dir)):
-            print("Path does not exist: %s" % data_dir)
-            return
-        files += get_files(data_dir, "npz")
-        if(len(files) > 0):
-            np_comprez = True
-        files += get_files(data_dir, "jpg")
-        files += get_files(data_dir, "png")
+        if(get_eval_files):
+            files, np_comprez = get_validation_files(data_dir, cam_type)
+        else:
+            data_dir = to_absolute_path(data_dir)
+            data_dir = os.path.abspath(data_dir)
+            if(not os.path.exists(data_dir)):
+                print("Path does not exist: %s" % data_dir)
+                return
+            files += get_files(data_dir, "npz")
+            if(len(files) > 0):
+                np_comprez = True
+            files += get_files(data_dir, "jpg")
+            files += get_files(data_dir, "png")
     return files, np_comprez
 
 
-def get_validation_files(data_dir):
-    json_file = os.path.join(data_dir[0], "episodes_split.json")
+# Load validation files for custom datase
+def get_validation_files(data_dir, cam_type):
+    data_dir = os.path.join(get_original_cwd(), data_dir)
+    data_dir = os.path.abspath(data_dir)
+    json_file = os.path.join(data_dir,
+                             "episodes_split.json")
     with open(json_file) as f:
         data = json.load(f)
     d = []
-    for e in data['validation']['episode_1']:
-        cam_folder, filename = os.path.split(e.replace("\\", "/"))
-        d.append(data_dir[0] + "/%s/data/%s/%s.npz" % ("episode_1", cam_folder, filename))
+    for ep, imgs in data['validation'].items():
+        im_lst = [data_dir + "/%s/data/%s.npz" % (ep, img_path)
+                  for img_path in imgs if cam_type in img_path]
+        d.extend(im_lst)
     return d, True
 
 
@@ -76,21 +85,27 @@ def viz(cfg):
     model_cfg = run_cfg.model_cfg
     model_cfg.hough_voting = cfg.model_cfg.hough_voting
 
+    # Load model
     checkpoint_path = os.path.join(cfg.folder_name, "trained_models")
     checkpoint_path = os.path.join(checkpoint_path, cfg.model_name)
-    model = Segmentator.load_from_checkpoint(checkpoint_path, cfg=model_cfg).cuda()
+    model = Segmentator.load_from_checkpoint(checkpoint_path,
+                                             cfg=model_cfg).cuda()
     model.eval()
     print("model loaded")
 
     # Transforms
     n_classes = model_cfg.n_classes
     cm = plt.get_cmap('tab10')
-
-    img_transform = get_transforms(cfg.transforms.validation)
+    transforms_cfg = run_cfg.dataset.transforms_cfg
+    img_size = run_cfg.img_size[cfg.cam_type]
     _masks_t = "masks" if model_cfg.n_classes <= 2 else "masks_multitask"
-    mask_transforms = get_transforms(cfg.transforms[_masks_t])
+    img_transform = get_transforms(transforms_cfg.validation, img_size)
+    mask_transforms = get_transforms(transforms_cfg[_masks_t], img_size)
+
     # Iterate images
-    files, np_comprez = get_filenames(cfg.data_dir)
+    files, np_comprez = get_filenames(cfg.data_dir,
+                                      get_eval_files=cfg.get_eval_files,
+                                      cam_type=cfg.cam_type)
     n = len(files) // 2
     files = files[n:]
     out_shape = (cfg.out_size, cfg.out_size)
@@ -113,7 +128,8 @@ def viz(cfg):
         fg_mask, _, object_centers, object_masks = \
             model.predict(aff_mask, directions)
 
-        gt_transformed = mask_transforms(torch.Tensor(np.expand_dims(gt_mask, 0)).cuda())
+        gt_transformed = mask_transforms(torch.Tensor(
+                                            np.expand_dims(gt_mask, 0)).cuda())
         # print(compute_mIoU(aff_logits, gt_transformed))
 
         # To numpy arrays

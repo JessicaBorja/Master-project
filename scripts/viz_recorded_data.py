@@ -4,8 +4,8 @@ import numpy as np
 import tqdm
 import os
 import sys
-from omegaconf import OmegaConf
-
+from pathlib import Path
+import matplotlib.pyplot as plt
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, os.getcwd())
@@ -13,11 +13,18 @@ sys.path.insert(0, parent_dir+"/VREnv/")
 from utils.file_manipulation import get_files, check_file
 
 
+def normalizeImg(low, high, img):
+    imgClip = np.clip(img, low, high)
+    maxVal = np.max(imgClip)
+    minVal = np.min(imgClip)
+    return np.uint8((255.)/(maxVal-minVal)*(imgClip-maxVal)+255.)
+
+
 def viz_data(cfg):
     # Episodes info
     # Simulation
-    files = get_files(cfg.play_data_dir, "npz")  # Sorted files
-    if(not cfg.teleop_data):
+    files = get_files(cfg.play_data_dir, "npz", recursive=True)  # Sorted files
+    if(not cfg.labeling.teleop_data):
         # ep_lens = np.load(os.path.join(cfg.play_data_dir, "ep_lens.npy"))
         ep_start_end_ids = np.load(os.path.join(
             cfg.play_data_dir,
@@ -25,10 +32,11 @@ def viz_data(cfg):
         end_ids = ep_start_end_ids[:, -1]
     else:
         # Real life experiments
-        files.remove(os.path.join(cfg.play_data_dir, "camera_info.npz"))
+        # Remove camera calibration npz from iterable files
+        files = [f for f in files if "camera_info.npz" not in f]
 
     for idx, filename in enumerate(tqdm.tqdm(files)):
-        data = check_file(filename)
+        data = np.load(filename, allow_pickle=True)
         if(data is None):
             continue  # Skip file
 
@@ -38,9 +46,10 @@ def viz_data(cfg):
             if('rgb' in key):
                 cv2.imshow(key, img[:, :, ::-1])
             else:
+                max_range = 2**14 if "static" in key else 2**13
+                img = normalizeImg(0, max_range, img)
                 img = cv2.applyColorMap(img, cv2.COLORMAP_JET)
                 cv2.imshow(key, img)
-
         cv2.waitKey(1)
 
 

@@ -64,7 +64,7 @@ class ColorTransform(object):
     # Change image color
     def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         assert isinstance(tensor, torch.Tensor)
-        apply = np.random.rand() < 0.30  # 40% chance
+        apply = np.random.rand() < 0.30  # 30% chance
         if(apply):
             tensor = self.jitter(tensor)
         return tensor

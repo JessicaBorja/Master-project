@@ -17,7 +17,7 @@ from utils.label_segmentation import get_static_mask, get_gripper_mask
 from utils.file_manipulation import get_files, save_data, check_file,\
                                     create_data_ep_split, merge_datasets
 from scripts.cameras.real_cameras import CamProjections
-
+import glob
 
 # Keep points in a distance larger than radius from new_point
 # Do not keep fixed points more than 100 frames
@@ -229,12 +229,22 @@ def instantiate_cameras(cfg, teleop_data):
             cfg.env.cameras[1],
             cid=1, robot_id=None, objects=None)
     else:
-        cam_info = np.load(os.path.join(
-                            cfg.play_data_dir,
-                            "camera_info.npz"),
-                            allow_pickle=True)
+        cam_params_path = cfg.play_data_dir
+        dir_content = glob.glob(cfg.play_data_dir)
+        if("camera_info.npz" in dir_content):
+            cam_info = np.load(os.path.join(
+                               cfg.play_data_dir,
+                               "camera_info.npz"),
+                               allow_pickle=True)
+        else:
+            # Has subfolders of recorded data
+            cam_params_path = glob.glob(cfg.play_data_dir + "/*/")[0]
+            cam_info = np.load(os.path.join(
+                    cam_params_path,
+                    "camera_info.npz"),
+                    allow_pickle=True)
         teleop_cfg = OmegaConf.load(os.path.join(
-                                        cfg.play_data_dir,
+                                        cam_params_path,
                                         ".hydra/config.yaml"))
         gripper_cfg = teleop_cfg.cams.gripper_cam
         gripper_cam = CamProjections(
@@ -274,7 +284,7 @@ def collect_dataset_close_open(cfg):
 
     # Episodes info
     # Sorted files
-    files = get_files(cfg.play_data_dir, "npz")
+    files = []
     if(not teleop_data):
         # Simulation
         # ep_lens = np.load(os.path.join(cfg.play_data_dir, "ep_lens.npy"))
@@ -282,9 +292,16 @@ def collect_dataset_close_open(cfg):
             cfg.play_data_dir,
             "ep_start_end_ids.npy"))
         end_ids = ep_start_end_ids[:, -1]
+        files = get_files(cfg.play_data_dir, "npz")
     else:
         # Real life experiments
-        files.remove(os.path.join(cfg.play_data_dir, "camera_info.npz"))
+        episodes = glob.glob(cfg.play_data_dir + '/*/')
+        episodes = {ep_path: len(glob.glob(ep_path + '*.npz')) - 1 for ep_path in episodes}
+        end_ids = list(episodes.values())
+        for ep_path in episodes.keys():
+            f = get_files(ep_path, "npz")
+            f.remove(os.path.join(ep_path, "camera_info.npz"))
+            files.extend(f)
     save_static, save_gripper = {}, {}
     static_cam, gripper_cam = instantiate_cameras(cfg, teleop_data)
 
@@ -329,7 +346,8 @@ def collect_dataset_close_open(cfg):
             end_of_ep = ep_id >= end_ids[0] + 1 and len(end_ids) > 1
             gripper_action = data['actions'][-1]  # 1 -> closed, 0 -> open
         else:
-            end_of_ep = False
+            ep_id = int(tail[:-4].split('_')[-1])
+            end_of_ep = ep_id >= end_ids[0] + 1 and len(end_ids) > 1
             gripper_action = robot_obs[-1] > 0.077  # Open
         if(gripper_action <= 0 or end_of_ep):  # closed gripper
             # Get mask for static images
@@ -416,12 +434,13 @@ def collect_dataset_close_open(cfg):
 
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
-    # collect_dataset_close_open(cfg)
+    collect_dataset_close_open(cfg)
     # data_lst = ["%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_kitchen_MoC-True/" % cfg.project_path,
     #             "%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_tools_MoC-True/" % cfg.project_path,
     #             "%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_misc_MoC-True/" % cfg.project_path]
+    # data_lst = ["%s/datasets/real_world/ep_%d"%(cfg.project_path, i) for i in range(1, 8)]
     # merge_datasets(data_lst, cfg.output_dir)
-    create_data_ep_split(cfg.output_dir, cfg.labeling.split_by_episodes)
+    # create_data_ep_split(cfg.output_dir, cfg.labeling.split_by_episodes)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ folder_name: tabletop_multiscene_sideview/tabletop_misc # _MoC-${mask_on_close}
 play_data_dir: ${project_path}/datasets/rendered_data/${folder_name}
 
 #Output directory where dataset will be stored
-output_dir: ${project_path}/datasets/test/ # ${folder_name}/
+output_dir: ${project_path}/datasets/${folder_name}
 viz: True
 
 # save_dir: ../tmp/

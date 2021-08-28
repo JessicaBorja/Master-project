@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../VREnv"
+		},
+		{
+			"path": "../robot_io"
+		}
+	],
+	"settings": {}
+}

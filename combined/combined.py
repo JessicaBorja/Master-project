@@ -112,8 +112,8 @@ class Combined(SAC):
         r_obs = env.get_obs()["robot_obs"]
         tcp_pos, _ = r_obs[:3], r_obs[3:6]
         top_left, bott_right = self.box_3D_end_points
-        x_pos = np.random.uniform(top_left[0] + 0.07, bott_right[0] - 0.07)
-        y_pos = np.random.uniform(top_left[1] - 0.07, bott_right[1] + 0.07)
+        x_pos = np.random.uniform(top_left[0] + 0.06, bott_right[0] - 0.06)
+        y_pos = np.random.uniform(top_left[1] - 0.06, bott_right[1] + 0.06)
         box_pos = [x_pos, y_pos, 0.65]
 
         # Move up
@@ -288,9 +288,7 @@ class Combined(SAC):
         tasks, task_it = [], 0
         if(env.task == "pickup"):
             if(self.target_search.mode == "env"):
-                tasks = list(self.env.objects.keys())
-                tasks.remove("table")
-                tasks.remove("bin")
+                tasks = self.env.table_objs
                 n_episodes = len(tasks)
             else:
                 s = env.reset()
@@ -301,6 +299,7 @@ class Combined(SAC):
                 n_episodes = len(center_targets)
 
         ep_success = []
+        success_classes = []
         # One episode per task
         for episode in range(n_episodes):
             s = env.reset()
@@ -335,6 +334,9 @@ class Combined(SAC):
             if(episode_return >= 200 and env.task == "pickup"):
                 self.move_to_box(env)
                 success = self.eval_grasp_success(env)
+                if(success):
+                    success_classes.append(
+                        env.get_class(env.target))
             # Episode ended because it finished the task
             elif(env.task != "pickup" and r == 0):
                 success = True
@@ -364,7 +366,7 @@ class Combined(SAC):
             "Mean return: %.3f +/- %.3f, " % (mean_reward, reward_std) +
             "Mean length: %.3f +/- %.3f, over %d episodes" %
             (mean_length, length_std, n_episodes))
-        return mean_reward, mean_length, ep_success
+        return mean_reward, mean_length, ep_success, success_classes
 
     # Only applies to tabletop
     def tidy_up(self, env, max_episode_length=100):

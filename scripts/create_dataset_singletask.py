@@ -5,7 +5,7 @@ import tqdm
 import os
 import sys
 from omegaconf import OmegaConf
-import pybullet as p
+import glob
 
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, parent_dir)
@@ -17,7 +17,7 @@ from utils.label_segmentation import get_static_mask, get_gripper_mask
 from utils.file_manipulation import get_files, save_data, check_file,\
                                     create_data_ep_split, merge_datasets
 from scripts.cameras.real_cameras import CamProjections
-import glob
+
 
 # Keep points in a distance larger than radius from new_point
 # Do not keep fixed points more than 100 frames
@@ -254,14 +254,14 @@ def instantiate_cameras(cfg, teleop_data):
                              crop_coords=gripper_cfg.crop_coords,
                              resolution=gripper_cfg.resolution,
                              name=gripper_cfg.name)
-        static_cfg = teleop_cfg.cams.gripper_cam
+        static_cfg = teleop_cfg.cams.static_cam
         static_cam = CamProjections(
                             cam_info["static_intrinsics"].item(),
                             cam_info['static_extrinsic_calibration'],
                             resize_resolution=static_cfg.resize_resolution,
                             crop_coords=static_cfg.crop_coords,
                             resolution=static_cfg.resolution,
-                            name=static_cfg.name)
+                            name="static")
     return static_cam, gripper_cam
 
 
@@ -295,6 +295,8 @@ def collect_dataset_close_open(cfg):
         files = get_files(cfg.play_data_dir, "npz")
     else:
         # Real life experiments
+        # Play data dir contains subdirectories
+        # With different data collection runs
         episodes = glob.glob(cfg.play_data_dir + '/*/')
         episodes = {ep_path: len(glob.glob(ep_path + '*.npz')) - 1 for ep_path in episodes}
         end_ids = list(episodes.values())

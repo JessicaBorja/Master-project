@@ -266,7 +266,7 @@ class SAC():
             tasks.remove("bin")
             n_eval_ep = len(tasks)
 
-        mean_return, mean_length, success_lst = \
+        mean_return, mean_length, success_lst, success_classes = \
             self.evaluate(self.eval_env, max_ep_length,
                           n_episodes=n_eval_ep)
 
@@ -294,8 +294,8 @@ class SAC():
         # If environment definition allows for randoming environment
         if(self.eval_env.task == "pickup"
            and self.env.rand_scenes
-           and n_success >= 3):  # Change scene when method already does something
-            self.env.load_rand_scene()
+           and n_success >= 2):  # Change scene when method already does something
+            self.env.load_rand_scene(success_classes)
         return best_eval_return, plot_data
 
     def save(self, path):

@@ -299,7 +299,7 @@ class Combined(SAC):
                 n_episodes = len(center_targets)
 
         ep_success = []
-        success_classes = []
+        success_objs = []
         # One episode per task
         for episode in range(n_episodes):
             s = env.reset()
@@ -335,7 +335,7 @@ class Combined(SAC):
                 self.move_to_box(env)
                 success = self.eval_grasp_success(env)
                 if(success):
-                    success_classes.append(env.target)
+                    success_objs.append(env.target)
             # Episode ended because it finished the task
             elif(env.task != "pickup" and r == 0):
                 success = True
@@ -365,7 +365,7 @@ class Combined(SAC):
             "Mean return: %.3f +/- %.3f, " % (mean_reward, reward_std) +
             "Mean length: %.3f +/- %.3f, over %d episodes" %
             (mean_length, length_std, n_episodes))
-        return mean_reward, mean_length, ep_success, success_classes
+        return mean_reward, mean_length, ep_success, success_objs
 
     # Only applies to tabletop
     def tidy_up(self, env, max_episode_length=100):

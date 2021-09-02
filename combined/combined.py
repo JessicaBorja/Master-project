@@ -335,8 +335,7 @@ class Combined(SAC):
                 self.move_to_box(env)
                 success = self.eval_grasp_success(env)
                 if(success):
-                    success_classes.append(
-                        env.get_class(env.target))
+                    success_classes.append(env.target)
             # Episode ended because it finished the task
             elif(env.task != "pickup" and r == 0):
                 success = True

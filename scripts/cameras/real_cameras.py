@@ -24,8 +24,6 @@ class CamProjections(Camera):
         else:
             T_cam_world = np.linalg.inv(self.extrinsic_matrix)
             self.projection_matrix = self.intrinsic_matrix @ T_cam_world[:-1, :]
-        # _data = np.load("/mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/robot_io/robot_io/cams/kinect4/config/kinect4a_params_720p.npz",
-        #                 allow_pickle=True)
         self.crop_coords = intrinsics["crop_coords"]
         self.resize_resolution = intrinsics["resize_resolution"]
         self.dist_coeffs = intrinsics["dist_coeffs"]

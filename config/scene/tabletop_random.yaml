@@ -14,7 +14,7 @@ objects:
     fixed: true
   bin:
     file: ais_objects/bin_10_30_50/bin_10_30_50.urdf
-    initial_pos: [0.7, 0.75, 0.62]
+    initial_pos: [0.7, 0.75, 0.60]
     initial_orn: [1.57, 0, 0]
     fixed: true
   hammer_1:

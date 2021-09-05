@@ -45,18 +45,24 @@ class AffWorker(Worker):
         log.info(config)
 
         # Model and hyperpameters
-        batch_size = config.pop("batch_size")
-        lr = config.pop("lr")
-        model_cfg = OmegaConf.to_container(self.cfg.optim.model_cfg)
-        model_cfg["optimizer"]["lr"] = lr
-        hp = OmegaConf.create({**model_cfg, **config})
-        model = Segmentator(hp, cmd_log=self.logger)
+        model_cfg = self.cfg.model_cfg
+        model_cfg.aff_loss.dice_loss.weight = config.pop("dice_loss")
+        model_cfg.aff_loss.ce_loss.weight = config.pop("ce_loss")
+        model_cfg.centers_loss.weight = config.pop("centers_loss")
+        model_cfg.optimizer.lr = config.pop("lr")
+
+        # Load model
+        model = Segmentator(model_cfg, cmd_log=self.logger)
 
         # Get loaders
-        dataloader_cfg = {"batch_size": batch_size,
+        dataloader_cfg = {"batch_size": config.pop("batch_size"),
                           **self.cfg.optim.dataloader}
+        img_size = self.cfg.img_size[self.cfg.dataset.cam]
         train_loader, val_loader = \
-            get_loaders(log, self.cfg.dataset, dataloader_cfg)
+            get_loaders(log, self.cfg.dataset,
+                        dataloader_cfg,
+                        img_size,
+                        self.cfg.model_cfg.n_classes)
 
         # Set callbacks
         checkpoint_loss_callback = ModelCheckpoint(
@@ -110,18 +116,25 @@ class AffWorker(Worker):
         """
         cs = CS.ConfigurationSpace()
 
-        batch_size = CSH.UniformIntegerHyperparameter('batch_size', lower=16, upper=128)
-        lr = CSH.UniformFloatHyperparameter('lr', lower=1e-6, upper=1e-4, log=True)
+        batch_size = CSH.UniformIntegerHyperparameter('batch_size',
+                                                      lower=32, upper=256)
+        lr = CSH.UniformFloatHyperparameter('lr',
+                                            lower=1e-6, upper=1e-4,
+                                            log=True)
 
         # Dice Loss
-        dice_weight = CSH.UniformIntegerHyperparameter('dice_weight', lower=1, upper=5)
-        add_dice_loss = CSH.CategoricalHyperparameter(name='add_dice_loss',
-                                                      choices=[True, False])
-        cond_1 = CS.EqualsCondition(dice_weight, add_dice_loss, True)
+        dice_weight = CSH.UniformIntegerHyperparameter('dice_loss',
+                                                       lower=2, upper=7)
+        ce_loss = CSH.UniformIntegerHyperparameter('ce_loss',
+                                                   lower=1, upper=6)
+
+        # Centers loss
+        centers_loss = CSH.UniformIntegerHyperparameter('centers_loss',
+                                                        lower=2, upper=6)
 
         # Conditions
-        cs.add_hyperparameters([batch_size, lr, dice_weight, add_dice_loss])
-        cs.add_conditions([cond_1])
+        cs.add_hyperparameters([batch_size, lr, dice_weight,
+                                ce_loss, centers_loss])
         return cs
 
 

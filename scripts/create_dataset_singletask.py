@@ -25,7 +25,8 @@ def update_fixed_points(fixed_points, new_point,
                         current_frame_idx, radius=0.08):
     x = []
     for frame_idx, p in fixed_points:
-        if np.linalg.norm(new_point - p) > radius:
+        # Point not in air
+        if (np.linalg.norm(new_point - p) > radius):
             # and current_frame_idx - frame_idx < 1500:
             x.append((frame_idx, p))
     # x = [ p for (frame_idx, p) in fixed_points if
@@ -82,7 +83,7 @@ def label_gripper(cam, img_hist, back_frames_max, curr_pt,
                             [np.ones((H, W)),
                              np.zeros((H, W))], axis=-1).astype(np.float32)
             mask = np.zeros(out_img_size)
-            if(robot_obs[-1] > 0.02):
+            if(robot_obs[-1] > 0.015):
                 for point in [curr_pt, last_pt]:
                     if point is not None:
                         # Center and directions in matrix convention (row, column)
@@ -298,7 +299,8 @@ def collect_dataset_close_open(cfg):
         # Play data dir contains subdirectories
         # With different data collection runs
         episodes = glob.glob(cfg.play_data_dir + '/*/')
-        episodes = {ep_path: len(glob.glob(ep_path + '*.npz')) - 1 for ep_path in episodes}
+        episodes = {ep_path: len(glob.glob(ep_path + '*.npz')) - 2
+                for  ep_path in episodes}
         end_ids = list(episodes.values())
         for ep_path in episodes.keys():
             f = get_files(ep_path, "npz")
@@ -312,15 +314,25 @@ def collect_dataset_close_open(cfg):
     frame_idx = 0
     episode = 0
     last_pt = None
+
     # Iterate rendered_data
+    head, tail = os.path.split(files[0])
+    _,  curr_folder = os.path.split(head)
     for idx, filename in enumerate(tqdm.tqdm(files)):
         data = check_file(filename)
         if(data is None):
             continue  # Skip file
+        if('robot_state' not in data):
+            continue
 
-        _, tail = os.path.split(filename)
+        if(idx < len(files) - 1):
+            next_folder = os.path.split(
+                        os.path.split(files[idx + 1])[0])[-1]
+        else:
+            next_folder = curr_folder
 
         # Initialize img, mask, id
+        head, tail = os.path.split(filename)
         img_id = tail[:-4]
         if(teleop_data):
             proprio = data["robot_state"].item()
@@ -346,11 +358,13 @@ def collect_dataset_close_open(cfg):
         if(not teleop_data):
             ep_id = int(tail[:-4].split('_')[-1])
             end_of_ep = ep_id >= end_ids[0] + 1 and len(end_ids) > 1
-            gripper_action = data['actions'][-1]  # 1 -> closed, 0 -> open
+            gripper_action = data['actions'][-1]  # -1 -> closed, 1 -> open
         else:
             ep_id = int(tail[:-4].split('_')[-1])
-            end_of_ep = ep_id >= end_ids[0] + 1 and len(end_ids) > 1
+            end_of_ep = (ep_id >= end_ids[0] and len(end_ids) > 1)\
+                or curr_folder != next_folder
             gripper_action = robot_obs[-1] > 0.077  # Open
+            gripper_action = (data['action'].item()['motion'][-1] + 1)/2
         if(gripper_action <= 0 or end_of_ep):  # closed gripper
             # Get mask for static images
             # open -> closed
@@ -393,10 +407,13 @@ def collect_dataset_close_open(cfg):
                                                  closed_gripper=True,
                                                  teleop_data=teleop_data,
                                                  radius=gripper_r)
+                    gripper_hist = gripper_hist[:-1]
         # Open gripper
         else:
             # Closed -> open transition
-            if(past_action <= 0):
+            # and point not in air..
+            if(past_action <= 0 and
+               point[-1] <= 0.21):
                 curr_point = point
                 fixed_points.append((frame_idx, curr_point))
                 last_pt = curr_point
@@ -407,6 +424,7 @@ def collect_dataset_close_open(cfg):
             fixed_points = []
             past_action = 1  # Open
             save_static, save_gripper = {}, {}
+            curr_folder = next_folder
             save_data(save_static,
                       cfg.output_dir + "episode_%02d" % episode,
                       sub_dir="static_cam")

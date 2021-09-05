@@ -1,8 +1,8 @@
 
-max_budget: 100
-min_budget: 5
+max_budget: 300
+min_budget: 30
 n_iterations: 4
-n_workers: 1
+n_workers: 4
 run_id: "aff_hpo"
 nameserver: "127.0.0.1"
 
@@ -10,12 +10,6 @@ nameserver: "127.0.0.1"
 dataloader:
   num_workers: 4
   pin_memory: True
-
-model_cfg:
-  model_name: ${model_name}
-  loss_weight: [0.2, 0.8]
-  optimizer:
-    weight_decay: 1e-3
 
 trainer:
   gpus: 1

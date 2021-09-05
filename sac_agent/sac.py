@@ -261,10 +261,7 @@ class SAC():
 
         # Evaluate agent for n_eval_ep with max_ep_length
         if(self.eval_env.task == "pickup"):
-            tasks = list(self.eval_env.objects.keys())
-            tasks.remove("table")
-            tasks.remove("bin")
-            n_eval_ep = len(tasks)
+            n_eval_ep = len(self.eval_env.table_objs)
 
         mean_return, mean_length, success_lst, success_objs = \
             self.evaluate(self.eval_env, max_ep_length,
@@ -293,9 +290,9 @@ class SAC():
 
         # If environment definition allows for randoming environment
         if(self.eval_env.task == "pickup"
-           and self.env.rand_scenes
+           and self.eval_env.rand_scenes
            and n_success >= 2):  # Change scene when method already does something
-            self.env.load_rand_scene(success_objs)
+            self.eval_env.load_rand_scene(success_objs)
         return best_eval_return, plot_data
 
     def save(self, path):

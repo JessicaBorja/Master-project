@@ -38,6 +38,7 @@ class RLWrapper(gym.Wrapper):
         if(env_cfg.use_egl):
             device = torch.device(torch.cuda.current_device())
             self.set_egl_device(device)
+        env_cfg.seed = None
         self.env = EnvClass(**env_cfg)
         self.env.target_radius = max_target_dist
         self.initial_target_pos = None

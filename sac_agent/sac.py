@@ -266,8 +266,7 @@ class SAC():
 
         if(eval_all_objs):
             success_lst, success_objs = \
-                self.eval_all_objs(self.eval_env, max_ep_length,
-                                   n_episodes=n_eval_ep)
+                self.eval_all_objs(self.eval_env, max_ep_length)
         else:
             mean_return, mean_length, success_lst, success_objs = \
                 self.evaluate(self.eval_env, max_ep_length,
@@ -283,23 +282,31 @@ class SAC():
                 self.save(self.trained_path+"_best_eval.pth")
                 best_eval_return = mean_return
                 # Meassure success
-            n_success = np.sum(success_lst)
-            if(n_success > most_tasks):
-                self.log.info("[%d] New most successful! %d/%d" %
-                              (episode, n_success, len(success_lst)))
-                self.save(self.trained_path
-                          + "_most_tasks_from_%d.pth" % len(success_lst))
-                most_tasks = n_success
+        n_success = np.sum(success_lst)
+        if(n_success > most_tasks):
+            self.log.info("[%d] New most successful! %d/%d" %
+                          (episode, n_success, len(success_lst)))
+            self.save(self.trained_path
+                      + "_most_tasks_from_%d.pth" % len(success_lst))
+            most_tasks = n_success
 
         writer.add_scalar('eval/success(%dep)' %
                           (len(success_lst)), n_success, t)
 
         # If environment definition allows for randoming environment
+        # Change scene when method already does something
         if(self.eval_env.task == "pickup"
            and self.eval_env.rand_scenes
-           and n_success >= 2):  # Change scene when method already does something
+           and not eval_all_objs
+           and n_success >= 2):
+            for obj in success_objs:
+                obj_class = self.eval_env.class_per_obj[obj]
+                self.p_dist[obj_class] += 1
             self.eval_env.load_rand_scene(success_objs)
         return best_eval_return, most_tasks, plot_data
+
+    def eval_all_objs(self):
+        raise NotImplementedError
 
     def save(self, path):
         save_dict = {

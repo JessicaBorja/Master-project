@@ -3,6 +3,7 @@ from torch.utils.tensorboard import SummaryWriter
 import sys
 import os
 import cv2
+import math
 import pybullet as p
 import math
 from sac_agent.sac import SAC
@@ -263,7 +264,7 @@ class Combined(SAC):
 
             # Log interval (sac)
             if((t % log_interval == 0 and not self._log_by_episodes)
-               or (self._log_by_episodes and (timeout or done)
+               or (self._log_by_episodes and end_ep
                    and episode % _log_n_ep == 0)):
                 eval_all_objs = episode % (2 * _log_n_ep) == 0
                 best_eval_return, most_tasks, plot_data = \
@@ -276,7 +277,8 @@ class Combined(SAC):
                         self._eval_and_log(self.writer, t, episode,
                                            plot_data, most_full_tasks,
                                            best_eval_return,
-                                           n_eval_ep, max_episode_length)
+                                           n_eval_ep, max_episode_length,
+                                           eval_all_objs=True)
 
             if(end_ep):
                 best_return = \
@@ -302,15 +304,15 @@ class Combined(SAC):
     # Only applies to pickup task
     def eval_all_objs(self, env, max_ep_len,
                       render=False, save_images=False):
-        tasks = list(env.all_objects.keys())
+        tasks = list(env.interactable_objs)
         n_objs = len(env.rand_positions)
-        n_groups = np.range(0, tasks, n_objs)
+        n_total_objs = len(tasks)
 
         succesful_objs = []
         episodes_success = []
-        for i in n_groups:
+        for i in range(math.ceil(n_total_objs/n_objs)):
             if(len(tasks[i:]) >= n_objs):
-                curr_objs = tasks[i: i+n_groups]
+                curr_objs = tasks[i: i+n_objs]
             else:
                 curr_objs = tasks[i:]
             env.load_scene_with_objects(curr_objs)
@@ -322,9 +324,6 @@ class Combined(SAC):
             succesful_objs.extend(success_objs)
             episodes_success.extend(ep_success)
 
-        for obj in success_objs:
-            obj_class = self.eval_env.class_per_obj[obj]
-            self.p_dist[obj_class] += 1
         self.log.info(
             "Full evaluation over %d objs \n" % n_objs +
             "Success: %d/%d " % (np.sum(ep_success), len(ep_success)))
@@ -357,7 +356,8 @@ class Combined(SAC):
                 if(self.target_search.mode == "env"):
                     env.unwrapped.target = tasks[task_it]
                     target_pos, no_target = \
-                        self.target_search.compute(env, self.global_obs_it)
+                        self.target_search.compute(env,
+                                                   self.global_obs_it)
                 else:
                     target_pos = center_targets[task_it]["target_pos"]
                     env.unwrapped.target = center_targets[task_it]["target_str"]

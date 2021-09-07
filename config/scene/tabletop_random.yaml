@@ -1,6 +1,6 @@
 positions:  # x,y pos to randomly place objects
   [[-0.05, 0.88],
-   [0.3, 0.91],
+   [0.3, 0.85],
    [0.18, 0.58],
    [-0.13, 0.58],
    # [-0.11, 0.83],
@@ -67,11 +67,6 @@ objects:
     initial_pos: [0.4, 0.5, 0.6016315999956388]
     initial_orn: [0, 0, 0]
     fixed: false
-  plaster_spatula:
-    file: tabletop/plaster_spatula/plaster_spatula.urdf
-    initial_pos: [0.2, 0.45, 0.6111299521513464]
-    initial_orn: [0, 0, 0]
-    fixed: false
   spatula:
     file: tabletop/spatula/spatula.urdf
     initial_pos: [0.42, 0.54, 0.6045897331557224]
@@ -96,6 +91,11 @@ objects:
     file: tabletop/utility_knife/utility_knife.urdf
     initial_pos: [0.4, 0.5, 0.6081272152736463]
     initial_orn: [0, 0, -1.54]
+    fixed: false
+  small_tool_3:
+    file: tabletop/plaster_spatula/plaster_spatula.urdf
+    initial_pos: [0.2, 0.45, 0.6111299521513464]
+    initial_orn: [0, 0, 0]
     fixed: false
   knife:
     file: tabletop/kitchen_knife/kitchen_knife.urdf

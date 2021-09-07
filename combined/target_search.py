@@ -29,8 +29,7 @@ class TargetSearch():
     def compute(self, env=None,
                 global_it=0,
                 return_all_centers=False,
-                p_dist=None,
-                set_target=None):
+                p_dist=None):
         if(env is None):
             env = self.env
         if(self.mode == "affordance"):
@@ -57,9 +56,7 @@ class TargetSearch():
                     env.target = env_target
                     env.unwrapped.target = env_target
         else:
-            if(set_target):
-                env.target = set_target
-            else:
+            if(p_dist):
                 env.pick_rand_obj(p_dist)
             res = self._env_compute_target(env)
         return res

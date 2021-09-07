@@ -1,5 +1,5 @@
 project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd
-data_dir: ${project_path}/datasets/tabletop_multiscene_sideview_gripper_labels/
+data_dir: ${project_path}/datasets/teleop_real_01_09/
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: gripper_test
@@ -10,7 +10,7 @@ img_size:
 
 dataset:
   root_dir: ${data_dir}
-  cam: gripper
+  cam: static
   n_train_ep: -1  # Train using all episodes
 
 dataloader:

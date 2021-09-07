@@ -26,7 +26,11 @@ class TargetSearch():
         if(env.task == "pickup"):
             self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(self.env)
 
-    def compute(self, env=None, global_it=0, return_all_centers=False):
+    def compute(self, env=None,
+                global_it=0,
+                return_all_centers=False,
+                p_dist=None,
+                set_target=None):
         if(env is None):
             env = self.env
         if(self.mode == "affordance"):
@@ -53,6 +57,10 @@ class TargetSearch():
                     env.target = env_target
                     env.unwrapped.target = env_target
         else:
+            if(set_target):
+                env.target = set_target
+            else:
+                env.pick_rand_obj(p_dist)
             res = self._env_compute_target(env)
         return res
 
@@ -198,7 +206,7 @@ class TargetSearch():
         x, y, z = box_pos
         # Homogeneous cords
         box_top_left = [x - 0.12, y + 0.2, z, 1]
-        box_bott_right = [x + 0.12, y - 0.2, z + 0.1, 1]
+        box_bott_right = [x + 0.12, y - 0.2, z + 0.08, 1]
 
         # Static camera 
         cam = env.cameras[self.cam_id]

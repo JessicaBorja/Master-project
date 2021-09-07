@@ -6,8 +6,7 @@ import cv2
 import pybullet as p
 import math
 from sac_agent.sac import SAC
-from sac_agent.sac_utils.utils import EpisodeStats, tt
-
+from sac_agent.sac_utils.utils import tt
 
 from affordance_model.datasets import get_transforms
 from combined.target_search import TargetSearch
@@ -52,9 +51,12 @@ class Combined(SAC):
                                           class_label=_class_label,
                                           mode=target_search_mode,
                                           **args)
+        self.p_dist = None
         if(self.env.task == "pickup"):
             self.box_mask, self.box_3D_end_points = \
                 self.target_search.get_box_pos_mask(self.env)
+            self.p_dist = \
+                {c: 0 for c in self.env.objs_per_class.keys()}
 
         self.target_pos, _ = self.target_search.compute()
         self.last_detected_target = self.target_pos
@@ -107,13 +109,18 @@ class Combined(SAC):
             #     self.global_obs_it += 1
         return tcp_pos  # end pos
 
-    def move_to_box(self, env):
+    def move_to_box(self, env, sample=False):
         # Box does not move
         r_obs = env.get_obs()["robot_obs"]
         tcp_pos, _ = r_obs[:3], r_obs[3:6]
         top_left, bott_right = self.box_3D_end_points
-        x_pos = np.random.uniform(top_left[0] + 0.06, bott_right[0] - 0.06)
-        y_pos = np.random.uniform(top_left[1] - 0.06, bott_right[1] + 0.06)
+        if(sample):
+            x_pos = np.random.uniform(top_left[0] + 0.06, bott_right[0] - 0.06)
+            y_pos = np.random.uniform(top_left[1] - 0.06, bott_right[1] + 0.06)
+        else:
+            center_x, center_y, z = env.objects["bin"]["initial_pos"]
+            x_pos = center_x
+            y_pos = center_y
         box_pos = [x_pos, y_pos, 0.65]
 
         # Move up
@@ -147,11 +154,13 @@ class Combined(SAC):
             #                 im)
             #     self.global_obs_it += 1
 
-    def detect_and_correct(self, env, obs):
+    def detect_and_correct(self, env, obs, p_dist=None):
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
         target_pos, no_target = \
-            self.target_search.compute(env, self.global_obs_it)
+            self.target_search.compute(env,
+                                       self.global_obs_it,
+                                       p_dist=p_dist)
         if(no_target):
             self.no_detected_target += 1
             target_pos = self.last_detected_target
@@ -166,7 +175,7 @@ class Combined(SAC):
         if(isinstance(s, dict)):
             s = s["robot_obs"]
             dict_obs = True
-        tcp_pos, gripper_action = s[:3], s[-1]
+        tcp_pos = s[:3]
 
         # Set current_target in each episode
         self.target_pos = target_pos
@@ -227,6 +236,7 @@ class Combined(SAC):
         episode_return, episode_length = 0, 0
         best_return, best_eval_return = -np.inf, -np.inf
         most_tasks = 0
+        most_full_tasks = 0
         if(max_episode_length is None):
             max_episode_length = sys.maxsize  # "infinite"
 
@@ -238,10 +248,9 @@ class Combined(SAC):
         if(_log_n_ep < 1):
             _log_n_ep = 1
 
-        # correct_every_ts = 20
         # Move to target position only one
         # Episode ends if outside of radius
-        self.env, s, _ = self.detect_and_correct(self.env, s)
+        self.env, s, _ = self.detect_and_correct(self.env, s, self.p_dist)
         for t in range(1, total_timesteps+1):
             s, done, success, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, t, episode_return, episode_length,
@@ -249,18 +258,25 @@ class Combined(SAC):
 
             # End episode
             timeout = (max_episode_length
-                        and (episode_length >= max_episode_length))
+                       and (episode_length >= max_episode_length))
             end_ep = timeout or done
 
             # Log interval (sac)
             if((t % log_interval == 0 and not self._log_by_episodes)
                or (self._log_by_episodes and (timeout or done)
                    and episode % _log_n_ep == 0)):
-                best_eval_return, plot_data = \
-                     self._eval_and_log(self.writer, t, episode,
-                                        plot_data, most_tasks,
-                                        best_eval_return,
-                                        n_eval_ep, max_episode_length)
+                eval_all_objs = episode % (2 * _log_n_ep) == 0
+                best_eval_return, most_tasks, plot_data = \
+                    self._eval_and_log(self.writer, t, episode,
+                                       plot_data, most_tasks,
+                                       best_eval_return,
+                                       n_eval_ep, max_episode_length)
+                if(eval_all_objs):
+                    _, most_full_tasks, plot_data = \
+                        self._eval_and_log(self.writer, t, episode,
+                                           plot_data, most_full_tasks,
+                                           best_eval_return,
+                                           n_eval_ep, max_episode_length)
 
             if(end_ep):
                 best_return = \
@@ -272,26 +288,60 @@ class Combined(SAC):
                 episode += 1
                 episode_return, episode_length = 0, 0
                 s = self.env.reset()
-                self.env, s, _ = self.detect_and_correct(self.env, s)
+                self.env, s, _ = self.detect_and_correct(self.env, s,
+                                                         self.p_dist)
 
         # Evaluate at end of training
-        best_eval_return, plot_data = \
-            self._eval_and_log(self.writer, t, episode,
-                               plot_data, most_tasks, best_eval_return,
-                               n_eval_ep, max_episode_length)
+        for eval_all_objs in [False, True]:
+            best_eval_return, plot_data = \
+                self._eval_and_log(self.writer, t, episode,
+                                   plot_data, most_tasks, best_eval_return,
+                                   n_eval_ep, max_episode_length,
+                                   eval_all_objs=eval_all_objs)
+
+    # Only applies to pickup task
+    def eval_all_objs(self, env, max_ep_len,
+                      render=False, save_images=False):
+        tasks = list(env.all_objects.keys())
+        n_objs = len(env.rand_positions)
+        n_groups = np.range(0, tasks, n_objs)
+
+        succesful_objs = []
+        episodes_success = []
+        for i in n_groups:
+            if(len(tasks[i:]) >= n_objs):
+                curr_objs = tasks[i: i+n_groups]
+            else:
+                curr_objs = tasks[i:]
+            env.load_scene_with_objects(curr_objs)
+            mean_reward, mean_length, ep_success, success_objs = \
+                self.evaluate(env,
+                              max_episode_length=max_ep_len,
+                              render=render,
+                              save_images=save_images)
+            succesful_objs.extend(success_objs)
+            episodes_success.extend(ep_success)
+
+        for obj in success_objs:
+            obj_class = self.eval_env.class_per_obj[obj]
+            self.p_dist[obj_class] += 1
+        self.log.info(
+            "Full evaluation over %d objs \n" % n_objs +
+            "Success: %d/%d " % (np.sum(ep_success), len(ep_success)))
+        return episodes_success, succesful_objs
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
                  print_all_episodes=False, render=False, save_images=False):
-        stats = EpisodeStats(episode_lengths=[],
-                             episode_rewards=[],
-                             validation_reward=[])
+        ep_returns, ep_lengths = [], []
         tasks, task_it = [], 0
+
         if(env.task == "pickup"):
             if(self.target_search.mode == "env"):
-                tasks = self.env.table_objs
+                tasks = env.table_objs
                 n_episodes = len(tasks)
             else:
-                s = env.reset()
+                # Search by affordance
+                # s = env.reset()
                 target_pos, no_target, center_targets = \
                     self.target_search.compute(env,
                                                self.global_obs_it,
@@ -342,8 +392,8 @@ class Combined(SAC):
             else:
                 success = False
             ep_success.append(success)
-            stats.episode_rewards.append(episode_return)
-            stats.episode_lengths.append(episode_length)
+            ep_returns.append(episode_return)
+            ep_lengths.append(episode_length)
             if(print_all_episodes):
                 print("Episode %d, Return: %.3f, Success: %s"
                       % (episode, episode_return, str(success)))
@@ -355,10 +405,8 @@ class Combined(SAC):
             for idx, im in enumerate(self.im_lst):
                 cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
         # mean and print
-        mean_reward = np.mean(stats.episode_rewards)
-        reward_std = np.std(stats.episode_rewards)
-        mean_length = np.mean(stats.episode_lengths)
-        length_std = np.std(stats.episode_lengths)
+        mean_reward, reward_std = np.mean(ep_returns), np.std(ep_returns)
+        mean_length, length_std = np.mean(ep_lengths), np.std(ep_lengths)
 
         self.log.info(
             "Success: %d/%d " % (np.sum(ep_success), len(ep_success)) +
@@ -412,7 +460,7 @@ class Combined(SAC):
                 #     cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it, im)
                 #     self.global_obs_it += 1
             if(episode_return >= 200 and env.task == "pickup"):
-                self.move_to_box(env)
+                self.move_to_box(env, sample=True)
                 success = self.eval_grasp_success(env)
             else:
                 success = False

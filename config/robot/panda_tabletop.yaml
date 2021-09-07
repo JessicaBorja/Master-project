@@ -22,3 +22,4 @@ max_rel_orn: 0.39
 magic_scaling_factor_pos: 1
 magic_scaling_factor_orn: 1
 use_target_pose: False
+workspace_limits: [[-0.5, 0.32, 0.615], [0.83, 1, 1]]  # [[x_min, y_min, z_min], [x_max, y_max, z_max]]

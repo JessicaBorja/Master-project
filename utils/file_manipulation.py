@@ -1,3 +1,4 @@
+from collections import defaultdict
 import os
 import glob
 import json
@@ -45,18 +46,11 @@ def merge_datasets(directory_list, output_dir):
 
 
 # Select files that have a segmentation mask
-def select_files(data, split, ep, episode_files,
-                 remove_blank_masks, skip_first_frames=False):
+def select_files(episode_files, remove_blank_masks):
     # Skip first n files for static cams since
     # affordances are incomplete at the beginning of episodes
-    if skip_first_frames:
-        episode_files.sort()
-        fraction = len(episode_files)//5  # Discard first fifth
-        iter_files = episode_files[fraction:]
-    else:
-        iter_files = episode_files
-
-    for file in tqdm.tqdm(iter_files):
+    data = []
+    for file in tqdm.tqdm(episode_files):
         head, tail = os.path.split(file)
         # Remove extension name
         file_name = tail.split('.')[0]
@@ -66,14 +60,15 @@ def select_files(data, split, ep, episode_files,
         if(remove_blank_masks):
             np_file = np.load(file)
             mask = np_file["mask"]  # (H, W)
+            gripper_label = "gripper_cam" in file_name and mask.max() > 0
+            enough_labels = "static_cam" in file_name \
+                and len(np_file['centers']) > 5
             # Only add imgs where gripper is almost completely closed
-            # closed_gripper = "gripper_width" in np_file and \
-            #     np_file["gripper_width"] < 0.01
-            closed_gripper = False
-            if(mask.max() > 0 or closed_gripper):  # at least one pixel is not background
-                data[split]['episode_%02d' % ep].append(file_name)
+            # at least one pixel is not background
+            if(gripper_label or enough_labels):
+                data.append(file_name)
         else:
-            data[split]['episode_%02d' % ep].append(file_name)
+            data.append(file_name)
     return data
 
 
@@ -85,13 +80,6 @@ def split_by_ep(root_dir, remove_blank_mask_instances=False):
         for dir_i in root_dir:
             n_episodes += len(glob.glob(dir_i + "/*/"))
     n_episodes = len(glob.glob(root_dir + "/*/"))
-    # Split data
-    # if(n_episodes >= 13):
-    #     n_eval_ep = n_episodes // 4
-    #     val_ep = np.random.choice(n_episodes, n_eval_ep, replace=False)
-    #     # val_ep = [1, 10, 13]
-    # else:
-    #     # Take last episodes
     n_val_ep = n_episodes//4
     val_ep = [i for i in range(n_episodes - n_val_ep, n_episodes)]
     train_ep = [ep for ep in range(n_episodes) if ep not in val_ep]
@@ -101,18 +89,18 @@ def split_by_ep(root_dir, remove_blank_mask_instances=False):
 
     for ep in tqdm.tqdm(range(n_episodes)):
         ep_dir = os.path.join(root_dir, "episode_%02d" % ep)
+        ep_str = 'episode_%02d' % ep
         split = "validation" if ep in val_ep else "train"
 
         gripper_cam_files = glob.glob("%s/data/*/*gripper*" % ep_dir)
-        data = select_files(data, split, ep, gripper_cam_files,
-                            remove_blank_mask_instances)
+        selected_gripper_files = select_files(gripper_cam_files,
+                                              remove_blank_mask_instances)
 
         static_cam_files = glob.glob("%s/data/*/*static*" % ep_dir)
-        if(split == "validation"):
-            skip_first_frames = True
-        data = select_files(data, split, ep, static_cam_files,
-                            remove_blank_mask_instances,
-                            skip_first_frames=skip_first_frames)
+        selected_static_files = select_files(static_cam_files,
+                                             remove_blank_mask_instances)
+        data[split].update({ep_str: selected_gripper_files})
+        data[split][ep_str].extend(selected_static_files)
     return data
 
 
@@ -131,28 +119,26 @@ def split_by_ts(root_dir, remove_blank_mask_instances=False):
     for ep in tqdm.tqdm(range(n_episodes)):
         ep_dir = os.path.join(root_dir, "episode_%02d" % ep)
         full_gripper_cam_files = glob.glob("%s/data/*/*gripper*" % ep_dir)
-        gripper_val_data = len(full_gripper_cam_files)//4
 
         full_static_cam_files = glob.glob("%s/data/*/*static*" % ep_dir)
-        static_val_data = len(full_static_cam_files)//4
+        gripper_data = select_files(full_gripper_cam_files,
+                                    remove_blank_mask_instances)
+
+        static_data = select_files(full_static_cam_files,
+                                   remove_blank_mask_instances)
+
         for split in ["validation", "train"]:
+            ep_str = 'episode_%02d' % ep
             if(split == "validation"):
-                gripper_cam_files = full_gripper_cam_files[-gripper_val_data:]
-                static_cam_files = full_static_cam_files[-static_val_data:]
+                gripper_cam_files = gripper_data[-len(gripper_data)//4:]
+                static_cam_files = static_data[-len(static_data)//4:]
             else:
-                gripper_cam_files = full_gripper_cam_files[:-gripper_val_data]
-                static_cam_files = full_static_cam_files[:-static_val_data]
+                gripper_cam_files = gripper_data[:-len(gripper_data)//4]
+                static_cam_files = static_data[:-len(static_data)//4]
 
-            # data[split]["episode_%02d" % ep] = gripper_cam_files
-            data = select_files(data, split, ep, gripper_cam_files,
-                                remove_blank_mask_instances)
+            data[split].update({ep_str: gripper_cam_files})
+            data[split][ep_str].extend(static_cam_files)
 
-            if(split == "validation"):
-                skip_first_frames = True
-            # data[split]["episode_%02d" % ep].append(static_cam_files)
-            data = select_files(data, split, ep, static_cam_files,
-                                remove_blank_mask_instances,
-                                skip_first_frames=skip_first_frames)
     return data
 
 

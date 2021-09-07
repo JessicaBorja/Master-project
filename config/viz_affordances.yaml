@@ -2,10 +2,12 @@ project_folder: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/Master-proj
 
 # Load data relative to root directory
 # Validation episodes
-data_dir: [../datasets/tabletop_multiscene_MoC-True/tabletop_kitchen_MoC-True/episode_10/data/gripper_cam/,
-           ../datasets/tabletop_multiscene_MoC-True/tabletop_tools_MoC-True/episode_10/data/gripper_cam/,
-           ../datasets/tabletop_multiscene_MoC-True/tabletop_misc_MoC-True/episode_10/data/gripper_cam/]
+# data_dir: [../datasets/tabletop_multiscene_MoC-True/tabletop_kitchen_MoC-True/episode_10/data/gripper_cam/,
+#            ../datasets/tabletop_multiscene_MoC-True/tabletop_tools_MoC-True/episode_10/data/gripper_cam/,
+#            ../datasets/tabletop_multiscene_MoC-True/tabletop_misc_MoC-True/episode_10/data/gripper_cam/]
 
+get_eval_files: True
+data_dir: ../datasets/teleop_real_01_09/
 # # Gripper camera
 # folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-05-30/00-41-40
 # model_name: last.ckpt
@@ -30,13 +32,17 @@ data_dir: [../datasets/tabletop_multiscene_MoC-True/tabletop_kitchen_MoC-True/ep
 # model_name: last.ckpt
 
 # Tabletop multiscene Static cam
-folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-25/03-03-40_aff_rl
-model_name: tabletop_multiscene_gripper_epoch=98-val_miou=0.577.ckpt
+# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-25/03-03-40_aff_rl
+# model_name: tabletop_multiscene_gripper_epoch=98-val_miou=0.577.ckpt
+
+# Tabletop real-world Static cam
+folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-09-06/23-35-37_aff_rl
+model_name: last.ckpt
+cam_type: static
 
 # Output img size, must be mutiple of 32
 save_images: False
 imshow: True
-img_size: 64
 out_size: 300
 output_dir: ${project_folder}/affordance_model/predictions/aff_static_multitask
 

@@ -272,7 +272,7 @@ class Combined(SAC):
                                        plot_data, most_tasks,
                                        best_eval_return,
                                        n_eval_ep, max_episode_length)
-                if(eval_all_objs):
+                if(eval_all_objs and self.eval_env.rand_scenes):
                     _, most_full_tasks, plot_data = \
                         self._eval_and_log(self.writer, t, episode,
                                            plot_data, most_full_tasks,
@@ -304,6 +304,8 @@ class Combined(SAC):
     # Only applies to pickup task
     def eval_all_objs(self, env, max_ep_len,
                       render=False, save_images=False):
+        if(env.rand_positions is None):
+            return
         tasks = list(env.interactable_objs)
         n_objs = len(env.rand_positions)
         n_total_objs = len(tasks)

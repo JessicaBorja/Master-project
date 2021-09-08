@@ -269,8 +269,10 @@ class SAC():
             n_eval_ep = len(self.eval_env.table_objs)
 
         if(eval_all_objs):
+            self.log.info("Running full objs validation...")
             success_lst, success_objs = \
                 self.eval_all_objs(self.eval_env, max_ep_length)
+            self.log.info("End full objs validation...")
         else:
             mean_return, mean_length, success_lst, success_objs = \
                 self.evaluate(self.eval_env, max_ep_length,

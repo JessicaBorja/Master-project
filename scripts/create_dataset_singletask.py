@@ -454,14 +454,12 @@ def collect_dataset_close_open(cfg):
 
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
-    collect_dataset_close_open(cfg)
-    # data_lst = ["%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_kitchen_MoC-True/" % cfg.project_path,
-    #             "%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_tools_MoC-True/" % cfg.project_path,
-    #             "%s/datasets/tabletop_multiscene_sideview_MoC-True/tabletop_misc_MoC-True/" % cfg.project_path]
+    # collect_dataset_close_open(cfg)
+    # data_lst = ["%s/datasets/teleop_real_08_09/" % cfg.project_path,
+    #             "%s/datasets/teleop_real_01_09/" % cfg.project_path]
     # data_lst = ["%s/datasets/real_world/ep_%d"%(cfg.project_path, i) for i in range(1, 8)]
     # merge_datasets(data_lst, cfg.output_dir)
-    # create_data_ep_split(cfg.output_dir, cfg.labeling.split_by_episodes)
-
+    create_data_ep_split(cfg.output_dir, cfg.labeling.split_by_episodes)
 
 if __name__ == "__main__":
     main()

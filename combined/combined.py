@@ -306,15 +306,19 @@ class Combined(SAC):
                       render=False, save_images=False):
         if(env.rand_positions is None):
             return
+
+        # Store current objs to restore them later
+        previous_objs = env.table_objs
+
+        #
         tasks = list(env.interactable_objs)
         n_objs = len(env.rand_positions)
         n_total_objs = len(tasks)
-
         succesful_objs = []
         episodes_success = []
         for i in range(math.ceil(n_total_objs/n_objs)):
             if(len(tasks[i:]) >= n_objs):
-                curr_objs = tasks[i: i+n_objs]
+                curr_objs = tasks[i*n_objs: i*n_objs + n_objs]
             else:
                 curr_objs = tasks[i:]
             env.load_scene_with_objects(curr_objs)
@@ -329,6 +333,9 @@ class Combined(SAC):
         self.log.info(
             "Full evaluation over %d objs \n" % n_objs +
             "Success: %d/%d " % (np.sum(ep_success), len(ep_success)))
+
+        # Restore scene before loading full sweep eval
+        env.load_scene_with_objects(previous_objs)
         return episodes_success, succesful_objs
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,

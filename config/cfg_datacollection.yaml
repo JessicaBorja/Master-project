@@ -3,12 +3,12 @@ project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/ # "C:/Users/
 vrenv_path: ${project_path}/VREnv
 vrenv_data_path: ${vrenv_path}/data/
 img_size:
-  static: 200
+  static: 300
   gripper: 64
 mask_on_close: True
 
 # For collecting dataset with playdata
-folder_name: tabletop_multiscene_sideview/tabletop_misc # _MoC-${mask_on_close}
+folder_name: teleop_real_01_09
 play_data_dir: ${project_path}/datasets/rendered_data/${folder_name}
 
 #Output directory where dataset will be stored

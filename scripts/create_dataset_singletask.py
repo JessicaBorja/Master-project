@@ -423,7 +423,6 @@ def collect_dataset_close_open(cfg):
             end_ids = end_ids[1:]
             fixed_points = []
             past_action = 1  # Open
-            save_static, save_gripper = {}, {}
             curr_folder = next_folder
             save_data(save_static,
                       cfg.output_dir + "episode_%02d" % episode,
@@ -431,6 +430,7 @@ def collect_dataset_close_open(cfg):
             save_data(save_gripper,
                       cfg.output_dir + "episode_%02d" % episode,
                       sub_dir="gripper_cam")
+            save_static, save_gripper = {}, {}
             episode += 1
 
         if (len(save_gripper.keys()) + len(save_static.keys()) > 150):

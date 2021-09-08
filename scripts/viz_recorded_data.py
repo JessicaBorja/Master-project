@@ -46,8 +46,11 @@ def viz_data(cfg):
             if('rgb' in key):
                 cv2.imshow(key, img[:, :, ::-1])
             else:
-                max_range = 2**14 if "static" in key else 2**13
-                img = normalizeImg(0, max_range, img)
+                max_depth = 4
+                img = img.astype('float') / (2 ** 16 - 1) * max_depth
+                # max_range = 2**14 if "static" in key else 2**13
+                img = normalizeImg(0, 1, img)
+                # img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
                 img = cv2.applyColorMap(img, cv2.COLORMAP_JET)
                 cv2.imshow(key, img)
         cv2.waitKey(1)

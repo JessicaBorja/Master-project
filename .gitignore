@@ -19,3 +19,4 @@ results/figures/Dense + affordance mask.png
 scripts/find_label_clusters_directions.py
 scripts/motion_vectors.json
 setup.py
+tmp/

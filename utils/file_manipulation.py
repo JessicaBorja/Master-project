@@ -179,9 +179,9 @@ def save_data(data_dict, directory, sub_dir, save_viz=False):
     for img_id, img_dict in data_dict.items():
         # Write vizualization output
         if(save_viz):
-            aff_viz_filname = os.path.join(viz_aff, img_id) + ".jpg"
-            dir_viz_filname = os.path.join(viz_dir, img_id) + ".jpg"
-            frame_viz_filname = os.path.join(viz_frames, img_id) + ".jpg"
+            aff_viz_filname = os.path.join(viz_aff, img_id) + ".png"
+            dir_viz_filname = os.path.join(viz_dir, img_id) + ".png"
+            frame_viz_filname = os.path.join(viz_frames, img_id) + ".png"
 
             affordance = img_dict['viz_out']
             directions = img_dict['viz_dir']

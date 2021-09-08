@@ -19,6 +19,7 @@ from omegaconf import OmegaConf
 import sys
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.insert(0, os.getcwd())
+sys.path.insert(0, parent_dir)
 from affordance_model.utils.losses import compute_mIoU
 from affordance_model.segmentator_centers import Segmentator
 from affordance_model.datasets import get_loaders
@@ -98,6 +99,7 @@ class AffWorker(Worker):
         trainer = pl.Trainer(
                     callbacks=callbacks,
                     logger=wandb_logger,
+                    accelerator="ddp",
                     **train_cfg)
 
         # Train and validate

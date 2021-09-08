@@ -246,6 +246,10 @@ class SAC():
     def _eval_and_log(self, writer, t, episode, plot_data, most_tasks,
                       best_eval_return, n_eval_ep, max_ep_length,
                       eval_all_objs=False):
+        # If all objs are already on the table
+        if(eval_all_objs
+           and self.eval_env.rand_positions is None):
+            return
         # Log plot_data to writer
         for key, value in plot_data.items():
             if value:  # not empty
@@ -276,14 +280,14 @@ class SAC():
             writer.add_scalar('eval/mean_ep_length(%dep)' %
                               (n_eval_ep), mean_length, t)
             # Log results to writer
-            if(mean_return > best_eval_return):
+            if(mean_return >= best_eval_return):
                 self.log.info("[%d] New best eval avg. return!%.3f" %
                               (episode, mean_return))
                 self.save(self.trained_path+"_best_eval.pth")
                 best_eval_return = mean_return
                 # Meassure success
         n_success = np.sum(success_lst)
-        if(n_success > most_tasks):
+        if(n_success >= most_tasks):
             self.log.info("[%d] New most successful! %d/%d" %
                           (episode, n_success, len(success_lst)))
             self.save(self.trained_path

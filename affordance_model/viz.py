@@ -109,7 +109,7 @@ def viz(cfg):
     n = len(files) // 2
     files = files[n:]
     out_shape = (cfg.out_size, cfg.out_size)
-
+    im_size = (200, 200) if cfg.cam_type=="static" else (64, 64)
     for filename in tqdm.tqdm(files):
         if(np_comprez):
             data = np.load(filename)
@@ -119,6 +119,7 @@ def viz(cfg):
         else:
             orig_img = cv2.imread(filename, cv2.COLOR_BGR2RGB)
 
+        orig_img = cv2.resize(orig_img, im_size)
         # Apply validation transforms
         x = torch.from_numpy(orig_img).permute(2, 0, 1).unsqueeze(0)
         x = img_transform(x).cuda()
@@ -128,9 +129,10 @@ def viz(cfg):
         fg_mask, _, object_centers, object_masks = \
             model.predict(aff_mask, directions)
 
-        gt_transformed = mask_transforms(torch.Tensor(
-                                            np.expand_dims(gt_mask, 0)).cuda())
-        # print(compute_mIoU(aff_logits, gt_transformed))
+        # if(np_comprez):
+        #     gt_transformed = mask_transforms(torch.Tensor(
+        #                                         np.expand_dims(gt_mask, 0)).cuda())
+        #     # print(compute_mIoU(aff_logits, gt_transformed))
 
         # To numpy arrays
         pred_shape = np.array(fg_mask[0].shape)
@@ -173,8 +175,6 @@ def viz(cfg):
         directions = np.transpose(directions, (1, 2, 0))
         flow_img = flowlib.flow_to_image(directions)  # RGB
         flow_img = flow_img[:, :, ::-1]  # BGR
-        gt_flow = flowlib.flow_to_image(gt_directions)[:, :, ::-1]
-
         mask = (np.transpose(mask, (1, 2, 0))*255).astype('uint8')
 
         # Resize to out_shape
@@ -182,11 +182,16 @@ def viz(cfg):
         orig_img = cv2.resize(orig_img, out_shape)
         flow_img = cv2.resize(flow_img, out_shape)
         mask = cv2.resize(mask, out_shape)
-        if(gt_mask.max() >= 1):  # multiclass
-            gt_mask[gt_mask >= 1] = 255
-        gt_mask = cv2.resize(gt_mask.astype('uint8'), out_shape)
-        gt_directions = cv2.resize(gt_flow, out_shape)
         affordances = cv2.resize(affordances, out_shape)
+
+        # GT processing if available
+        if(np_comprez):
+            gt_flow = flowlib.flow_to_image(gt_directions)[:, :, ::-1]
+            if(gt_mask.max() >= 1):  # multiclass
+                gt_mask[gt_mask >= 1] = 255
+            gt_mask = cv2.resize(gt_mask.astype('uint8'), out_shape)
+            gt_directions = cv2.resize(gt_flow, out_shape)
+            gt_res = overlay_flow(gt_directions, orig_img, gt_mask)
 
         # Resize centers
         new_shape = np.array(out_shape)
@@ -195,7 +200,6 @@ def viz(cfg):
 
         # Overlay directions and centers
         res = overlay_flow(flow_img, orig_img, mask)
-        gt_res = overlay_flow(gt_directions, orig_img, gt_mask)
 
         # Draw detected centers
         for c in centers:
@@ -216,8 +220,9 @@ def viz(cfg):
             cv2.imshow("Affordance masks", affordances)
             cv2.imshow("object masks", obj_segmentation)
             cv2.imshow("flow", flow_img)
-            cv2.imshow("gt", gt_res)
-            cv2.imshow("gt_flow", gt_flow)
+            if(np_comprez):
+                cv2.imshow("gt", gt_res)
+                cv2.imshow("gt_flow", gt_flow)
             cv2.imshow("output", res)
             cv2.waitKey(1)
 

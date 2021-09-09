@@ -3,7 +3,7 @@ project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/ # "C:/Users/
 vrenv_path: ${project_path}/VREnv
 vrenv_data_path: ${vrenv_path}/data/
 img_size:
-  static: 300
+  static: 200
   gripper: 64
 mask_on_close: True
 

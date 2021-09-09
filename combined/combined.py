@@ -295,11 +295,13 @@ class Combined(SAC):
 
         # Evaluate at end of training
         for eval_all_objs in [False, True]:
-            best_eval_return, plot_data = \
-                self._eval_and_log(self.writer, t, episode,
-                                   plot_data, most_tasks, best_eval_return,
-                                   n_eval_ep, max_episode_length,
-                                   eval_all_objs=eval_all_objs)
+            if(eval_all_objs and self.env.rand_scenes
+               or not eval_all_objs):
+                best_eval_return, plot_data = \
+                    self._eval_and_log(self.writer, t, episode,
+                                       plot_data, most_tasks, best_eval_return,
+                                       n_eval_ep, max_episode_length,
+                                       eval_all_objs=eval_all_objs)
 
     # Only applies to pickup task
     def eval_all_objs(self, env, max_ep_len,

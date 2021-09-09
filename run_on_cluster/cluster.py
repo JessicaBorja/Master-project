@@ -70,7 +70,7 @@ job_opts = {
     "output": os.path.join(log_dir, "%x.%N.%j.out"),
     "error": os.path.join(log_dir, "%x.%N.%j.err"),
     "job_name": args.job_name,
-    "mail-type": "END,FAIL",
+    "mail-type": "FAIL",
     "time": f"{args.days}-00:00",
 }
 

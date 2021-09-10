@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import cv2
 import pybullet as p
+import os
 
 import gym
 from gym import spaces
@@ -36,12 +37,16 @@ class RLWrapper(gym.Wrapper):
                  history_length=None, skip_frames=None):
         # ENV definition
         if(env_cfg.use_egl):
-            device = torch.device(torch.cuda.current_device())
+            # if("CUDA_VISIBLE_DEVICES" in os.environ):
+            #     device_id = os.environ["CUDA_VISIBLE_DEVICES"]
+            #     device = int(device_id)
+            # else:
+            device = torch.cuda.current_device()
+            device = torch.device(device)
             self.set_egl_device(device)
         env_cfg.seed = None
         self.env = EnvClass(**env_cfg)
         self.env.target_radius = max_target_dist
-        self.initial_target_pos = None
 
         super(RLWrapper, self).__init__(self.env)
         self.task = self.env.task
@@ -134,7 +139,6 @@ class RLWrapper(gym.Wrapper):
 
     def reset(self, **kwargs):
         observation = self.env.reset(**kwargs)
-        self.initial_target_pos=None
         return self.observation(observation)
 
     def step(self, action):

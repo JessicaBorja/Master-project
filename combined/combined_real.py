@@ -4,7 +4,6 @@ import sys
 import os
 import cv2
 import math
-import pybullet as p
 import math
 from sac_agent.sac import SAC
 from sac_agent.sac_utils.utils import tt
@@ -24,10 +23,10 @@ class Combined(SAC):
             cfg.target_search_aff.img_size)
         # initial angle
         _initial_obs = self.env.get_obs()["robot_obs"]
-        self._initial_pos = _initial_obs[:3]
+        self.origin = _initial_obs[:3]
         _initial_orn = _initial_obs[3:6]
         if(self.env.task == "pickup"):
-            self.target_orn = np.array([- math.pi, 0, math.pi / 2])
+            self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
         elif(self.env.task == "slide"):
             self.target_orn = np.array([-math.pi / 2, math.pi / 2, 0])
         elif(self.env.task == "drawer"):
@@ -36,35 +35,29 @@ class Combined(SAC):
             self.target_orn = _initial_orn
 
         # to save images
-        self.im_lst = []
+        self.box_3D_end_points = [[0, 0, 0], [0, 1, 0]]
 
         # To enumerate static cam preds on target search
         self.global_obs_it = 0
         self.no_detected_target = 0
 
         args = {"cam_id": _cam_id,
-                "initial_pos": self._initial_pos,
+                "initial_pos": self.origin,
                 "aff_cfg": cfg.target_search_aff,
                 "aff_transforms": _aff_transforms,
                 "rand_target": rand_target}
         _class_label = self.get_task_label()
         self.target_search = TargetSearch(self.env,
                                           class_label=_class_label,
-                                          mode=target_search_mode,
+                                          mode="affordance",
                                           **args)
-        self.p_dist = None
-        if(self.env.task == "pickup"):
-            self.box_mask, self.box_3D_end_points = \
-                self.target_search.get_box_pos_mask(self.env)
-            self.p_dist = \
-                {c: 0 for c in self.env.objs_per_class.keys()}
 
         self.target_pos, _ = self.target_search.compute()
-        self.last_detected_target = self.target_pos
 
         # Target specifics
+        self.env.current_target = self.target_pos
         self.env.unwrapped.current_target = self.target_pos
-        self.eval_env.unwrapped.current_target = self.target_pos
+        self.eval_env = self.env
         self.radius = self.env.target_radius  # Distance in meters
 
     def get_task_label(self):
@@ -164,9 +157,7 @@ class Combined(SAC):
                                        p_dist=p_dist)
         if(no_target):
             self.no_detected_target += 1
-            target_pos = self.last_detected_target
-        else:
-            self.last_detected_target = target_pos
+            target_pos = self.origin
         res = self.correct_position(env, obs, target_pos, no_target)
         return res
 
@@ -179,52 +170,29 @@ class Combined(SAC):
         tcp_pos = s[:3]
 
         # Set current_target in each episode
-        self.target_pos = target_pos
-        env.unwrapped.current_target = target_pos
-        env.initial_target_pos = target_pos
+        self.env.unwrapped.current_target = target_pos
 
-        # Move
-        if(np.linalg.norm(tcp_pos - target_pos) > self.radius):
-            if(env.task == "pickup" or env.task == "drawer"):
-                # To never collide with the box
-                z_value = max(self.target_pos[2] + 0.08, 0.76)
-                up_target = [tcp_pos[0],
-                             tcp_pos[1],
-                             z_value]
-                # Move up from starting pose
-                a = [up_target, self.target_orn, 1]
-                tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
+        # To never collide with the box
+        z_value = max(target_pos[2] + 0.08, 0.76)
+        up_target = [tcp_pos[0],
+                     tcp_pos[1],
+                     z_value]
+        # Move up from starting pose
+        a = [up_target, self.target_orn, 1]
+        tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
 
-                # Move to target
-                reach_target = [*self.target_pos[:2], tcp_pos[-1]]
-                a = [reach_target, self.target_orn, 1]
-                tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
-                if(self.target_search.mode == "env"):
-                    # Environment returns the center of mass..
-                    move_to = self.target_pos + np.array([0, 0, 0.04])
-                else:
-                    # Affordances detect the surface of an object
-                    if(env.task == "pickup"):
-                        move_to = self.target_pos + np.array([0, 0, 0.035])  # 0.05
-                    else:
-                        move_to = self.target_pos + np.array([0, 0.02, 0.015])
-            else:
-                # Move in x-z dir
-                x_target = [self.target_pos[0], tcp_pos[1], self.target_pos[2]]
-                a = [x_target, self.target_orn, 1]
-                tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
+        # Move to target
+        reach_target = [*target_pos[:2], tcp_pos[-1]]
+        a = [reach_target, self.target_orn, 1]
+        tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
+        # Affordances detect the surface of an object
+        # Move slightly above obj
+        move_to = target_pos + np.array([0, 0, 0.035])
 
-                # Move up y dir
-                move_to = self.target_pos
+        # Move to target
+        a = [move_to, self.target_orn, 1]
+        self.move_to_target(env, tcp_pos, a, dict_obs)
 
-            # Move to target
-            a = [move_to, self.target_orn, 1]
-            self.move_to_target(env, tcp_pos, a, dict_obs)
-            # p.addUserDebugText("init_pos",
-            #                    textPosition=self.target_pos,
-            #                    textColorRGB=[0, 0, 1])
-        # as we moved robot, need to update target and obs
-        # for rl policy
         return env, env.observation(env.get_obs()), no_target
 
     # RL Policy
@@ -251,7 +219,7 @@ class Combined(SAC):
 
         # Move to target position only one
         # Episode ends if outside of radius
-        self.env, s, _ = self.detect_and_correct(self.env, s, self.p_dist)
+        self.env, s, _ = self.detect_and_correct(self.env, s)
         for t in range(1, total_timesteps+1):
             s, done, success, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, t, episode_return, episode_length,
@@ -290,8 +258,7 @@ class Combined(SAC):
                 episode += 1
                 episode_return, episode_length = 0, 0
                 s = self.env.reset()
-                self.env, s, _ = self.detect_and_correct(self.env, s,
-                                                         self.p_dist)
+                self.env, s, _ = self.detect_and_correct(self.env, s)
 
         # Evaluate at end of training
         for eval_all_objs in [False, True]:

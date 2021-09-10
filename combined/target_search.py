@@ -69,7 +69,7 @@ class TargetSearch():
         target_pos, _ = env.get_target_pos()
         # 2 cm deviation
         target_pos = np.array(target_pos)
-        target_pos += np.random.normal(loc=0, scale=[0.01, 0.01, 0.015],
+        target_pos += np.random.normal(loc=0, scale=[0.005, 0.005, 0.01],
                                        size=(len(target_pos)))
 
         # always returns a target position

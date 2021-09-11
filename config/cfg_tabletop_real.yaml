@@ -1,4 +1,4 @@
-project_path:  /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/
+project_path:  /home/hermannl/phd/repos/affordance_rl
 data_path: ${project_path}/VREnv/data/
 save_dir: ./combined/hydra_outputs/${task}
 model_name: real_world
@@ -51,8 +51,14 @@ env_wrapper:
     use_depth: False
   use_pos: True
   img_size: ${img_size}
-  use_aff_termination: True
-  max_target_dist: 0.10
+
+panda_env_wrapper:
+  d_pos: 0.01
+  d_rot: 0.3
+  gripper_success_threshold: 0.01
+  reward_fail: -1
+  reward_success: 200
+  termination_radius: 0.10
 
 # Affordance configuration for RL agent observation inputs
 affordance:
@@ -115,50 +121,16 @@ affordance:
         unet_cfg:
           decoder_channels: [128, 64, 32]
 
-all_cameras:
-  gripper:
-    _target_: vr_env.camera.gripper_camera.GripperCamera
-    name: gripper
-    fov: 75
-    aspect: 1
-    nearval: 0.01
-    farval: 2
-    width: 300
-    height: 300
-    gripper_cam_link: 12
-  tabletop_test:
-    _target_: vr_env.camera.static_camera.StaticCamera
-    name: tidy_up_test
-    fov: 75
-    aspect: 1
-    nearval: 0.01
-    farval: 2
-    width: 760
-    height: 760
-    look_at: [0.2773292660713196, 0.7766451239585876, 0.20271989703178406]
-    look_from: [-0.21922546214082672, 0.22516583397073475, 1.1457490759304818]
-  tabletop_sideview:
-    _target_: vr_env.camera.static_camera.StaticCamera
-    name: tabletop_sideview
-    fov: 45
-    aspect: 1
-    nearval: 0.01
-    farval: 2
-    width: 200
-    height: 200
-    look_at: [0.15026406943798065, 0.6811332106590271, 0.46438753604888916]
-    look_from: [-0.32631213472589593, 0.6811343431473001, 1.5656936606290373]
+
 
 hydra:
   run:
     dir: ${save_dir}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 defaults:
-  - robot: panda_tabletop
-  - scene: tabletop_random
-  - env: env_combined
-  - env@eval_env: env_combined
-  - camera_conf: tabletop_sideview
+  - robot_io/robot@robot: panda_frankx_interface
+  - robot_io/env@robot_env: env
+  - robot_io/cams@cams: camera_manager
   - agent: default
   - test: test_tabletop
   - transforms@affordance.transforms: aff_transforms

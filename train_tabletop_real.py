@@ -1,6 +1,6 @@
 import hydra
 import logging
-from vr_env.envs.play_table_env import PlayTableSimEnv
+from env_wrappers.panda_env_wrapper import PandaEnvWrapper
 from env_wrappers.env_wrapper import RLWrapper
 from env_wrappers.utils import get_name
 from combined.combined_real import Combined
@@ -11,13 +11,17 @@ def main(cfg):
     # Auto generate names given dense, aff-mask, aff-target
     log = logging.getLogger(__name__)
     cfg.model_name = get_name(cfg, cfg.model_name)
-    max_ts = cfg.agent.learn_config.max_episode_length
-    training_env = RLWrapper(PlayTableSimEnv, cfg.env, max_ts,
+    robot = hydra.utils.instantiate(cfg.robot)
+    env = hydra.utils.instantiate(cfg.robot_env, robot=robot)
+    env = PandaEnvWrapper(**cfg.panda_env_wrapper, env=env)
+
+    training_env = RLWrapper(env=env,
+                             max_ts=cfg.agent.learn_config.max_episode_length,
                              train=True,
                              affordance_cfg=cfg.affordance,
-                             target_search=cfg.target_search,
                              viz=cfg.viz_obs,
                              **cfg.env_wrapper)
+
 
     sac_cfg = {"env": training_env,
                 "eval_env": None,

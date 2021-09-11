@@ -170,16 +170,7 @@ class SAC():
         ns, r, done, info = self.env.step(a)
 
         # check if it actually earned the reward
-        success = False
-        if(r >= 200 and self.env.task == "pickup"):
-            # We don't know which obj aff model chose,
-            # so give success if any in box
-            success = self.eval_grasp_success(self.env, any=True)
-            # If lifted incorrectly get no reward
-            if(not success):
-                r = 0
-        elif(self.env.task != "pickup" and r > -1):
-            success = True
+        success = info["success"]
 
         self._replay_buffer.add_transition(s, a, r, ns, done)
         s = ns
@@ -247,12 +238,7 @@ class SAC():
     # Evaluate model and log plot_data to writter
     # Returns: Reseted plot_data and newest best_eval_reward
     def _eval_and_log(self, writer, t, episode, plot_data, most_tasks,
-                      best_eval_return, n_eval_ep, max_ep_length,
-                      eval_all_objs=False):
-        # If all objs are already on the table
-        if(eval_all_objs
-           and self.eval_env.rand_positions is None):
-            return
+                      best_eval_return, n_eval_ep, max_ep_length):
         # Log plot_data to writer
         for key, value in plot_data.items():
             if value:  # not empty
@@ -267,30 +253,18 @@ class SAC():
                      "critic_loss": [],
                      "ent_coef_loss": [], "ent_coef": []}
 
-        # Evaluate agent for n_eval_ep with max_ep_length
-        if(self.eval_env.task == "pickup"):
-            n_eval_ep = len(self.eval_env.table_objs)
+        mean_return, mean_length, success_lst = self.evaluate(self.eval_env, max_ep_length)
+        writer.add_scalar('eval/mean_return(%dep)' %
+                          (n_eval_ep), mean_return, t)
+        writer.add_scalar('eval/mean_ep_length(%dep)' %
+                          (n_eval_ep), mean_length, t)
+        # Log results to writer
+        if(mean_return >= best_eval_return):
+            self.log.info("[%d] New best eval avg. return!%.3f" %
+                          (episode, mean_return))
+            self.save(self.trained_path+"_best_eval.pth")
+            best_eval_return = mean_return
 
-        if(eval_all_objs):
-            self.log.info("Running full objs validation...")
-            success_lst, success_objs = \
-                self.eval_all_objs(self.eval_env, max_ep_length)
-            self.log.info("End full objs validation...")
-        else:
-            mean_return, mean_length, success_lst, success_objs = \
-                self.evaluate(self.eval_env, max_ep_length,
-                              n_episodes=n_eval_ep)
-            writer.add_scalar('eval/mean_return(%dep)' %
-                              (n_eval_ep), mean_return, t)
-            writer.add_scalar('eval/mean_ep_length(%dep)' %
-                              (n_eval_ep), mean_length, t)
-            # Log results to writer
-            if(mean_return >= best_eval_return):
-                self.log.info("[%d] New best eval avg. return!%.3f" %
-                              (episode, mean_return))
-                self.save(self.trained_path+"_best_eval.pth")
-                best_eval_return = mean_return
-                # Meassure success
         n_success = np.sum(success_lst)
         if(n_success >= most_tasks):
             self.log.info("[%d] New most successful! %d/%d" %
@@ -302,16 +276,6 @@ class SAC():
         writer.add_scalar('eval/success(%dep)' %
                           (len(success_lst)), n_success, t)
 
-        # If environment definition allows for randoming environment
-        # Change scene when method already does something
-        if(self.eval_env.task == "pickup"
-           and self.eval_env.rand_scenes
-           and not eval_all_objs
-           and n_success >= 2):
-            for obj in success_objs:
-                obj_class = self.eval_env.class_per_obj[obj]
-                self.p_dist[obj_class] += 1
-            self.eval_env.load_rand_scene(success_objs)
         return best_eval_return, most_tasks, plot_data
 
     def eval_all_objs(self):

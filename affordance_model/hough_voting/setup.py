@@ -11,7 +11,7 @@ setup(
             name='hough_voting_cuda',
             sources=['hough_voting_layer.cpp',
                      'hough_voting_kernel.cu'],
-                     include_dirs=['/home/borjadi/eigen-git-mirror/'])
+                     include_dirs=['/usr/include/eigen3'])
     ],
     cmdclass={
         'build_ext': BuildExtension

@@ -10,6 +10,20 @@ def torch_to_numpy(x):
     return x.detach().cpu().numpy()
 
 
+def get_depth_around_point(point, depth):
+    for width in range(5):
+        area = depth[point[1] - width: point[1] + width + 1, point[0] - width: point[0] + width + 1]
+        area[np.where(area == 0)] = np.inf
+        if np.all(np.isinf(area)):
+            continue
+        new_point = np.array([point[1], point[0]]) + np.array(np.unravel_index(area.argmin(), area.shape)) - width
+
+        assert depth[new_point[0], new_point[1]] != 0
+        return (new_point[1], new_point[0]), True
+    return None, False
+
+
+
 def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
                           object_centers, object_masks,
                           cam_type="", obs_it=0, save_images=False):
@@ -109,7 +123,7 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
     # cv2.imshow("aff_mask", mask)
     # cv2.imshow("flow_img", flow_img)
     cv2.imshow("flow_over_img-%s"%cam_type, flow_over_img)
-    cv2.imshow("preds-%s"%cam_type, out_img)
+    # cv2.imshow("preds-%s"%cam_type, out_img)
     cv2.waitKey(1)
 
     if(save_images):

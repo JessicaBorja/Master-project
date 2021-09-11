@@ -43,7 +43,7 @@ def find_cam_ids(cameras):
 
 
 def get_obs_space(affordance_cfg, gripper_cam_cfg, static_cam_cfg,
-                  channels, img_size, use_robot_obs, task):
+                  channels, img_size, use_robot_obs):
     cfg_dict = {
         "gripper": [gripper_cam_cfg, affordance_cfg.gripper_cam],
         "static": [static_cam_cfg, affordance_cfg.static_cam]
@@ -64,13 +64,9 @@ def get_obs_space(affordance_cfg, gripper_cam_cfg, static_cam_cfg,
                 low=0, high=1,
                 shape=(1, img_size, img_size))
     if(use_robot_obs):
-        # *tcp_pos(3), *tcp_euler(1), gripper_width, gripper_action(1),
-        if(task == "pickup"):
-            obs_space_dict['robot_obs'] = gym.spaces.Box(
-                low=-0.5, high=0.5, shape=(6,))
-        else:
-            obs_space_dict['robot_obs'] = gym.spaces.Box(
-                low=-0.5, high=0.5, shape=(8,))
+        # *tcp_pos(3), *tcp_euler(1), gripper_width
+        obs_space_dict['robot_obs'] = gym.spaces.Box(
+            low=-0.5, high=0.5, shape=(5,))
     if(affordance_cfg.gripper_cam.target_in_obs):
         obs_space_dict['detected_target_pos'] = gym.spaces.Box(
             low=-1, high=1, shape=(3,))
@@ -152,16 +148,4 @@ def img_preprocessing(frame, transforms):
     frame = torch.from_numpy(frame).permute(2, 0, 1)
     frame = transforms(frame)
     frame = frame.cpu().detach().numpy()
-
-    # History length
-    # if(frame.shape == 2):
-    #     frame = np.expand_dims(frame, 0)  # (1, img_size, img_size)
-    # c, w, h = frame.shape
-    # self._total_frames = np.pad(self._total_frames, ((
-    #     c, 0), (0, 0), (0, 0)), mode='constant')[:-c, :, :]
-    # self._total_frames[0:c] = frame
-
-    # self._cur_img_obs = [self._total_frames[i * c:(i * c) + c]
-    #                      for i in self._indices]
-    # self._cur_img_obs = np.concatenate(self._cur_img_obs, 0)
     return frame

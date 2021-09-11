@@ -24,9 +24,6 @@ class TargetSearch():
         self.static_cam_imgs = {}
         self.class_label = class_label
         self.box_mask = None
-        if(env.task == "pickup" and self.mode != "real_world"):
-                self.box_mask, self.box_3D_end_points =  \
-                    self.get_box_pos_mask(self.env)
 
     def compute(self, env=None,
                 global_it=0,
@@ -34,67 +31,15 @@ class TargetSearch():
                 p_dist=None):
         if(env is None):
             env = self.env
-        if(self.mode == "affordance"):
-            # Get environment observation
-            cam = env.cameras[self.cam_id]
-            obs = env.get_obs()
-            depth_obs = obs["depth_obs"][self.cam_id]
-            orig_img = obs["rgb_obs"][self.cam_id]
-            res = self._compute_target_aff(env,
-                                           cam,
-                                           depth_obs,
-                                           orig_img,
-                                           global_it)
-            target_pos, no_target, object_centers = res
-            if env.task == "slide" or env.task == "hinge":
-                # Because it most likely will detect the door and not the handle
-                target_pos = np.array([target_pos[0],
-                                       target_pos[1] - 0.075,
-                                       target_pos[2]])
-            if(return_all_centers):
-                obj_centers = []
-                for center in object_centers:
-                    obj = {}
-                    obj["target_pos"] = center
-                    obj["target_str"] = \
-                        self.find_env_target(env, center)
-                    obj_centers.append(obj)
-                res = (target_pos, no_target, obj_centers)
-            else:
-                res = (target_pos, no_target)
-                if(env.task == "pickup"):
-                    env_target = self.find_env_target(env, target_pos)
-                    env.target = env_target
-                    env.unwrapped.target = env_target
-        elif(self.mode == "env"):
-            if(p_dist):
-                env.pick_rand_obj(p_dist)
-            res = self._env_compute_target(env)
-        elif(self.mode == "real_world"):
-            cam = env.cameras[0]  # static_cam
-            orig_img, depth_img = cam.get_image()
-            res = self._compute_target_aff(env, cam,
-                                           depth_img,
-                                           orig_img,
-                                           global_it)
-            if(not return_all_centers):
-                res = res[:2]
+        cam = env.env.env.camera_manager.static_cam  # static_cam
+        orig_img, depth_img = cam.get_image()
+        res = self._compute_target_aff(env, cam,
+                                       depth_img,
+                                       orig_img,
+                                       global_it)
+        if(not return_all_centers):
+            res = res[:2]
         return res
-
-    # Env real target pos
-    def _env_compute_target(self, env=None):
-        if(not env):
-            env = self.env
-        # This should come from static cam affordance later on
-        target_pos, _ = env.get_target_pos()
-        # 2 cm deviation
-        target_pos = np.array(target_pos)
-        target_pos += np.random.normal(loc=0, scale=[0.005, 0.005, 0.01],
-                                       size=(len(target_pos)))
-
-        # always returns a target position
-        no_target = False
-        return target_pos, no_target
 
     # Aff-center model
     def _compute_target_aff(self, env, cam, depth_obs, orig_img,
@@ -107,8 +52,8 @@ class TargetSearch():
         # Predict affordances and centers
         _, aff_probs, aff_mask, center_dir = \
             self.aff_net_static_cam.forward(img_obs)
-        if(env.task == "pickup" and self.box_mask is not None):
-            aff_mask = aff_mask - self.box_mask
+        # if(env.task == "pickup" and self.box_mask is not None):
+        #     aff_mask = aff_mask - self.box_mask
 
         # Filter by class
         if(self.class_label is not None):
@@ -121,14 +66,14 @@ class TargetSearch():
             self.aff_net_static_cam.predict(class_mask, center_dir)
 
         # Visualize predictions
-        if(env.viz or env.save_images):
-            img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs,
-                                             center_dir, object_centers,
-                                             object_masks, "static",
-                                             global_obs_it,
-                                             self.env.save_images)
-            self.static_cam_imgs.update(img_dict)
-            global_obs_it += 1
+        # if(env.viz or env.save_images):
+        img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs,
+                                         center_dir, object_centers,
+                                         object_masks, "static",
+                                         global_obs_it,
+                                         False)
+            # self.static_cam_imgs.update(img_dict)
+            #global_obs_it += 1
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
@@ -160,14 +105,17 @@ class TargetSearch():
         pred_shape = aff_probs.shape[:2]
         orig_shape = depth_obs.shape[:2]
 
+        T_world_cam = cam.get_extrinsic_calibration("panda")
+
         # World coords
         world_pts = []
         for o in object_centers:
             x = o.detach().cpu().numpy()
             x = (x * orig_shape / pred_shape).astype("int64")
             v, u = x
-            world_pt = np.array(cam.deproject([u, v], depth_obs))
-            world_pts.append(world_pt)
+            pt_cam = cam.deproject([u, v], depth_obs, homogeneous=True)
+            world_pt = T_world_cam @ pt_cam
+            world_pts.append(world_pt[:3])
 
         # Recover target
         v, u = object_centers[target_idx]
@@ -185,23 +133,6 @@ class TargetSearch():
                         out_img)
 
         return target_pos, no_target, world_pts
-
-    def find_env_target(self, env, target_pos):
-        min_dist = np.inf
-        env_target = env.target
-        for name in env.table_objs:
-            target_obj = env.objects[name]
-            base_pos = p.getBasePositionAndOrientation(target_obj["uid"],
-                                                       physicsClientId=env.cid)[0]
-            if(p.getNumJoints(target_obj["uid"]) == 0):
-                pos = base_pos
-            else:  # Grasp link
-                pos = p.getLinkState(target_obj["uid"], 0)[0]
-            dist = np.linalg.norm(pos - target_pos)
-            if(dist < min_dist):
-                env_target = name
-                min_dist = dist
-        return env_target
 
     def get_box_pos_mask(self, env):
         if(not env):

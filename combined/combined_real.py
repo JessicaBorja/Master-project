@@ -22,12 +22,12 @@ class Combined(SAC):
             cfg.target_search_aff.img_size)
 
         # initial angle
-        _initial_obs = self.env.get_obs()["robot_obs"]
+        _initial_obs = self.env.reset()["robot_obs"]
         self.origin = _initial_obs[:3]
-        self.target_orn = np.array([- math.pi, 0, math.pi / 2])
+        self.target_orn = np.array([math.pi, 0, 0])
 
         # Box pos world frame
-        self.box_pos = self.env.objects["bin"]["initial_pos"] # np.array([0, 0, 0])
+        # self.box_pos = self.env.objects["bin"]["initial_pos"] # np.array([0, 0, 0])
 
         # To enumerate static cam preds on target search
         self.global_obs_it = 0
@@ -47,20 +47,6 @@ class Combined(SAC):
         self.env.current_target = self.target_pos
         self.env.unwrapped.current_target = self.target_pos
         self.eval_env = self.env
-        self.radius = self.env.target_radius  # Distance in meters
-
-    # Model based methods
-    def move_to_target(self, env, tcp_pos, a, dict_obs=True):
-        target = a[0]
-        last_pos = target
-        # When robot is moving and far from target
-        while(np.linalg.norm(tcp_pos - target) > 0.01
-              and np.linalg.norm(last_pos - tcp_pos) > 0.0005):
-            last_pos = tcp_pos
-            obs, reward, done, info = \
-                env.step(a)
-            tcp_pos = obs["robot_obs"][:3]
-        return tcp_pos, obs  # end pos
 
     def move_to_box(self, env, sample=False):
         # Box does not move
@@ -75,30 +61,10 @@ class Combined(SAC):
             y_pos = center_y
         box_pos = [x_pos, y_pos, 0.65]
 
-        # Move up
-        up_target = [*tcp_pos[:2], box_pos[2] + 0.2]
-        a = [up_target, self.target_orn, -1]  # -1 means closed
-        tcp_pos, _ = self.move_to_target(env, tcp_pos, a, dict_obs=True)
+        env.reset(box_pos, self.target_orn)
 
-        # Move to obj up
-        up_target = [*box_pos[:2], tcp_pos[-1]]
-        a = [up_target, self.target_orn, -1]  # -1 means closed
-        tcp_pos, _ = self.move_to_target(env, tcp_pos, a, dict_obs=True)
-
-        # Move down
-        box_pos = [*box_pos[:2], tcp_pos[-1] - 0.12]
-        a = [box_pos, self.target_orn, -1]  # -1 means closed
-        tcp_pos = env.get_obs()["robot_obs"][:3]
-        tcp_pos, obs = self.move_to_target(env, tcp_pos, a, dict_obs=True)
-
-        # Get new position and orientation
-        # pos, z angle, action = open gripper
-        a = [tcp_pos, self.target_orn, 1]
-        # drop object
-        for i in range(8):  # 8 steps
-            env.step(a)
-
-    def detect_and_correct(self, env, obs, p_dist=None):
+    def detect_and_correct(self, env, p_dist=None):
+        self.env.reset()
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
         target_pos, no_target = \
@@ -107,42 +73,13 @@ class Combined(SAC):
                                        p_dist=p_dist)
         if(no_target):
             self.no_detected_target += 1
-            target_pos = self.origin
-        res = self.correct_position(env, obs, target_pos, no_target)
-        return res
+            input("No object detected. Please rearrange table.")
+            return self.detect_and_correct(env, p_dist)
 
-    def correct_position(self, env, s, target_pos, no_target):
-        dict_obs = False
-        # Take current robot state
-        if(isinstance(s, dict)):
-            s = s["robot_obs"]
-            dict_obs = True
-        tcp_pos = s[:3]
-
-        # Set current_target in each episode
-        self.env.unwrapped.current_target = target_pos
-
-        # To never collide with the box
-        z_value = max(target_pos[2] + 0.08, 0.76)
-        up_target = [tcp_pos[0],
-                     tcp_pos[1],
-                     z_value]
-        # Move up from starting pose
-        a = [up_target, self.target_orn, 1]
-        tcp_pos, _ = self.move_to_target(env, tcp_pos, a, dict_obs)
-
-        # Move to target
-        reach_target = [*target_pos[:2], tcp_pos[-1]]
-        a = [reach_target, self.target_orn, 1]
-        tcp_pos, _ = self.move_to_target(env, tcp_pos, a, dict_obs)
-        # Affordances detect the surface of an object
-        # Move slightly above obj
-        move_to = target_pos + np.array([0, 0, 0.035])
-
-        # Move to target
-        a = [move_to, self.target_orn, 1]
-        _, obs = self.move_to_target(env, tcp_pos, a, dict_obs)
-
+        self.env.curr_detected_obj = target_pos
+        robot_target_pos = target_pos.copy()
+        robot_target_pos[2] += 0.07
+        obs = self.env.reset(robot_target_pos, self.target_orn)
         return env, obs, no_target
 
     # RL Policy
@@ -151,7 +88,6 @@ class Combined(SAC):
         if not isinstance(total_timesteps, int):   # auto
             total_timesteps = int(total_timesteps)
         episode = 1
-        s = self.env.reset()
         episode_return, episode_length = 0, 0
         best_return, best_eval_return = -np.inf, -np.inf
         most_tasks = 0
@@ -168,7 +104,7 @@ class Combined(SAC):
 
         # Move to target position only one
         # Episode ends if outside of radius
-        self.env, s, _ = self.detect_and_correct(self.env, s)
+        self.env, s, no_target = self.detect_and_correct(self.env)
         for t in range(1, total_timesteps+1):
             s, done, success, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, t, episode_return, episode_length,
@@ -198,67 +134,46 @@ class Combined(SAC):
                 # Reset everything
                 episode += 1
                 episode_return, episode_length = 0, 0
-                s = self.env.reset()
-                self.env, s, _ = self.detect_and_correct(self.env, s)
+                # Go to origin then look for obj
+                self.env, s, no_target = self.detect_and_correct(self.env)
 
-    def evaluate(self, env, max_episode_length=150, n_episodes=5,
-                 print_all_episodes=False, render=False, save_images=False):
+    def evaluate(self, env, max_episode_length=150,
+                 print_all_episodes=False, save_images=False):
         ep_returns, ep_lengths = [], []
-        task_it = 0
+        no_target = True
+        while(no_target):
+            s = self.env.reset()
+            target_pos, no_target, center_targets = \
+                self.target_search.compute(env,
+                                           self.global_obs_it,
+                                           return_all_centers=True)
+            input("No object detected. Please rearrange table.")
 
-        target_pos, no_target, center_targets = \
-            self.target_search.compute(env,
-                                       self.global_obs_it,
-                                       return_all_centers=True)
         n_episodes = len(center_targets)
 
         ep_success = []
-        success_objs = []
         # One episode per task
         for episode in range(n_episodes):
             s = env.reset()
-            if(env.task == "pickup"):
-                target_pos = center_targets[task_it]["target_pos"]
-                env.unwrapped.target = center_targets[task_it]["target_str"]
-                task_it += 1
+            target_pos = center_targets[episode]["target_pos"]
             episode_length, episode_return = 0, 0
             done = False
             # Correct Position
-            env, s, _ = self.correct_position(env, s, target_pos, no_target)
+            self.env.reset()
+            s = self.env.reset(target_pos, self.target_orn)
             while(episode_length < max_episode_length // 2 and not done):
                 # sample action and scale it to action space
                 a, _ = self._pi.act(tt(s), deterministic=True)
                 a = a.cpu().detach().numpy()
                 ns, r, done, info = env.step(a)
-                if(save_images):
-                    # img, _ = self.find_target_center(env)
-                    img = env.render()
-                    self.im_lst.append(img)
                 s = ns
                 episode_return += r
                 episode_length += 1
-            if(episode_return >= 200 and env.task == "pickup"):
-                success = self.eval_grasp_success(env)
-                if(success):
-                    success_objs.append(env.target)
-            # Episode ended because it finished the task
-            elif(env.task != "pickup" and r == 0):
-                success = True
-            else:
-                success = False
+            success = info['success']
             ep_success.append(success)
             ep_returns.append(episode_return)
             ep_lengths.append(episode_length)
-            if(print_all_episodes):
-                print("Episode %d, Return: %.3f, Success: %s"
-                      % (episode, episode_return, str(success)))
 
-        # Save images
-        if(save_images):
-            if(not os.path.exists('./frames/')):
-                os.makedirs("./frames/")
-            for idx, im in enumerate(self.im_lst):
-                cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
         # mean and print
         mean_reward, reward_std = np.mean(ep_returns), np.std(ep_returns)
         mean_length, length_std = np.mean(ep_lengths), np.std(ep_lengths)
@@ -268,7 +183,7 @@ class Combined(SAC):
             "Mean return: %.3f +/- %.3f, " % (mean_reward, reward_std) +
             "Mean length: %.3f +/- %.3f, over %d episodes" %
             (mean_length, length_std, n_episodes))
-        return mean_reward, mean_length, ep_success, success_objs
+        return mean_reward, mean_length, ep_success
 
     # Only applies to tabletop
     def tidy_up(self, env, max_episode_length=100):
@@ -283,10 +198,10 @@ class Combined(SAC):
         ep_success = []
         total_ts = 0
         s = env.reset()
+        self.no_detected_target = 0
         # Set total timeout to timeout per task times all tasks + 1
         while(total_ts <= max_episode_length // 2 * n_tasks
-              and self.no_detected_target < 3
-              and not self.all_objs_in_box(env)):
+              and self.no_detected_target < 3):
             episode_length, episode_return = 0, 0
             done = False
             # Search affordances and correct position:

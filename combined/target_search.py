@@ -23,8 +23,10 @@ class TargetSearch():
         self.aff_net_static_cam = self._init_static_cam_aff_net(aff_cfg)
         self.static_cam_imgs = {}
         self.class_label = class_label
-        if(env.task == "pickup"):
-            self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(self.env)
+        self.box_mask = None
+        if(env.task == "pickup" and self.mode != "real_world"):
+                self.box_mask, self.box_3D_end_points =  \
+                    self.get_box_pos_mask(self.env)
 
     def compute(self, env=None,
                 global_it=0,
@@ -33,7 +35,16 @@ class TargetSearch():
         if(env is None):
             env = self.env
         if(self.mode == "affordance"):
-            res = self._compute_target_aff(env, global_it)
+            # Get environment observation
+            cam = env.cameras[self.cam_id]
+            obs = env.get_obs()
+            depth_obs = obs["depth_obs"][self.cam_id]
+            orig_img = obs["rgb_obs"][self.cam_id]
+            res = self._compute_target_aff(env,
+                                           cam,
+                                           depth_obs,
+                                           orig_img,
+                                           global_it)
             target_pos, no_target, object_centers = res
             if env.task == "slide" or env.task == "hinge":
                 # Because it most likely will detect the door and not the handle
@@ -55,10 +66,19 @@ class TargetSearch():
                     env_target = self.find_env_target(env, target_pos)
                     env.target = env_target
                     env.unwrapped.target = env_target
-        else:
+        elif(self.mode == "env"):
             if(p_dist):
                 env.pick_rand_obj(p_dist)
             res = self._env_compute_target(env)
+        elif(self.mode == "real_world"):
+            cam = env.cameras[0]  # static_cam
+            orig_img, depth_img = cam.get_image()
+            res = self._compute_target_aff(env, cam,
+                                           depth_img,
+                                           orig_img,
+                                           global_it)
+            if(not return_all_centers):
+                res = res[:2]
         return res
 
     # Env real target pos
@@ -77,14 +97,8 @@ class TargetSearch():
         return target_pos, no_target
 
     # Aff-center model
-    def _compute_target_aff(self, env=None, global_obs_it=0):
-        if(not env):
-            env = self.env
-        # Get environment observation
-        cam = env.cameras[self.cam_id]
-        obs = env.get_obs()
-        depth_obs = obs["depth_obs"][self.cam_id]
-        orig_img = obs["rgb_obs"][self.cam_id]
+    def _compute_target_aff(self, env, cam, depth_obs, orig_img,
+                            global_obs_it=0):
 
         # Apply validation transforms
         img_obs = torch.tensor(orig_img).permute(2, 0, 1).unsqueeze(0).cuda()
@@ -93,7 +107,7 @@ class TargetSearch():
         # Predict affordances and centers
         _, aff_probs, aff_mask, center_dir = \
             self.aff_net_static_cam.forward(img_obs)
-        if(env.task == "pickup"):
+        if(env.task == "pickup" and self.box_mask is not None):
             aff_mask = aff_mask - self.box_mask
 
         # Filter by class
@@ -120,14 +134,10 @@ class TargetSearch():
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
         object_masks = torch_to_numpy(object_masks[0])  # H, W
 
-        # Plot different objects
-        no_target = False
-        if(len(object_centers) > 0):
-            target_px = object_centers[0]
-        else:
-            # No center detected
+        # No center detected
+        no_target = len(object_centers) < 0
+        if(no_target):
             default = self.initial_pos
-            no_target = True
             return np.array(default), no_target, []
 
         max_robustness = 0
@@ -174,9 +184,6 @@ class TargetSearch():
             cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
                         out_img)
 
-        # p.addUserDebugText("t",
-        #                    textPosition=target_pos,
-        #                    textColorRGB=[0, 1, 0])
         return target_pos, no_target, world_pts
 
     def find_env_target(self, env, target_pos):

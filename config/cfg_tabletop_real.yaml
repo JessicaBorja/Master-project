@@ -1,0 +1,167 @@
+project_path:  /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/
+data_path: ${project_path}/VREnv/data/
+save_dir: ./combined/hydra_outputs/${task}
+model_name: real_world
+task: pickup
+euler_obs: true
+img_size: 64
+
+viz_obs: False
+# path to load affordance models either gripper_cam 
+# or static_cam
+models_path: "${project_path}/Master-project/trained_models/"
+
+# Static cam affordance model to detect the targets
+target_search_aff:
+  model_path: ${models_path}/static_real_world.ckpt
+  img_size: 200
+  hyperparameters:
+    n_classes: 2
+    hough_voting:
+      skip_pixels: 2
+      inlier_threshold: 0.7
+      angle_discretization: 100
+      inlier_distance: 10
+      percentage_threshold: 0.3
+      object_center_kernel_radius: 15
+    centers_loss:
+      weight: 5
+    aff_loss:
+      weight: 2
+      dice_loss:
+        add: True
+        weight: 5
+      ce_loss:
+        weight: 1
+        class_weights: [0.2, 0.8]
+    optimizer:
+      lr: 1e-5
+      weight_decay: 1e-3
+    unet_cfg:
+      decoder_channels: [128, 64, 32]
+
+target_search: "real_world"
+# Define types of observation input to the RL agent
+env_wrapper:
+  gripper_cam:
+    use_img: True
+    use_depth: False
+  static_cam:
+    use_img: False
+    use_depth: False
+  use_pos: True
+  img_size: ${img_size}
+  use_aff_termination: True
+  max_target_dist: 0.10
+
+# Affordance configuration for RL agent observation inputs
+affordance:
+    static_cam:
+      use: False
+      model_path: ${models_path}/static_real_world.ckpt
+      img_size: 200
+      hough_voting:
+        skip_pixels: 2
+        inlier_threshold: 0.7
+        angle_discretization: 100
+        inlier_distance: 10
+        percentage_threshold: 0.3
+        object_center_kernel_radius: 10
+      hyperparameters:
+        n_classes: 2
+        centers_loss:
+          weight: 2.5
+        aff_loss:
+          weight: 1
+          dice_loss:
+            add: True
+            weight: 5
+          ce_loss:
+            weight: 1
+            class_weights: [0.2, 0.8]
+        optimizer:
+          lr: 1e-5
+          weight_decay: 1e-3
+        unet_cfg:
+          decoder_channels: [128, 64, 32]
+    gripper_cam:
+      use: True  # Use affordance in observation
+      use_distance: True
+      densify_reward: True  # Use affordance to shape the reward function
+      target_in_obs: False  # Add target detected by affordance into observation
+      model_path: ${models_path}/gripper_real_world.ckpt
+      hough_voting:
+        skip_pixels: 2
+        inlier_threshold: 0.7
+        angle_discretization: 100
+        inlier_distance: 10
+        percentage_threshold: 0.3
+        object_center_kernel_radius: 10
+      hyperparameters:
+        n_classes: 2
+        centers_loss:
+          weight: 2.5
+        aff_loss:
+          weight: 1
+          dice_loss:
+            add: True
+            weight: 5
+          ce_loss:
+            weight: 1
+            class_weights: [0.2, 0.8]
+        optimizer:
+          lr: 1e-5
+          weight_decay: 1e-3
+        unet_cfg:
+          decoder_channels: [128, 64, 32]
+
+all_cameras:
+  gripper:
+    _target_: vr_env.camera.gripper_camera.GripperCamera
+    name: gripper
+    fov: 75
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 300
+    height: 300
+    gripper_cam_link: 12
+  tabletop_test:
+    _target_: vr_env.camera.static_camera.StaticCamera
+    name: tidy_up_test
+    fov: 75
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 760
+    height: 760
+    look_at: [0.2773292660713196, 0.7766451239585876, 0.20271989703178406]
+    look_from: [-0.21922546214082672, 0.22516583397073475, 1.1457490759304818]
+  tabletop_sideview:
+    _target_: vr_env.camera.static_camera.StaticCamera
+    name: tabletop_sideview
+    fov: 45
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 200
+    height: 200
+    look_at: [0.15026406943798065, 0.6811332106590271, 0.46438753604888916]
+    look_from: [-0.32631213472589593, 0.6811343431473001, 1.5656936606290373]
+
+hydra:
+  run:
+    dir: ${save_dir}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+defaults:
+  - robot: panda_tabletop
+  - scene: tabletop_random
+  - env: env_combined
+  - env@eval_env: env_combined
+  - camera_conf: tabletop_sideview
+  - agent: default
+  - test: test_tabletop
+  - transforms@affordance.transforms: aff_transforms
+  - transforms@env_wrapper.transforms: rl_transforms
+  - override hydra/hydra_logging: colorlog
+  - override hydra/job_logging: colorlog

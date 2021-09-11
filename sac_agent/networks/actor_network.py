@@ -60,7 +60,7 @@ class ActorNetwork(nn.Module):
 
 class CNNPolicy(nn.Module):
     def __init__(self, obs_space, action_dim, action_space, affordance=None,
-                 activation="relu", hidden_dim=256):
+                 activation="relu", hidden_dim=256, gripper_bias=None):
         super(CNNPolicy, self).__init__()
         self.action_high = torch.tensor(action_space.high).cuda()
         self.action_low = torch.tensor(action_space.low).cuda()
@@ -92,6 +92,8 @@ class CNNPolicy(nn.Module):
         self.mu = nn.Linear(hidden_dim, action_dim - 1)
         self.sigma = nn.Linear(hidden_dim, action_dim - 1)
         self.gripper_action = nn.Linear(hidden_dim, 2)  # open / close
+        if(gripper_bias is not None):
+            self.gripper_action.bias = nn.Parameter(torch.Tensor(gripper_bias))
         self.aff_cfg = affordance
 
     def forward(self, obs):

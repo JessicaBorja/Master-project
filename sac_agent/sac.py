@@ -69,11 +69,15 @@ class SAC():
             get_nets(_img_obs, obs_space, env.action_space, self.log)
         self._pi = policy_net(obs_space, action_dim,
                               action_space=env.action_space,
-                              **net_cfg).cuda()
-        self._q1 = critic_net(obs_space, action_dim, **net_cfg).cuda()
-        self._q1_target = critic_net(obs_space, action_dim, **net_cfg).cuda()
-        self._q2 = critic_net(obs_space, action_dim, **net_cfg).cuda()
-        self._q2_target = critic_net(obs_space, action_dim, **net_cfg).cuda()
+                              **net_cfg.actor_net).cuda()
+        self._q1 = critic_net(obs_space, action_dim,
+                              **net_cfg.critic_net).cuda()
+        self._q1_target = critic_net(obs_space, action_dim,
+                                     **net_cfg.critic_net).cuda()
+        self._q2 = critic_net(obs_space, action_dim,
+                              **net_cfg.critic_net).cuda()
+        self._q2_target = critic_net(obs_space, action_dim,
+                                     **net_cfg.critic_net).cuda()
 
         self._pi_optim = optim.Adam(self._pi.parameters(), lr=actor_lr)
 
@@ -168,7 +172,6 @@ class SAC():
         # check if it actually earned the reward
         success = False
         if(r >= 200 and self.env.task == "pickup"):
-            self.move_to_box(self.env)
             # We don't know which obj aff model chose,
             # so give success if any in box
             success = self.eval_grasp_success(self.env, any=True)

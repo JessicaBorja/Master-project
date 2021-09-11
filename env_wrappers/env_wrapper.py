@@ -196,11 +196,6 @@ class RLWrapper(gym.Wrapper):
             # Create positive reward relative to the distance
             # between the closest point detected by the affordances
             # and the end effector position
-            # p.removeAllUserDebugItems()
-            # p.addUserDebugText("aff_target",
-            #                    textPosition=self.env.unwrapped.current_target,
-            #                    textColorRGB=[0, 1, 0])
-
             # If episode is not done because of moving to far away
             if(not self.termination(self.env._termination(), obs_dict)
                and self.ts_counter < self.max_ts - 1):
@@ -243,14 +238,10 @@ class RLWrapper(gym.Wrapper):
 
     def termination(self, done, obs):
         # If distance between detected target and robot pos
-        #  deviates more than target_radius
-        # p.removeAllUserDebugItems()
-        # p.addUserDebugText("i",
-        #                    textPosition=self.initial_target_pos,
-        #                    textColorRGB=[0, 0, 1])
-        # p.addUserDebugText("h",
-        #                    textPosition=self.env.unwrapped.current_target,
-        #                    textColorRGB=[0, 1, 0])
+        # deviates more than target_radius
+        p.addUserDebugText('t',
+                           textPosition=self.env.unwrapped.current_target,
+                           textColorRGB=[0,0,1])
         if(self.use_aff_termination):
             distance = np.linalg.norm(self.env.unwrapped.current_target
                                       - obs["robot_obs"][:3])

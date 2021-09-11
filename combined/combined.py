@@ -27,6 +27,7 @@ class Combined(SAC):
         self._initial_pos = _initial_obs[:3]
         _initial_orn = _initial_obs[3:6]
         if(self.env.task == "pickup"):
+            # np.array([- math.pi, 0, - math.pi / 2])
             self.target_orn = np.array([- math.pi, 0, math.pi / 2])
         elif(self.env.task == "slide"):
             self.target_orn = np.array([-math.pi / 2, math.pi / 2, 0])
@@ -393,7 +394,6 @@ class Combined(SAC):
                 episode_return += r
                 episode_length += 1
             if(episode_return >= 200 and env.task == "pickup"):
-                self.move_to_box(env)
                 success = self.eval_grasp_success(env)
                 if(success):
                     success_objs.append(env.target)
@@ -471,8 +471,7 @@ class Combined(SAC):
                 #     cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it, im)
                 #     self.global_obs_it += 1
             if(episode_return >= 200 and env.task == "pickup"):
-                self.move_to_box(env, sample=True)
-                success = self.eval_grasp_success(env)
+                success = self.eval_grasp_success(env, sample=True)
             else:
                 success = False
             ep_success.append(success)
@@ -487,7 +486,8 @@ class Combined(SAC):
                 return False
         return True
 
-    def eval_grasp_success(self, env, any=False):
+    def eval_grasp_success(self, env, any=False, sample=False):
+        self.move_to_box(env, sample=sample)
         if(any):
             success = False
             for name in env.table_objs:

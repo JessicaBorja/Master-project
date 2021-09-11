@@ -11,9 +11,15 @@ hyperparameters:
     learning_starts: 0 #timesteps before starting updates
 
 net_cfg:
-    hidden_dim: 256
-    activation: relu
-    affordance: ${affordance}
+    actor_net:
+        gripper_bias: [-1, 1]
+        hidden_dim: 256
+        activation: relu
+        affordance: ${affordance}
+    critic_net:
+        hidden_dim: 256
+        activation: relu
+        affordance: ${affordance}
 
 learn_config:
     total_timesteps: 90000

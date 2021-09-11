@@ -7,7 +7,7 @@ project_folder: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/Master-proj
 #            ../datasets/tabletop_multiscene_MoC-True/tabletop_misc_MoC-True/episode_10/data/gripper_cam/]
 
 get_eval_files: True
-data_dir: ../datasets/teleop_real/teleop_real_08_09/
+data_dir: ../datasets/teleop_real/
 # # Gripper camera
 # folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-05-30/00-41-40
 # model_name: last.ckpt
@@ -36,9 +36,9 @@ data_dir: ../datasets/teleop_real/teleop_real_08_09/
 # model_name: tabletop_multiscene_gripper_epoch=98-val_miou=0.577.ckpt
 
 # Tabletop real-world Static cam
-folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-09-09/10-39-36_aff_rl
+folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-09-09/10-40-00_aff_rl
 model_name: last.ckpt
-cam_type: static
+cam_type: gripper
 
 # Output img size, must be mutiple of 32
 save_images: False

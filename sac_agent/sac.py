@@ -41,7 +41,7 @@ class SAC():
             _img_obs = True
         print("SAC: images as observation: %s" % _img_obs)
         self._max_size = buffer_size
-        self._replay_buffer = ReplayBuffer(buffer_size, _img_obs)
+        self._replay_buffer = ReplayBuffer(buffer_size, _img_obs, self.log)
         self.batch_size = batch_size
 
         # Agent
@@ -332,6 +332,8 @@ class SAC():
         if self._auto_entropy:
             save_dict['ent_coef_optimizer'] = \
                  self.ent_coef_optimizer.state_dict()
+        self._replay_buffer.save(os.path.join(self.save_dir,
+                                 "replay_buffer"))
         torch.save(save_dict, path)
 
     def load(self, path):
@@ -354,6 +356,11 @@ class SAC():
 
             self.ent_coef = checkpoint["ent_coef"]
             self.ent_coef_optimizer.load_state_dict(checkpoint['ent_coef_optimizer'])
+
+            replay_buffer_dir = os.path.join(os.path.dirname(path),
+                                             "replay_buffer")
+            if(os.path.isdir(replay_buffer_dir)):
+                self._replay_buffer.load(replay_buffer_dir)
             print("load done")
             return True
         else:

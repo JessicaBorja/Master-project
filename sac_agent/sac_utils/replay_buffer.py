@@ -1,19 +1,20 @@
 import numpy as np
 from collections import deque, namedtuple
 from sac_agent.sac_utils.utils import tt
+from pathlib import Path
 
 
 class ReplayBuffer:
     # Replay buffer for experience replay. Stores transitions.
-    def __init__(self, max_size, dict_state=False):
+    def __init__(self, max_size, dict_state=False, logger=None):
         self._transition = namedtuple("transition",
-                                      ["states", "actions", "rewards",
-                                       "next_states", "terminal_flags"])
-        # self._data = self._data(states=[], actions=[], rewards=[],
-        #                         next_states=[], terminal_flags=[])
+                                      ["state", "action", "reward",
+                                       "next_state", "terminal_flag"])
         self._data = deque(maxlen=int(max_size))
         self._max_size = max_size
         self.dict_state = dict_state
+        self.last_saved_idx = 0
+        self.logger = logger
 
     def __len__(self):
         return len(self._data)
@@ -41,3 +42,40 @@ class ReplayBuffer:
 
         return tt(batch_states), tt(batch_actions), tt(batch_rewards),\
             tt(batch_next_states), tt(batch_terminal_flags)
+
+    def save(self, path="./replay_buffer"):
+        p = Path(path)
+        p.mkdir(parents=True, exist_ok=True)
+        num_entries = len(self._data)
+        for i in range(self.last_saved_idx, num_entries):
+            transition = self._data[i]
+            file_name = "%s/transition_%d.npz" % (path, i)
+            np.savez(file_name,
+                     state=transition.state,
+                     action=transition.action,
+                     next_state=transition.next_state,
+                     reward=transition.reward,
+                     terminal_flag=transition.terminal_flag)
+        self.logger.info("Saved transitions with indices : %d - %d" % (self.last_saved_idx, i))
+        self.last_saved_idx = i
+
+    def load(self, path="./replay_buffer"):
+        p = Path(path)
+        if p.is_dir():
+            p = p.glob('*.npz')
+            files = [x for x in p if x.is_file()]
+            if len(files) > 0:
+                for file in files:
+                    data = np.load(file, allow_pickle=True)
+                    transition = self._transition(data['state'].item(),
+                                                  data['action'],
+                                                  data['next_state'].item(),
+                                                  data['reward'].item(),
+                                                  data['terminal_flag'].item())
+                    self._data.append(transition)
+                self.last_saved_idx = len(files)
+                self.logger.info("Replay buffer loaded successfully")
+            else:
+                self.logger.info("No files were found in path %s" % (path))
+        else:
+            self.logger.info("Path %s does not have an appropiate directory address" % (path))

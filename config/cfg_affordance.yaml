@@ -1,16 +1,16 @@
 project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd
-data_dir: ${project_path}/datasets/teleop_real/
+data_dir: ${project_path}/datasets/teleop_showcase/
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: gripper_test
 n_epochs: 20
 img_size:
   static: 200
-  gripper: 64
+  gripper: 200
 
 dataset:
   root_dir: ${data_dir}
-  cam: static
+  cam: gripper
   n_train_ep: -1  # Train using all episodes
 
 dataloader:
@@ -56,6 +56,6 @@ hydra:
 
 defaults:
   - optim: aff_optim
-  - transforms@dataset.transforms_cfg: aff_transforms #Load from folder image_transforms, as dataset.transforms
+  - transforms@dataset.transforms_cfg: rl_transforms
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog

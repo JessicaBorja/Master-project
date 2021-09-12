@@ -3,8 +3,9 @@ train:
   - _target_: torchvision.transforms.Resize
     size: ${img_size}
   - _target_: affordance_model.utils.transforms.ColorTransform
-    hue: 0.2
-    brightness: 0.2
+    hue: 0.1
+    brightness: 0.3
+    contrast: 0.3
   - _target_: affordance_model.utils.transforms.ScaleImageTensor  # Scale 0-255 to 0-1
   - _target_: torchvision.transforms.Normalize
     mean: [0.5,]

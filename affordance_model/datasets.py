@@ -274,7 +274,7 @@ def test_dir_labels(hv, frame, aff_mask, center_dir):
 @hydra.main(config_path="../config", config_name="cfg_affordance")
 def main(cfg):
     img_size = cfg.img_size[cfg.dataset.cam]
-    val = VREnvData(img_size, split="validation", log=None,
+    val = VREnvData(img_size, split="train", log=None,
                     **cfg.dataset)
     val_loader = DataLoader(val, num_workers=1, batch_size=1, pin_memory=True)
     print('val minibatches {}'.format(len(val_loader)))
@@ -289,7 +289,7 @@ def main(cfg):
         frame = frame[0].detach().cpu().numpy()
         frame = ((frame + 1)*255/2).astype('uint8')
         frame = np.transpose(frame, (1, 2, 0))
-        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+        # frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
 
         directions = np.transpose(directions, (1, 2, 0))
         flow_img = flowlib.flow_to_image(directions)  # RGB
@@ -312,10 +312,10 @@ def main(cfg):
         #                              markerType=cv2.MARKER_CROSS,
         #                              markerSize=5,
         #                              line_type=cv2.LINE_AA)
-        out_img = cv2.resize(out_img, (200, 200),
+        out_img = cv2.resize(frame, (300, 300),
                              interpolation=cv2.INTER_CUBIC)
         cv2.imshow("img", out_img)
-        cv2.waitKey(1)
+        cv2.waitKey(0)
 
 
 if __name__ == "__main__":

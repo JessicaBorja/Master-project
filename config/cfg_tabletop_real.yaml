@@ -1,6 +1,6 @@
 project_path:  /home/hermannl/phd/repos/affordance_rl
 data_path: ${project_path}/VREnv/data/
-save_dir: ./combined/hydra_outputs/${task}
+save_dir: ./combined/hydra_outputs/${task}/${now:%Y-%m-%d}/
 model_name: real_world
 task: pickup
 euler_obs: true
@@ -10,6 +10,8 @@ viz_obs: False
 # path to load affordance models either gripper_cam 
 # or static_cam
 models_path: "${project_path}/Master-project/trained_models/"
+resume_training: True
+resume_model_path: ${save_dir}
 
 # Static cam affordance model to detect the targets
 target_search_aff:
@@ -45,7 +47,7 @@ target_search: "real_world"
 env_wrapper:
   gripper_cam:
     use_img: True
-    use_depth: False
+    use_depth: True
   static_cam:
     use_img: False
     use_depth: False
@@ -56,7 +58,7 @@ panda_env_wrapper:
   d_pos: 0.01
   d_rot: 0.3
   gripper_success_threshold: 0.01
-  reward_fail: -1
+  reward_fail: -20
   reward_success: 200
   termination_radius: 0.10
 
@@ -121,11 +123,9 @@ affordance:
         unet_cfg:
           decoder_channels: [128, 64, 32]
 
-
-
 hydra:
   run:
-    dir: ${save_dir}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    dir: ${save_dir}/
 
 defaults:
   - robot_io/robot@robot: panda_frankx_interface

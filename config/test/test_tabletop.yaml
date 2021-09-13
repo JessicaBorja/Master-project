@@ -9,11 +9,10 @@ models_dir: ${project_path}/Master-project/combined/hydra_outputs
 # folder_name: ${test.models_dir}/pickup/2021-06-29/19-21-58_aff_rl
 
 # RGB rgb_img_depth_dist_affMask_dense
-model_name: tabletop_rand_img_depth_dist_affMask_dense_05-09_19-04_most_tasks
-folder_name: ${test.models_dir}/pickup/2021-09-06/19-03-45_aff_rl
+model_name: real_world_img_dist_affMask_dense_12-09_15-45_last
+folder_name: ${test.models_dir}/pickup/2021-09-12/15-45-29/
 
 eval_cfg:
-  n_episodes: 5
   render: False
   print_all_episodes: True
   max_episode_length: 100

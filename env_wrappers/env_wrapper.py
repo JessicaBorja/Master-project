@@ -3,8 +3,7 @@ import logging
 import torch
 import numpy as np
 import cv2
-import pybullet as p
-import os
+from scipy.spatial.transform.rotation import Rotation as R
 
 import gym
 from gym import spaces
@@ -99,6 +98,8 @@ class RLWrapper(gym.Wrapper):
         self.gripper_cam_imgs = {}
         self.curr_detected_obj = None
 
+        self.T_tcp_cam = self.env.env.camera_manager.gripper_cam.get_extrinsic_calibration('panda')
+
     def reset(self, *args, **kwargs):
         observation = self.env.reset(*args, **kwargs)
         return self.observation(observation)
@@ -109,7 +110,7 @@ class RLWrapper(gym.Wrapper):
 
     def observation(self, obs):
         # "rgb_obs", "depth_obs", "robot_obs","scene_obs"
-
+        gripper_action = int(obs["robot_obs"][-1] > 0.4)
         new_obs = {**self.get_cam_obs(obs, "gripper",
                                       self.gripper_cam_aff_net,
                                       self.gripper_cam_cfg,
@@ -118,7 +119,7 @@ class RLWrapper(gym.Wrapper):
                                       self.static_cam_aff_net,
                                       self.static_cam_cfg,
                                       self.affordance_cfg.static_cam),
-                   "robot_obs": obs["robot_obs"]
+                   "robot_obs": np.array([*obs["robot_obs"], gripper_action])
                    }
         self.obs_it += 1
         return new_obs
@@ -144,14 +145,6 @@ class RLWrapper(gym.Wrapper):
                 if rew >= 1:
                     # Reward for remaining ts
                     rew += self.max_ts - 1 - self.ts_counter
-
-                # If terminated because it went far away
-                if rew <= -1:
-                    # Penalize for remaining ts
-                    # it would have gotten -1 for being far 
-                    # and -1 for not completing task
-                    # and -1 for not moving target to goal
-                    rew -= (self.max_ts - 1 - self.ts_counter) * 3
                 self.ts_counter = 0
         return rew
 
@@ -221,6 +214,29 @@ class RLWrapper(gym.Wrapper):
                 # cv2.imshow("%s_aff" % cam_type, m)
                 obs["%s_aff" % cam_type] = mask
         return obs
+
+    def np_quat_to_scipy_quat(self, quat):
+        """wxyz to xyzw"""
+        return np.array([quat.x, quat.y, quat.z, quat.w])
+
+    def pos_orn_to_matrix(self, pos, orn):
+        """
+        :param pos: np.array of shape (3,)
+        :param orn: np.array of shape (4,) -> quaternion xyzw
+                    np.quaternion -> quaternion wxyz
+                    np.array of shape (3,) -> euler angles xyz
+        :return: 4x4 homogeneous transformation
+        """
+        mat = np.eye(4)
+        if isinstance(orn, np.quaternion):
+            orn = self.np_quat_to_scipy_quat(orn)
+            mat[:3, :3] = R.from_quat(orn).as_matrix()
+        elif len(orn) == 4:
+            mat[:3, :3] = R.from_quat(orn).as_matrix()
+        elif len(orn) == 3:
+            mat[:3, :3] = R.from_euler('xyz', orn).as_matrix()
+        mat[:3, 3] = pos
+        return mat
 
     # Aff-center
     def find_target_center(self, cam, orig_img, depth, obs):
@@ -297,7 +313,11 @@ class RLWrapper(gym.Wrapper):
             o = (o * orig_shape / pred_shape).astype("int64")
             o, depth_non_zero = get_depth_around_point(o, depth)
             if depth_non_zero:
-                world_pt = cam.deproject(o, depth)
+                cam_frame_pt = cam.deproject(o, depth)
+                tcp_pos, tcp_orn = self.env.robot.get_tcp_pos_orn()
+                tcp_mat = self.pos_orn_to_matrix(tcp_pos, tcp_orn)
+                world_pt = tcp_mat @ self.T_tcp_cam @ np.array([*cam_frame_pt, 1])
+                world_pt = world_pt[:3]
                 c_out = {"center": world_pt,
                          "pixel_count": pixel_count,
                          "robustness": robustness}

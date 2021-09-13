@@ -4,6 +4,6 @@ device: 0
 align_depth_to_color: true
 resolution: '720p'
 undistort_image: true
-resize_resolution: [300, 300]
+resize_resolution: [200, 200]
 crop_coords: [184, 529, 340, 825]
 fps: 30

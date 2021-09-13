@@ -7,10 +7,10 @@ import logging
 log = logging.getLogger(__name__)
 
 WAIT_AFTER_GRIPPER_CLOSE = 1
-WAIT_FOR_WIDTH_MEASUREMENT = 0.3
+WAIT_FOR_WIDTH_MEASUREMENT = 1
 MOVE_UP_AFTER_GRASP = 0.03
 GRIPPER_SUCCESS_THRESHOLD = 0.01
-
+GRIPPER_WIDTH_FAIL = 0.075
 
 class PandaEnvWrapper(gym.Wrapper):
     def __init__(self, env, d_pos, d_rot, gripper_success_threshold, reward_fail, reward_success, termination_radius):
@@ -33,15 +33,18 @@ class PandaEnvWrapper(gym.Wrapper):
         time.sleep(WAIT_AFTER_GRIPPER_CLOSE)
         pos, orn = self.env.robot.get_tcp_pos_orn()
         pos[2] += MOVE_UP_AFTER_GRASP
-        self.env.robot.move_cart_pos_abs_ptp(pos, orn)
+        self.env.robot.move_async_cart_pos_abs_lin(pos, orn)
         time.sleep(WAIT_FOR_WIDTH_MEASUREMENT)
         gripper_width = self.env.robot.get_state()["gripper_opening_width"]
+        if gripper_width > GRIPPER_WIDTH_FAIL:
+            log.error("Gripper action seems to have no effect.")
+            raise Exception
         return gripper_width > self.gripper_success_threshold
 
     def put_back_object(self):
         pos, orn = self.env.robot.get_tcp_pos_orn()
         pos[2] -= MOVE_UP_AFTER_GRASP * 0.8
-        self.env.robot.move_cart_pos_abs_ptp(pos, orn)
+        self.env.robot.move_async_cart_pos_abs_lin(pos, orn)
         self.env.robot.open_gripper(blocking=True)
 
     def check_termination(self, current_pos):
@@ -75,6 +78,8 @@ class PandaEnvWrapper(gym.Wrapper):
             if done:
                 reward = self.reward_fail
                 info["failure_case"] = "outside_radius"
+        if('failure_case' in info):
+            print(info['failure_case'])
         obs = self.transform_obs(obs)
         return obs, reward, done, info
 

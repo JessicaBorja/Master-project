@@ -44,6 +44,13 @@ class SAC():
         self._replay_buffer = ReplayBuffer(buffer_size, _img_obs, self.log)
         self.batch_size = batch_size
 
+        # Reload
+        self.episode = 1
+        self.curr_ts = 0
+        self.most_tasks = 0
+        self.best_return = -np.inf
+        self.best_eval_return = -np.inf
+
         # Agent
         self._gamma = gamma
         self.tau = tau
@@ -98,9 +105,7 @@ class SAC():
         # models folder
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        self.model_name = "{}_{}".format(
-                                    model_name,
-                                    datetime.now().strftime('%d-%m_%H-%M'))
+        self.model_name = model_name
         self.writer_name = "./results/{}".format(self.model_name)
         # self.eval_writer_name = "./results/%s_eval"%self.model_name
         self.trained_path = "{}/{}".format(self.save_dir, self.model_name)
@@ -294,8 +299,13 @@ class SAC():
             'critic_2_target_dict': self._q2_target.state_dict(),
             'critic_2_optimizer_dict': self._q2_optimizer.state_dict(),
             'critics_optim': self._q_optim.state_dict(),
-
-            'ent_coef': self.ent_coef}
+            'ent_coef': self.ent_coef,
+            'best_return': self.best_return,
+            'best_eval_return': self.best_eval_return,
+            'episode': self.episode,
+            'curr_ts': self.curr_ts,
+            'most_tasks': self.most_tasks
+        }
         if self._auto_entropy:
             save_dict['ent_coef_optimizer'] = \
                  self.ent_coef_optimizer.state_dict()
@@ -323,6 +333,17 @@ class SAC():
 
             self.ent_coef = checkpoint["ent_coef"]
             self.ent_coef_optimizer.load_state_dict(checkpoint['ent_coef_optimizer'])
+
+            if('best_return' in checkpoint):
+                self.best_return = checkpoint['best_return']
+            if ('best_eval_return' in checkpoint):
+                self.best_eval_return = checkpoint['best_eval_return']
+            if ('most_tasks' in checkpoint):
+                self.most_tasks = checkpoint['most_tasks']
+            if ('curr_ts' in checkpoint):
+                self.curr_ts = checkpoint['curr_ts']
+            if ('episode' in checkpoint):
+                self.episode = checkpoint['episode']
 
             replay_buffer_dir = os.path.join(os.path.dirname(path),
                                              "replay_buffer")

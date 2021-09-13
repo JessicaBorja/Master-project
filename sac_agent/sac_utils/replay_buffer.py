@@ -49,6 +49,9 @@ class ReplayBuffer:
         num_entries = len(self._data)
         for i in range(self.last_saved_idx, num_entries):
             transition = self._data[i]
+            if(not isinstance(transition.state, dict)
+               or not isinstance(transition.next_state, dict)):
+                continue
             file_name = "%s/transition_%d.npz" % (path, i)
             np.savez(file_name,
                      state=transition.state,
@@ -69,8 +72,8 @@ class ReplayBuffer:
                     data = np.load(file, allow_pickle=True)
                     transition = self._transition(data['state'].item(),
                                                   data['action'],
-                                                  data['next_state'].item(),
                                                   data['reward'].item(),
+                                                  data['next_state'].item(),
                                                   data['terminal_flag'].item())
                     self._data.append(transition)
                 self.last_saved_idx = len(files)

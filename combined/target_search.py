@@ -24,6 +24,7 @@ class TargetSearch():
         self.static_cam_imgs = {}
         self.class_label = class_label
         self.box_mask = None
+        self.T_world_cam = self.env.env.env.camera_manager.static_cam.get_extrinsic_calibration("panda")
 
     def compute(self, env=None,
                 global_it=0,
@@ -80,7 +81,7 @@ class TargetSearch():
         object_masks = torch_to_numpy(object_masks[0])  # H, W
 
         # No center detected
-        no_target = len(object_centers) < 0
+        no_target = len(object_centers) <= 0
         if(no_target):
             default = self.initial_pos
             return np.array(default), no_target, []
@@ -105,7 +106,7 @@ class TargetSearch():
         pred_shape = aff_probs.shape[:2]
         orig_shape = depth_obs.shape[:2]
 
-        T_world_cam = cam.get_extrinsic_calibration("panda")
+
 
         # World coords
         world_pts = []
@@ -114,7 +115,7 @@ class TargetSearch():
             x = (x * orig_shape / pred_shape).astype("int64")
             v, u = x
             pt_cam = cam.deproject([u, v], depth_obs, homogeneous=True)
-            world_pt = T_world_cam @ pt_cam
+            world_pt = self.T_world_cam @ pt_cam
             world_pts.append(world_pt[:3])
 
         # Recover target

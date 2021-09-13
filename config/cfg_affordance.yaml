@@ -1,4 +1,4 @@
-project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd
+project_path: /home/hermannl/phd/repos/affordance_rl
 data_dir: ${project_path}/datasets/teleop_showcase/
 save_dir: ./affordance_model/hydra_outputs/
 

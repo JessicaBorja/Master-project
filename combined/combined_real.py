@@ -47,6 +47,7 @@ class Combined(SAC):
         self.env.current_target = self.target_pos
         self.env.unwrapped.current_target = self.target_pos
         self.eval_env = self.env
+        self.above_obj = 0.05
 
     def move_to_box(self, env, sample=False):
         # Box does not move
@@ -78,8 +79,10 @@ class Combined(SAC):
 
         self.env.curr_detected_obj = target_pos
         robot_target_pos = target_pos.copy()
-        robot_target_pos[2] += 0.07
-        obs = self.env.reset(robot_target_pos, self.target_orn)
+        robot_target_pos[2] += self.above_obj
+        target_orn = self.target_orn.copy()
+        target_orn[2] += np.random.uniform(-1, 1) * np.radians(45)
+        obs = self.env.reset(robot_target_pos, target_orn)
         return env, obs, no_target
 
     # RL Policy
@@ -87,10 +90,7 @@ class Combined(SAC):
               max_episode_length=None, n_eval_ep=5):
         if not isinstance(total_timesteps, int):   # auto
             total_timesteps = int(total_timesteps)
-        episode = 1
         episode_return, episode_length = 0, 0
-        best_return, best_eval_return = -np.inf, -np.inf
-        most_tasks = 0
         if(max_episode_length is None):
             max_episode_length = sys.maxsize  # "infinite"
 
@@ -107,7 +107,7 @@ class Combined(SAC):
         self.env, s, no_target = self.detect_and_correct(self.env)
         for t in range(1, total_timesteps+1):
             s, done, success, episode_return, episode_length, plot_data, info = \
-                self.training_step(s, t, episode_return, episode_length,
+                self.training_step(s, self.curr_ts, episode_return, episode_length,
                                    plot_data)
 
             # End episode
@@ -118,24 +118,25 @@ class Combined(SAC):
             # Log interval (sac)
             if((t % log_interval == 0 and not self._log_by_episodes)
                or (self._log_by_episodes and end_ep
-                   and episode % _log_n_ep == 0)):
-                best_eval_return, most_tasks, plot_data = \
-                    self._eval_and_log(self.writer, t, episode,
-                                       plot_data, most_tasks,
-                                       best_eval_return,
+                   and self.episode % _log_n_ep == 0)):
+                self.best_eval_return, self.most_tasks, plot_data = \
+                    self._eval_and_log(self.writer, self.curr_ts, self.episode,
+                                       plot_data, self.most_tasks,
+                                       self.best_eval_return,
                                        n_eval_ep, max_episode_length)
 
             if(end_ep):
-                best_return = \
-                    self._on_train_ep_end(self.writer, t, episode,
-                                          total_timesteps, best_return,
+                self.best_return = \
+                    self._on_train_ep_end(self.writer, self.curr_ts, self.episode,
+                                          total_timesteps, self.best_return,
                                           episode_length, episode_return,
                                           success)
                 # Reset everything
-                episode += 1
+                self.episode += 1
                 episode_return, episode_length = 0, 0
                 # Go to origin then look for obj
                 self.env, s, no_target = self.detect_and_correct(self.env)
+            self.curr_ts += 1
 
     def evaluate(self, env, max_episode_length=150,
                  print_all_episodes=False, save_images=False):
@@ -147,7 +148,11 @@ class Combined(SAC):
                 self.target_search.compute(env,
                                            self.global_obs_it,
                                            return_all_centers=True)
-            input("No object detected. Please rearrange table.")
+            if(no_target):
+                input("No object detected. Please rearrange table.")
+            else:
+                for i in range(len(center_targets)):
+                    center_targets[i][-1] += self.above_obj
 
         n_episodes = len(center_targets)
 
@@ -155,7 +160,7 @@ class Combined(SAC):
         # One episode per task
         for episode in range(n_episodes):
             s = env.reset()
-            target_pos = center_targets[episode]["target_pos"]
+            target_pos = center_targets[episode]
             episode_length, episode_return = 0, 0
             done = False
             # Correct Position

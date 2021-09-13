@@ -23,7 +23,7 @@ class AddGaussianNoise(object):
 
     def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         assert isinstance(tensor, torch.Tensor)
-        return tensor + torch.randn(tensor.size()) * self.std + self.mean
+        return torch.clamp(tensor + torch.randn(tensor.size()) * self.std + self.mean, 0, 1)
 
     def __repr__(self):
         return self.__class__.__name__ + "(mean={0}, std={1})".\
@@ -69,7 +69,7 @@ class ColorTransform(object):
     # Change image color
     def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         assert isinstance(tensor, torch.Tensor)
-        apply = np.random.rand() < 0.30
+        apply = np.random.rand() < 1
         if(apply):
             tensor = self.jitter(tensor)
         return tensor
@@ -132,3 +132,7 @@ class DistanceTransform(object):
 
 #     out = torch.cat((image, mask), dim=0)
 #     return out
+
+if __name__ == "__main__":
+    g = AddGaussianNoise([0] , [1])
+    print(g)

@@ -1,3 +1,5 @@
+import os.path
+
 import hydra
 import logging
 from env_wrappers.panda_env_wrapper import PandaEnvWrapper
@@ -36,6 +38,15 @@ def main(cfg):
                      sac_cfg=sac_cfg,
                      target_search_mode=cfg.target_search,
                      rand_target=True)
+    if cfg.resume_training:
+        original_dir = hydra.utils.get_original_cwd()
+        model_path = os.path.join(original_dir, cfg.resume_model_path)
+        path = "%s/trained_models/%s.pth" % (model_path,
+                                             cfg.model_name + "_last")
+        if(os.path.exists(path)):
+            model.load(path)
+        else:
+            print("Model path does not exist: %s \n Training from start" % os.path.abspath(path))
     model.learn(**cfg.agent.learn_config)
     training_env.close()
     # eval_env.close()

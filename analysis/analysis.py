@@ -76,8 +76,9 @@ def plot_experiments(data, show=True, save=True, n_ep=6,
                      save_folder="./analysis/figures/",
                      x_label="timesteps",
                      y_label="Completed tasks"):
+    plt.rcParams.update({'font.size': 20})
     fig, ax = plt.subplots(1, 1, figsize=(10, 6), sharey=True)
-    ax.set_title("Evaluation")
+    # ax.set_title("Evaluation")
 
     cm = plt.get_cmap('tab10')
     colors = cm(np.linspace(0, 1, len(data)))
@@ -89,14 +90,17 @@ def plot_experiments(data, show=True, save=True, n_ep=6,
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.legend(loc='upper left')
-    fig.suptitle("%s" % (metric.title()))
+    # fig.suptitle("%s" % (metric.title()))
 
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
-    if(save):
-        fig.savefig(os.path.join(save_folder, "%s.png" % save_name), dpi=200)
     if(show):
         plt.show()
+    if(save):
+        fig.savefig(os.path.join(save_folder, "%s.pdf" % save_name),
+                    bbox_inches="tight",
+                    pad_inches=0,
+                    dpi=200)
 
 
 # Plot validation data for a single experiment, multiple seeds

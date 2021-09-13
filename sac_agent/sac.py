@@ -19,7 +19,9 @@ class SAC():
                  actor_lr=3e-4, critic_lr=3e-4, alpha_lr=3e-4,
                  tau=0.005, learning_starts=1000,
                  batch_size=256, buffer_size=1e6,
-                 model_name="sac", net_cfg=None, log=None):
+                 model_name="sac", net_cfg=None, log=None,
+                 save_replay_buffer=False):
+        self._save_replay_buffer = save_replay_buffer
         self.log = log
         if(not log):
             self.log = logging.getLogger(__name__)
@@ -332,8 +334,9 @@ class SAC():
         if self._auto_entropy:
             save_dict['ent_coef_optimizer'] = \
                  self.ent_coef_optimizer.state_dict()
-        self._replay_buffer.save(os.path.join(self.save_dir,
-                                 "replay_buffer"))
+        if self._save_replay_buffer:
+            self._replay_buffer.save(os.path.join(self.save_dir,
+                                     "replay_buffer"))
         torch.save(save_dict, path)
 
     def load(self, path):

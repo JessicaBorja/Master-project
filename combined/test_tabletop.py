@@ -53,7 +53,8 @@ def main(cfg):
 
     if(success):
         # model.tidy_up(env)
-        model.evaluate(env, **cfg.test.eval_cfg)
+        model.eval_all_objs(env,
+                            **cfg.test.eval_cfg)
     env.close()
 
 

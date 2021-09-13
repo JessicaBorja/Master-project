@@ -29,9 +29,9 @@ class Combined(SAC):
         if(self.env.task == "pickup"):
             self.target_orn = np.array([- math.pi, 0, math.pi / 2])
         elif(self.env.task == "slide"):
-            self.target_orn = np.array([-math.pi / 2, math.pi / 2, 0])
+            self.target_orn = np.array([-math.pi / 2, - math.pi / 2 , 0])
         elif(self.env.task == "drawer"):
-            self.target_orn = np.array([-2.7, 0, 0])
+            self.target_orn = np.array([- math.pi, 0,  math.pi / 2])
         else:
             self.target_orn = _initial_orn
 
@@ -304,8 +304,8 @@ class Combined(SAC):
                                        eval_all_objs=eval_all_objs)
 
     # Only applies to pickup task
-    def eval_all_objs(self, env, max_ep_len,
-                      render=False, save_images=False):
+    def eval_all_objs(self, env, max_episode_length, n_episodes=None,
+                      print_all_episodes=False, render=False, save_images=False):
         if(env.rand_positions is None):
             return
 
@@ -326,7 +326,7 @@ class Combined(SAC):
             env.load_scene_with_objects(curr_objs)
             mean_reward, mean_length, ep_success, success_objs = \
                 self.evaluate(env,
-                              max_episode_length=max_ep_len,
+                              max_episode_length=max_episode_length,
                               render=render,
                               save_images=save_images)
             succesful_objs.extend(success_objs)
@@ -394,7 +394,7 @@ class Combined(SAC):
                 episode_length += 1
             if(episode_return >= 200 and env.task == "pickup"):
                 self.move_to_box(env)
-                success = self.eval_grasp_success(env)
+                success = self.eval_grasp_success(env, any=True)
                 if(success):
                     success_objs.append(env.target)
             # Episode ended because it finished the task
@@ -472,7 +472,7 @@ class Combined(SAC):
                 #     self.global_obs_it += 1
             if(episode_return >= 200 and env.task == "pickup"):
                 self.move_to_box(env, sample=True)
-                success = self.eval_grasp_success(env)
+                success = self.eval_grasp_success(env, any=True)
             else:
                 success = False
             ep_success.append(success)

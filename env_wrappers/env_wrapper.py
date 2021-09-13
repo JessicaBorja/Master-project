@@ -211,13 +211,13 @@ class RLWrapper(gym.Wrapper):
                 if(self.task == "pickup"):
                     rew += (1 - scale_dist)**0.4
                 elif(self.task == "slide"):
-                    goal_pose = np.array([0, 0.75, 0.74])
+                    goal_pose = np.array([0.25, 0.75, 0.74])
                     dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
                     # max posible distance clip
                     dist_to_goal = min(dist_to_goal/0.6, 1)
                     rew -= (scale_dist + dist_to_goal)
                 elif(self.task == "drawer"):
-                    goal_pose = np.array([0.15, 0.50, 0.42])
+                    goal_pose = np.array([-0.05, 0.30, 0.42])
                     dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
                     # max posible distance clip
                     dist_to_goal = min(dist_to_goal/0.25, 1)

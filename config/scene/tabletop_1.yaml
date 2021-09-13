@@ -36,6 +36,6 @@ objects:
     fixed: false
   spatula:
     file: tabletop/spatula/spatula.urdf
-    initial_pos: [0.42, 0.54, 0.6045897331557224]
+    initial_pos: [0.42, 0.54, 0.61]
     initial_orn: [0, 0, 3.1416]
     fixed: false

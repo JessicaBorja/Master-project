@@ -7,7 +7,7 @@ import glob
 from scipy.interpolate import interp1d
 
 
-def plot_data(data, ax, label, color="gray", stats_axis=0):
+def plot_data(data, ax, label, n_ep=6, color="gray", stats_axis=0):
     mean = np.mean(data, axis=stats_axis)[:, -1]
     std = np.std(data, axis=stats_axis)[:, -1]
 
@@ -23,8 +23,10 @@ def plot_data(data, ax, label, color="gray", stats_axis=0):
     #     ax.plot(learning_curve[:, 0], smooth_data, 'k', linewidth=1, color=color)
 
     ax.plot(steps, mean, 'k', linewidth=2, label=label, color=color)
-    ax.fill_between(steps, mean + std, mean - std, color=color, alpha=0.15)
-    ax.axhline(6, color="gray", ls="--")
+    lb = mean - std
+    lb[lb < 0] = 0
+    ax.fill_between(steps, mean + std, lb, color=color, alpha=0.15)
+    # ax.axhline(n_ep, color="gray", ls="--")
     return ax
 
 
@@ -54,10 +56,11 @@ def merge_by_timesteps(data, min_data_axs):
             list, each element is a different seed
             data[i].shape = [n_evaluations, 2] (timestep, value)
     '''
-    idxs = np.arange(400) * 1000  # 0, 1k, 2k ... 90k
+    idxs = np.arange(0, min_data_axs, 1000)
+    n_pts = len(idxs)
     data_copy = []
     for d in data:
-        run_values = np.zeros(shape=(len(idxs), d.shape[-1]))
+        run_values = np.zeros(shape=(n_pts, d.shape[-1]))
         interp = interp1d(d[:, 0], d[:, 1], kind='linear', fill_value="extrapolate")
         run_values[:, 1] = interp(idxs)
         run_values[:, 0] = idxs
@@ -68,7 +71,7 @@ def merge_by_timesteps(data, min_data_axs):
 
 
 # Data is a list
-def plot_experiments(data, show=True, save=True,
+def plot_experiments(data, show=True, save=True, n_ep=6,
                      save_name="return", metric="return",
                      save_folder="./analysis/figures/",
                      x_label="timesteps",
@@ -81,7 +84,7 @@ def plot_experiments(data, show=True, save=True,
 
     for exp_data, c in zip(data, colors):
         name, data = exp_data
-        ax = plot_data(data, ax, label=name, color=c, stats_axis=0)
+        ax = plot_data(data, ax, n_ep=n_ep, label=name, color=c, stats_axis=0)
 
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
@@ -109,11 +112,15 @@ def seeds_mean(files, top_row=-1, data_merge_fnc=merge_by_timesteps):
     else:
         n_eval_ep = 10
 
-    min_data_axs = min([d.shape[0] for d in data])
+    # Last ts logged for each run
+    if(data_merge_fnc == merge_by_timesteps):
+        min_data_axs = min([d[-1][0] for d in data])
+    else:
+        min_data_axs = min([d.shape[0] for d in data])
     # Change timesteps by episodes -> x axis will show every n episodes result
     data = data_merge_fnc(data, min_data_axs)
 
-    return data
+    return data, n_eval_ep
 
 
 def plot_eval_and_train(eval_files, train_files, task, top_row=-1,
@@ -175,10 +182,11 @@ def get_mean_and_std(exp_name="slide", metric="return",
         metric = "episode length"
     # assert len(eval_files) == len(train_files)
     if(len(eval_files) == 0):
-        print("no files Match %s in %s"%(exp_name, csv_folder))
+        print("no files Match %s in %s" % (exp_name, csv_folder))
         return
-    experiment_data = seeds_mean(eval_files, data_merge_fnc=data_merge_fnc)
-    return experiment_data
+    experiment_data, n_eval_ep = seeds_mean(eval_files,
+                                            data_merge_fnc=data_merge_fnc)
+    return experiment_data, n_eval_ep
 
 
 def plot_by_timesteps(plot_dict, csv_dir="./results_csv/"):
@@ -187,14 +195,18 @@ def plot_by_timesteps(plot_dict, csv_dir="./results_csv/"):
     experiments_data = []
     for metric in metrics:
         for exp_name, title in plot_dict.items():
-            mean_data = get_mean_and_std(exp_name,
-                                         csv_folder=csv_dir,
-                                         metric=metric,
-                                         data_merge_fnc=merge_by_timesteps)
+            mean_data, n_eval_ep = get_mean_and_std(exp_name,
+                                                    csv_folder=csv_dir,
+                                                    metric=metric,
+                                                    data_merge_fnc=merge_by_timesteps)
             experiments_data.append([title, mean_data])
         save_name = os.path.basename(os.path.normpath(csv_dir)) + \
             "_%s_by_timesteps" % metric
+        min_axs = min([d[-1][0].shape[0] - 1 for d in experiments_data])
+        for i in range(len(experiments_data)):
+            experiments_data[i][-1] = experiments_data[i][-1][:, :min_axs]
         plot_experiments(experiments_data,
+                         n_ep=n_eval_ep,
                          show=True,
                          save=True,
                          save_name=save_name,
@@ -212,10 +224,10 @@ def plot_by_episodes(plot_dict, csv_dir="./results_csv/"):
         min_ep = np.inf
         for exp_name, title in plot_dict.items():
             # n_seeds, n_ep, 2
-            mean_data = get_mean_and_std(exp_name,
-                                         csv_folder=csv_dir,
-                                         metric=metric,
-                                         data_merge_fnc=merge_by_episodes)
+            mean_data, n_eval_ep = get_mean_and_std(exp_name,
+                                                    csv_folder=csv_dir,
+                                                    metric=metric,
+                                                    data_merge_fnc=merge_by_episodes)
             experiments_data.append([title, mean_data])
             if(mean_data.shape[1] < min_ep):
                 min_ep = mean_data.shape[1]
@@ -225,6 +237,7 @@ def plot_by_episodes(plot_dict, csv_dir="./results_csv/"):
         save_name = os.path.basename(os.path.normpath(csv_dir)) + \
             "_%s_by_episodes" % metric
         plot_experiments(experiments_data,
+                         n_ep=n_eval_ep,
                          show=True,
                          save=True,
                          save_name=save_name,
@@ -243,7 +256,7 @@ if __name__ == "__main__":
     #              "rgb_img_depth_dist_affMask_dense": "RGB + depth + dist + affMask + dense"}
     # plot_by_episodes(plot_dict, csv_dir="./analysis/results_csv/pickup_ablation/")
     # plot_by_timesteps(plot_dict, csv_dir="./analysis/results_csv/pickup_ablation/")
-    plot_dict = {"sparse": "Baseline: RGB + depth",
-                 "dense": "Grayscale + depth + dist + affMask + dense"}
-    plot_by_episodes(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_1/")
-    plot_by_timesteps(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_1/")
+    plot_dict = {"sparse": "Baseline",
+                 "dense": "VAPO"}
+    plot_by_episodes(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_rand/")
+    plot_by_timesteps(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_rand/")

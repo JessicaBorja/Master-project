@@ -29,9 +29,9 @@ class Combined(SAC):
         if(self.env.task == "pickup"):
             self.target_orn = np.array([- math.pi, 0, math.pi / 2])
         elif(self.env.task == "slide"):
-            self.target_orn = np.array([-math.pi / 2, - math.pi / 2 , 0])
+            self.target_orn = np.array([-math.pi / 2, - math.pi / 2, 0])
         elif(self.env.task == "drawer"):
-            self.target_orn = np.array([- math.pi, 0,  math.pi / 2])
+            self.target_orn = np.array([- math.pi, -math.pi/8, math.pi / 2])
         else:
             self.target_orn = _initial_orn
 

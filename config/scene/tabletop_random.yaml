@@ -62,14 +62,14 @@ objects:
     initial_pos: [-0.1, 0.6, 0.6026503452492561]
     initial_orn: [0, 0, 2.5]
     fixed: false
-  teapot_lid:  ##
+  teapot_lid:
     file: tabletop/teapot_lid/teapot_lid.urdf
     initial_pos: [0.4, 0.5, 0.6016315999956388]
     initial_orn: [0, 0, 0]
     fixed: false
   spatula:
     file: tabletop/spatula/spatula.urdf
-    initial_pos: [0.42, 0.54, 0.6045897331557224]
+    initial_pos: [0.42, 0.54, 0.61]
     initial_orn: [0, 0, 3.1416]
     fixed: false
   salt:
@@ -78,14 +78,14 @@ objects:
     initial_orn: [1.57, -1.57, 0]
     fixed: false
   marker:
-    file: 040_large_marker/google_16k/textured.urdf
-    initial_pos: [0.35, 0.92, 0.6084442741436562]
+    file: tabletop/marker/textured.urdf
+    initial_pos: [0.35, 0.92, 0.625]
     initial_orn: [0, 0, 0]
     fixed: false
   small_tool_1:
-    file: 044_flat_screwdriver/google_16k/textured.urdf
+    file: tabletop/flat_screwdriver/textured.urdf
     initial_pos: [-0.1, 0.6, 0.6143022605081714]
-    initial_orn: [0, 0, -0.5]
+    initial_orn: [0, 0, -1.57]
     fixed: false
   small_tool_2:
     file: tabletop/utility_knife/utility_knife.urdf
@@ -99,7 +99,7 @@ objects:
     fixed: false
   knife:
     file: tabletop/kitchen_knife/kitchen_knife.urdf
-    initial_pos: [0.37, 0.91, 0.6069920607828857]
+    initial_pos: [0.37, 0.91, 0.61]
     initial_orn: [0, 0, 0]
     fixed: false
   flashlight:

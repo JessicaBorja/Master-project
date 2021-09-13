@@ -118,10 +118,11 @@ def viz(cfg):
             gt_directions = data["directions"]
         else:
             orig_img = cv2.imread(filename, cv2.COLOR_BGR2RGB)
+            out_shape = np.shape(orig_img)[:2]
 
-        orig_img = cv2.resize(orig_img, im_size)
+        orig_img_resize = cv2.resize(orig_img, im_size)
         # Apply validation transforms
-        x = torch.from_numpy(orig_img).permute(2, 0, 1).unsqueeze(0)
+        x = torch.from_numpy(orig_img_resize).permute(2, 0, 1).unsqueeze(0)
         x = img_transform(x).cuda()
 
         # Predict affordance, centers and directions
@@ -141,7 +142,7 @@ def viz(cfg):
         directions = directions[0].detach().cpu().numpy()
 
         # Plot different objects according to voting layer
-        obj_segmentation = orig_img
+        obj_segmentation = orig_img_resize
         centers = []
         obj_class = np.unique(object_masks)[1:]
         obj_class = obj_class[obj_class != 0]  # remove background class
@@ -150,11 +151,13 @@ def viz(cfg):
         for i, o in enumerate(object_centers):
             o = o.detach().cpu().numpy()
             centers.append(o)
-            obj_mask = np.zeros_like(object_masks)  # (img_size, img_size, 1)
-            obj_mask[object_masks == obj_class[i]] = 255
-            obj_segmentation = overlay_mask(obj_mask[:, :, 0],
-                                            obj_segmentation,
-                                            tuple(colors[i]))
+            # obj_mask = np.zeros_like(object_masks)  # (img_size, img_size, 1)
+            # obj_mask[object_masks == obj_class[i]] = 255
+            # new_size = obj_segmentation.shape[:2]
+            # resize_mask = cv2.resize(obj_mask, (*new_size, 1))
+            # obj_segmentation = overlay_mask(resize_mask[:, :, 0],
+            #                                 obj_segmentation,
+            #                                 tuple(colors[i]))
         # Affordance segmentation
         affordances = orig_img
         if(n_classes > 2):
@@ -164,18 +167,23 @@ def viz(cfg):
             for i in range(1, n_classes):
                 obj_mask = np.zeros_like(mask)  # (1, img_size, img_size)
                 obj_mask[mask == i] = 255
-                affordances = overlay_mask(obj_mask[0],
+                new_size = affordances.shape[:2]
+                resize_mask = cv2.resize(obj_mask, new_size)
+                affordances = overlay_mask(resize_mask[0],
                                            affordances,
                                            tuple(colors[i-1]))
             mask[mask > 0] = 1
         else:
-            affordances = overlay_mask(mask[0] * 255, affordances, (255, 0, 0))
+            bin_mask = (mask[0] * 255).astype('uint8')
+            bin_mask = cv2.resize(bin_mask, affordances.shape[:2])
+            affordances = overlay_mask(bin_mask, affordances, (255, 0, 0))
 
         # To flow img
         directions = np.transpose(directions, (1, 2, 0))
         flow_img = flowlib.flow_to_image(directions)  # RGB
         flow_img = flow_img[:, :, ::-1]  # BGR
         mask = (np.transpose(mask, (1, 2, 0))*255).astype('uint8')
+        # mask[:, 100:] = 0
 
         # Resize to out_shape
         obj_segmentation = cv2.resize(obj_segmentation, out_shape)
@@ -213,7 +221,9 @@ def viz(cfg):
         # Save and show
         if(cfg.save_images):
             _, tail = os.path.split(filename)
-            name, ext = tail.split('.')
+            split = tail.split('.')
+            name = "".join(split[:-1])
+            ext = split[-1]
             output_file = os.path.join(cfg.output_dir, name + ".jpg")
             cv2.imwrite(output_file, res)
         if(cfg.imshow):

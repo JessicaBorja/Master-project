@@ -15,8 +15,8 @@ objects:
     initial_orn: [0, 0, 0]
     fixed: false
   marker:
-    file: 040_large_marker/google_16k/textured.urdf
-    initial_pos: [0.43, 0.8, 0.61]
+    file: tabletop/marker/textured.urdf
+    initial_pos: [0.43, 0.8, 0.625]
     initial_orn: [0, 0, 0]
     fixed: false
   spatula:
@@ -30,9 +30,9 @@ objects:
     initial_orn: [0, 0, -0.3]
     fixed: false
   screwdriver:
-    file: 044_flat_screwdriver/google_16k/textured.urdf
-    initial_pos: [-0.1, 0.45, 0.62]
-    initial_orn: [0, 0, -0.5]
+    file: tabletop/flat_screwdriver/textured.urdf
+    initial_pos: [-0.1, 0.45, 0.65]
+    initial_orn: [0, 0, -1.5]
     fixed: false
   utility_knife:
     file: tabletop/utility_knife/utility_knife.urdf

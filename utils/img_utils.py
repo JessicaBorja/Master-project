@@ -59,11 +59,12 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
         for i in range(1, n_classes):
             obj_mask = np.zeros_like(mask)  # (1, img_size, img_size)
             obj_mask[mask == i] = 255
-            obj_mask = cv2.resize(obj_mask, im_shape)
+            obj_mask = cv2.resize(obj_mask.astype('float32'), im_shape)
             affordances = overlay_mask(obj_mask,
                                        affordances,
                                        tuple(colors[i-1]))
         mask[mask > 0] = 255
+        mask = cv2.resize(mask.astype('float32'), im_shape)
     else:
         mask = (mask*255).astype('uint8')
         mask = cv2.resize(mask, im_shape)
@@ -108,8 +109,8 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
     # cv2.imshow("original_img", orig_img)
     # cv2.imshow("aff_mask", mask)
     # cv2.imshow("flow_img", flow_img)
-    cv2.imshow("flow_over_img-%s"%cam_type, flow_over_img)
-    cv2.imshow("preds-%s"%cam_type, out_img)
+    cv2.imshow("flow_over_img-%s" % cam_type, flow_over_img)
+    cv2.imshow("preds-%s" % cam_type, out_img)
     cv2.waitKey(1)
 
     if(save_images):

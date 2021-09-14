@@ -179,7 +179,6 @@ class RLWrapper(gym.Wrapper):
         # p.addUserDebugText("aff_target",
         #                     textPosition=self.env.unwrapped.current_target,
         #                     textColorRGB=[0, 1, 0])
-
         return obs
 
     def reward(self, rew):
@@ -272,6 +271,8 @@ class RLWrapper(gym.Wrapper):
                             self.img_size)
             obs["%s_depth_obs" % cam_type] = depth_obs
         if(obs_cfg.use_img):
+            if(self.viz and cam_type == "static"):
+                cv2.imshow("static_cam_img", obs_dict['rgb_obs'][cam_id][:, :, ::-1])
             # Transform rgb to grayscale
             img_obs = img_preprocessing(
                                 obs_dict['rgb_obs'][cam_id],

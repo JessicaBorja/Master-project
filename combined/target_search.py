@@ -35,11 +35,11 @@ class TargetSearch():
         if(self.mode == "affordance"):
             res = self._compute_target_aff(env, global_it)
             target_pos, no_target, object_centers = res
-            if env.task == "slide" or env.task == "hinge":
-                # Because it most likely will detect the door and not the handle
-                target_pos = np.array([target_pos[0],
-                                       target_pos[1] - 0.075,
-                                       target_pos[2]])
+            # if env.task == "slide" or env.task == "hinge":
+            #     # Because it most likely will detect the door and not the handle
+            #     # target_pos = np.array([target_pos[0],
+            #     #                        target_pos[1] - 0.075,
+            #     #                        target_pos[2]])
             if(return_all_centers):
                 obj_centers = []
                 for center in object_centers:
@@ -160,9 +160,9 @@ class TargetSearch():
                 # look for max depth around neighborhood
                 n = 10
                 depth_window = depth_obs[x[0] - n:x[0] + n, x[1] - n:x[1] + n]
-                proposal = np.where(depth_window == np.min(depth_window))
-                v = x[0] - n + proposal[0].item()
-                u = x[1] - n + proposal[1].item()
+                proposal = np.argwhere(depth_window == np.min(depth_window))[0]
+                v = x[0] - n + proposal[0]
+                u = x[1] - n + proposal[1]
             # v, u = x
             world_pt = np.array(cam.deproject([u, v], depth_obs))
             world_pts.append(world_pt)

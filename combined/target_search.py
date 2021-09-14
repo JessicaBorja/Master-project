@@ -155,7 +155,15 @@ class TargetSearch():
         for o in object_centers:
             x = o.detach().cpu().numpy()
             x = (x * orig_shape / pred_shape).astype("int64")
-            v, u = x
+            if(env.task == "drawer" or env.task == "slide"):
+                # As center might  not be exactly in handle
+                # look for max depth around neighborhood
+                n = 10
+                depth_window = depth_obs[x[0] - n:x[0] + n, x[1] - n:x[1] + n]
+                proposal = np.where(depth_window == np.min(depth_window))
+                v = x[0] - n + proposal[0].item()
+                u = x[1] - n + proposal[1].item()
+            # v, u = x
             world_pt = np.array(cam.deproject([u, v], depth_obs))
             world_pts.append(world_pt)
 

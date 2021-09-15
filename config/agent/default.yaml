@@ -8,7 +8,8 @@ hyperparameters:
     tau: 0.005
     batch_size: 256
     buffer_size: 1e5
-    learning_starts: 0 #timesteps before starting updates
+    learning_starts: 0 # timesteps before starting updates
+    init_temp: 0.01 # Initialization of entropy coeficient
 
 net_cfg:
     hidden_dim: 256

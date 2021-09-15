@@ -15,7 +15,6 @@ use_pos: False
 use_depth: False
 
 # Environment
-rand_init_state: False
 sparse_reward: False
 
 env_wrapper:

@@ -20,7 +20,7 @@ class SAC():
                  tau=0.005, learning_starts=1000,
                  batch_size=256, buffer_size=1e6,
                  model_name="sac", net_cfg=None, log=None,
-                 save_replay_buffer=False):
+                 save_replay_buffer=False, init_temp=0.01):
         self._save_replay_buffer = save_replay_buffer
         self.log = log
         if(not log):
@@ -57,9 +57,9 @@ class SAC():
             self.ent_coef = 1  # entropy coeficient
             # heuristic value
             self.target_entropy = -np.prod(env.action_space.shape).item()
-            self.log_ent_coef = torch.zeros(1,
-                                            requires_grad=True,
-                                            device="cuda")  # init value
+            self.log_ent_coef = torch.tensor(np.log(init_temp),
+                                             requires_grad=True,
+                                             device="cuda")  # init value
             self.ent_coef_optimizer = optim.Adam([self.log_ent_coef],
                                                  lr=alpha_lr)
         else:

@@ -328,6 +328,8 @@ class RLWrapper(gym.Wrapper):
                 # m = np.transpose(mask * 255,(1, 2, 0)).astype('uint8')
                 # cv2.imshow("%s_aff" % cam_type, m)
                 obs["%s_aff" % cam_type] = mask
+            # if(self.viz):
+            #     cv2.imshow("static_obs", obs_dict['rgb_obs'][-1][:, :, ::-1])
         return obs
 
     # Aff-center

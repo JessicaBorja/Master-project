@@ -14,5 +14,4 @@ use_egl: True
 
 # RL Specific
 task: ${task} #slide, hinge, drawer
-rand_init_state: False
 sparse_reward: True

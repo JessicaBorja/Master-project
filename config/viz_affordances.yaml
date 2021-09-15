@@ -7,7 +7,7 @@ project_folder: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/Master-proj
 #            ../datasets/tabletop_multiscene_MoC-True/tabletop_misc_MoC-True/episode_10/data/gripper_cam/]
 
 get_eval_files: True
-data_dir: ../datasets/teleop_real/teleop_real_08_09/
+data_dir: [./affordance_model/inference/static/]
 # # Gripper camera
 # folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-05-30/00-41-40
 # model_name: last.ckpt
@@ -40,8 +40,7 @@ folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-09-09/10-39-3
 model_name: last.ckpt
 cam_type: static
 
-# Output img size, must be mutiple of 32
-save_images: False
+save_images: True
 imshow: True
 out_size: 300
 output_dir: ${project_folder}/affordance_model/predictions/aff_static_multitask

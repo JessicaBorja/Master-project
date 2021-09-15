@@ -205,13 +205,25 @@ all_cameras:
     height: 200
     look_from: [0.1489590099081397, -0.5244077444076538, 1.483006775379181]
     look_at: [0.16050678491592407, 0.3025922179222107, 0.9209232330322266]
+  rendering:
+    _target_: vr_env.camera.static_camera.StaticCamera
+    name: rendering
+    fov: 45
+    aspect: 1
+    nearval: 0.01
+    farval: 2
+    width: 500
+    height: 500
+    look_from: [0.1489590099081397, -0.5244077444076538, 1.483006775379181]
+    look_at: [0.16050678491592407, 0.3025922179222107, 0.9209232330322266]
+
 
 hydra:
   run:
     dir: ${save_dir}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 defaults:
-  - robot: panda_playtable
+  - robot: panda_playtable_longer_finger
   - scene: empty_playtable_left
   - env: env_combined
   - env@eval_env: env_combined

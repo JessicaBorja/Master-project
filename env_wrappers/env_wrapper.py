@@ -172,8 +172,8 @@ class RLWrapper(gym.Wrapper):
                 # *tcp_pos(3), *tcp_euler(3),
                 # gripper_opening_width(1), gripper_action
                 obs["robot_obs"] = np.array([*obs_dict["robot_obs"][:7],
-                                            obs_dict["robot_obs"][-1],
-                                            self.env.get_target_pos()[-1]])
+                                             obs_dict["robot_obs"][-1]])
+                                            # self.env.get_target_pos()[-1]])
         self.obs_it += 1
         # p.removeAllUserDebugItems()
         # p.addUserDebugText("aff_target",

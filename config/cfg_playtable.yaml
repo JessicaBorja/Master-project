@@ -171,7 +171,6 @@ all_cameras:
     farval: 2
     width: 300
     height: 300
-    gripper_cam_link: 12
   tabletop_test:
     _target_: vr_env.camera.static_camera.StaticCamera
     name: tidy_up_test

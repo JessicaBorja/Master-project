@@ -70,7 +70,7 @@ def get_obs_space(affordance_cfg, gripper_cam_cfg, static_cam_cfg,
                 low=-0.5, high=0.5, shape=(6,))
         else:
             obs_space_dict['robot_obs'] = gym.spaces.Box(
-                low=-0.5, high=0.5, shape=(9,))
+                low=-0.5, high=0.5, shape=(8,))
     if(affordance_cfg.gripper_cam.target_in_obs):
         obs_space_dict['detected_target_pos'] = gym.spaces.Box(
             low=-1, high=1, shape=(3,))

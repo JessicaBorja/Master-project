@@ -92,7 +92,6 @@ all_cameras:
     farval: 2
     width: 200
     height: 200
-    gripper_cam_link: 12 # TODO do not hardcode this, use robot property? e.g. ${robot.camera_link_id}
 
 hydra:
   run:

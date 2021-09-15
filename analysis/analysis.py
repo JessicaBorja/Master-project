@@ -9,13 +9,20 @@ from scipy.interpolate import interp1d
 
 def plot_data(data, ax, label, n_ep=6, color="gray", stats_axis=0):
     mean = np.mean(data, axis=stats_axis)[:, -1]
-    std = np.std(data, axis=stats_axis)[:, -1]
+    # std = np.std(data, axis=stats_axis)[:, -1]
+    min_values = np.min(data, axis=stats_axis)[:, -1]
+    max_values = np.max(data, axis=stats_axis)[:, -1]
 
     smooth_window = 5
     mean = np.array(pd.Series(mean).rolling(smooth_window,
                                             min_periods=smooth_window).mean())
-    std = np.array(pd.Series(std).rolling(smooth_window,
-                                          min_periods=smooth_window).mean())
+    # std = np.array(pd.Series(std).rolling(smooth_window,
+    #                                       min_periods=smooth_window).mean())
+    min_values = np.array(pd.Series(min_values).rolling(smooth_window,
+                                                        min_periods=smooth_window).mean())
+    max_values = np.array(pd.Series(max_values).rolling(smooth_window,
+                                                        min_periods=smooth_window).mean())
+
     steps = data[0, :, 0]
     # for learning_curve in data:
     #     smooth_data = np.array(pd.Series(learning_curve[:, 1]).rolling(smooth_window,
@@ -23,9 +30,11 @@ def plot_data(data, ax, label, n_ep=6, color="gray", stats_axis=0):
     #     ax.plot(learning_curve[:, 0], smooth_data, 'k', linewidth=1, color=color)
 
     ax.plot(steps, mean, 'k', linewidth=2, label=label, color=color)
-    lb = mean - std
+    # lb = mean - std
+    lb = min_values
     lb[lb < 0] = 0
-    ax.fill_between(steps, mean + std, lb, color=color, alpha=0.15)
+    # ax.fill_between(steps, mean + std, lb, color=color, alpha=0.15)
+    ax.fill_between(steps, max_values, min_values, color=color, alpha=0.15)
     # ax.axhline(n_ep, color="gray", ls="--")
     return ax
 
@@ -303,10 +312,10 @@ if __name__ == "__main__":
     #              "rgb_img_depth_dist_affMask_dense": "RGB + depth + dist + affMask + dense"}
     # plot_by_episodes(plot_dict, csv_dir="./analysis/results_csv/pickup_ablation/")
     # plot_by_timesteps(plot_dict, csv_dir="./analysis/results_csv/pickup_ablation/")
-    # plot_dict = {"sparse": "local-SAC",
-    #              "dense": "VAPO"}
-    # plot_by_episodes(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_rand/")
-    # plot_by_timesteps(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_rand/")
     plot_dict = {"sparse": "local-SAC",
                  "dense": "VAPO"}
-    plot_by_time(plot_dict, csv_dir="/home/jessica/Downloads/real-world/")
+    plot_by_episodes(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_rand/")
+    plot_by_timesteps(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_rand/")
+    # plot_dict = {"sparse": "local-SAC",
+    #              "dense": "VAPO"}
+    # plot_by_time(plot_dict, csv_dir="/home/jessica/Downloads/real-world/")

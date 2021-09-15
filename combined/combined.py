@@ -31,7 +31,7 @@ class Combined(SAC):
         elif(self.env.task == "slide"):
             self.target_orn = np.array([-math.pi / 2, - math.pi / 2, 0])
         elif(self.env.task == "drawer"):
-            self.target_orn = np.array([- math.pi, -math.pi/8, math.pi / 2])
+            self.target_orn = np.array([- math.pi, math.pi/8, - math.pi / 2])
         else:
             self.target_orn = _initial_orn
 
@@ -207,7 +207,7 @@ class Combined(SAC):
                     if(env.task == "pickup"):
                         move_to = self.target_pos + np.array([0, 0, 0.035])  # 0.05
                     else:
-                        move_to = self.target_pos + np.array([0, 0.02, 0.015])
+                        move_to = self.target_pos + np.array([0, 0.02, 0])
             else:
                 # Move in x-z dir
                 x_target = [self.target_pos[0], tcp_pos[1], self.target_pos[2]]

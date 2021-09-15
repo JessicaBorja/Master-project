@@ -110,7 +110,7 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
     # cv2.imshow("aff_mask", mask)
     # cv2.imshow("flow_img", flow_img)
     cv2.imshow("flow_over_img-%s" % cam_type, flow_over_img)
-    cv2.imshow("preds-%s" % cam_type, out_img)
+    # cv2.imshow("preds-%s" % cam_type, out_img)
     cv2.waitKey(1)
 
     if(save_images):

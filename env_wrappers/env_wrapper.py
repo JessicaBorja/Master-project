@@ -32,7 +32,7 @@ class RLWrapper(gym.Wrapper):
                  gripper_cam, static_cam, transforms=None,
                  use_pos=False, use_aff_termination=False,
                  affordance_cfg=None, target_search="env",
-                 max_target_dist=0.15,
+                 max_target_dist=0.15, use_env_state=False,
                  train=False, save_images=False, viz=False,
                  history_length=None, skip_frames=None):
         # ENV definition
@@ -95,6 +95,7 @@ class RLWrapper(gym.Wrapper):
         self.gripper_cam_cfg = gripper_cam
         self.static_cam_cfg = static_cam
         self.use_robot_obs = use_pos
+        self.use_env_state = use_env_state
         # self._mask_transforms = DistanceTransform()
 
         # Parameters to store affordance
@@ -117,7 +118,8 @@ class RLWrapper(gym.Wrapper):
                                                self.static_cam_cfg,
                                                self.channels, self.img_size,
                                                self.use_robot_obs,
-                                               self.task)
+                                               self.task,
+                                               oracle=self.use_env_state)
 
         # Save images
         self.gripper_cam_imgs = {}
@@ -173,7 +175,9 @@ class RLWrapper(gym.Wrapper):
                 # gripper_opening_width(1), gripper_action
                 obs["robot_obs"] = np.array([*obs_dict["robot_obs"][:7],
                                              obs_dict["robot_obs"][-1]])
-                                            # self.env.get_target_pos()[-1]])
+                if(self.use_env_state):
+                    obs["robot_obs"] = np.append(obs["robot_obs"],
+                                                 self.env.get_target_pos()[-1])
         self.obs_it += 1
         # p.removeAllUserDebugItems()
         # p.addUserDebugText("aff_target",

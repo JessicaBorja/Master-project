@@ -79,7 +79,7 @@ objects:
     fixed: false
   marker:
     file: tabletop/marker/textured.urdf
-    initial_pos: [0.35, 0.92, 0.5858776969792199]
+    initial_pos: [0.35, 0.92, 0.61]
     initial_orn: [0, 0, 0]
     fixed: false
   small_tool_1:

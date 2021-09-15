@@ -55,6 +55,7 @@ env_wrapper:
   img_size: ${img_size}
   use_aff_termination: False
   max_target_dist: 0.13
+  use_env_state: False
 
 # Affordance configuration for RL agent observation inputs
 affordance:

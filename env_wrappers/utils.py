@@ -43,7 +43,7 @@ def find_cam_ids(cameras):
 
 
 def get_obs_space(affordance_cfg, gripper_cam_cfg, static_cam_cfg,
-                  channels, img_size, use_robot_obs, task):
+                  channels, img_size, use_robot_obs, task, oracle=False):
     cfg_dict = {
         "gripper": [gripper_cam_cfg, affordance_cfg.gripper_cam],
         "static": [static_cam_cfg, affordance_cfg.static_cam]
@@ -69,8 +69,9 @@ def get_obs_space(affordance_cfg, gripper_cam_cfg, static_cam_cfg,
             obs_space_dict['robot_obs'] = gym.spaces.Box(
                 low=-0.5, high=0.5, shape=(6,))
         else:
+            obs_shape = 9 if oracle else 8
             obs_space_dict['robot_obs'] = gym.spaces.Box(
-                low=-0.5, high=0.5, shape=(8,))
+                low=-0.5, high=0.5, shape=(obs_shape,))
     if(affordance_cfg.gripper_cam.target_in_obs):
         obs_space_dict['detected_target_pos'] = gym.spaces.Box(
             low=-1, high=1, shape=(3,))

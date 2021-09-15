@@ -1,0 +1,17 @@
+#_target_: VREnv.vr_env.envs.play_table_env.PlayTableEnv
+cameras: ${camera_conf.cameras}
+seed: 0
+bullet_time_step: 240.0
+global_scaling: 0.8
+use_vr: false
+show_gui: False
+robot_cfg: ${robot}
+data_path: ${data_path}
+scene: ${scene}
+euler_obs: ${euler_obs}
+use_scene_info: false
+use_egl: True
+
+# RL Specific
+task: ${task} #slide, hinge, drawer
+sparse_reward: False

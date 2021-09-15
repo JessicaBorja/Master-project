@@ -17,7 +17,7 @@ use_nullspace: true
 max_velocity: 2
 use_ik_fast: false
 euler_obs: ${euler_obs}
-max_rel_pos: 0.03
+max_rel_pos: 0.02
 max_rel_orn: 0.1
 magic_scaling_factor_pos: 1
 magic_scaling_factor_orn: 1

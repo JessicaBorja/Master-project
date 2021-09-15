@@ -398,7 +398,7 @@ class Combined(SAC):
                 if(success):
                     success_objs.append(env.target)
             # Episode ended because it finished the task
-            elif(env.task != "pickup" and r == 0):
+            elif(env.task != "pickup" and r > 0):
                 success = True
             else:
                 success = False

@@ -177,7 +177,7 @@ class SAC():
             # If lifted incorrectly get no reward
             if(not success):
                 r = 0
-        elif(self.env.task != "pickup" and r > -1):
+        elif(self.env.task != "pickup" and r > 0):
             success = True
 
         self._replay_buffer.add_transition(s, a, r, ns, done)

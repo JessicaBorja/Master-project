@@ -54,7 +54,7 @@ objects:
     fixed: false
   frying_pan_3:
     file: tabletop/skillet/textured.urdf
-    initial_pos: [0.1, 0.9, 0.6353761372324722]
+    initial_pos: [0.1, 0.9, 0.637398831966368]
     initial_orn: [0, 0, 0.5]
     fixed: false
   teapot:
@@ -69,7 +69,7 @@ objects:
     fixed: false
   spatula:
     file: tabletop/spatula/spatula.urdf
-    initial_pos: [0.42, 0.54, 0.61]
+    initial_pos: [0.42, 0.54, 0.6104]
     initial_orn: [0, 0, 3.1416]
     fixed: false
   salt:
@@ -79,17 +79,17 @@ objects:
     fixed: false
   marker:
     file: tabletop/marker/textured.urdf
-    initial_pos: [0.35, 0.92, 0.625]
+    initial_pos: [0.35, 0.92, 0.5858776969792199]
     initial_orn: [0, 0, 0]
     fixed: false
   small_tool_1:
     file: tabletop/flat_screwdriver/textured.urdf
-    initial_pos: [-0.1, 0.6, 0.6143022605081714]
+    initial_pos: [-0.1, 0.6, 0.5997716566898477]
     initial_orn: [0, 0, -1.57]
     fixed: false
   small_tool_2:
     file: tabletop/utility_knife/utility_knife.urdf
-    initial_pos: [0.4, 0.5, 0.6081272152736463]
+    initial_pos: [0.4, 0.5, 0.6116962993721645]
     initial_orn: [0, 0, -1.54]
     fixed: false
   small_tool_3:
@@ -99,7 +99,7 @@ objects:
     fixed: false
   knife:
     file: tabletop/kitchen_knife/kitchen_knife.urdf
-    initial_pos: [0.37, 0.91, 0.61]
+    initial_pos: [0.37, 0.91, 0.61895]
     initial_orn: [0, 0, 0]
     fixed: false
   flashlight:
@@ -114,6 +114,6 @@ objects:
     fixed: false
   whisk:
     file: tabletop/whisk/whisk.urdf
-    initial_pos: [-0.11, 0.83, 0.6156331388887535]
+    initial_pos: [-0.11, 0.83, 0.6139381604012671]
     initial_orn: [0, 0, 0.5]
     fixed: false

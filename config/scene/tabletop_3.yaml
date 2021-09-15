@@ -26,7 +26,7 @@ objects:
     fixed: false
   skillet:
     file: tabletop/skillet/textured.urdf
-    initial_pos: [-0.13, 0.58, 0.6353761372324722]
+    initial_pos: [-0.13, 0.58, 0.637398831966368]
     initial_orn: [0, 0, 0.5]
     fixed: false
   # teapot:

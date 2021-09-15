@@ -218,30 +218,24 @@ class RLWrapper(gym.Wrapper):
                     goal_pose = np.array([0.25, 0.75, 0.74])
                     dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
                     # max posible distance clip
-                    dist_to_goal = min(dist_to_goal/0.6, 1)
-                    rew -= (scale_dist + dist_to_goal)
+                    dist_to_goal = 1 - min(dist_to_goal/0.6, 1)
+                    scale_dist = 1 - scale_dist
+                    rew += scale_dist + dist_to_goal
                 elif(self.task == "drawer"):
                     goal_pose = np.array([-0.05, 0.30, 0.42])
                     dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
                     # max posible distance clip
-                    dist_to_goal = min(dist_to_goal/0.25, 1)
-                    rew -= (scale_dist + dist_to_goal)
+                    dist_to_goal = 1 - min(dist_to_goal/0.25, 1)
+                    scale_dist = 1 - scale_dist
+                    rew += scale_dist + dist_to_goal
                 else:
-                    rew -= scale_dist
+                    rew = 1 - scale_dist
                 self.ts_counter += 1
             else:
                 # If episode was successful
-                if(rew >= 1 and self.env.task == "pickup"):
+                if(rew > 0):
                     # Reward for remaining ts
                     rew += self.max_ts - 1 - self.ts_counter
-
-                # If terminated because it went far away
-                if(rew <= -1 and self.env.task != "pickup"):
-                    # Penalize for remaining ts
-                    # it would have gotten -1 for being far 
-                    # and -1 for not completing task
-                    # and -1 for not moving target to goal
-                    rew -= (self.max_ts - 1 - self.ts_counter) * 3
                 self.ts_counter = 0
         return rew
 

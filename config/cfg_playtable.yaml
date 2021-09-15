@@ -228,7 +228,7 @@ defaults:
   - env: env_combined
   - env@eval_env: env_combined
   - camera_conf: empty_playtable_center
-  - agent: default
+  - agent: default_playtable
   - test: test_playtable
   - transforms@affordance.transforms: aff_transforms
   - transforms@env_wrapper.transforms: rl_transforms

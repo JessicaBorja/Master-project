@@ -215,19 +215,19 @@ class RLWrapper(gym.Wrapper):
                 if(self.task == "pickup"):
                     rew += (1 - scale_dist)**0.4
                 elif(self.task == "slide"):
-                    goal_pose = np.array([0.25, 0.75, 0.74])
-                    dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
-                    # max posible distance clip
-                    dist_to_goal = 1 - min(dist_to_goal/0.6, 1)
+                    # goal_pose = np.array([0.25, 0.75, 0.74])
+                    # dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
+                    # # max posible distance clip
+                    # dist_to_goal = 1 - min(dist_to_goal/0.6, 1)
                     scale_dist = 1 - scale_dist
-                    rew += scale_dist + dist_to_goal
+                    rew += scale_dist
                 elif(self.task == "drawer"):
-                    goal_pose = np.array([-0.05, 0.30, 0.42])
-                    dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
-                    # max posible distance clip
-                    dist_to_goal = 1 - min(dist_to_goal/0.25, 1)
+                    # goal_pose = np.array([-0.05, 0.30, 0.42])
+                    # dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
+                    # # max posible distance clip
+                    # dist_to_goal = 1 - min(dist_to_goal/0.25, 1)
                     scale_dist = 1 - scale_dist
-                    rew += scale_dist + dist_to_goal
+                    rew += scale_dist
                 else:
                     rew = 1 - scale_dist
                 self.ts_counter += 1
@@ -271,6 +271,7 @@ class RLWrapper(gym.Wrapper):
         if(obs_cfg.use_img):
             if(self.viz and cam_type == "static"):
                 cv2.imshow("static_cam_img", obs_dict['rgb_obs'][cam_id][:, :, ::-1])
+                cv2.waitKey(1)
             # Transform rgb to grayscale
             img_obs = img_preprocessing(
                                 obs_dict['rgb_obs'][cam_id],

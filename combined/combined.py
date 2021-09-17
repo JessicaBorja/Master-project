@@ -146,12 +146,13 @@ class Combined(SAC):
             #     env.p.stepSimulation()
             #     env.fps_controller.step()
 
-    def detect_and_correct(self, env, obs, p_dist=None):
+    def detect_and_correct(self, env, obs, p_dist=None, noisy=False):
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
         target_pos, no_target = \
             self.target_search.compute(env,
-                                       p_dist=p_dist)
+                                       p_dist=p_dist,
+                                       noisy=noisy)
         if(no_target):
             self.no_detected_target += 1
             target_pos = self.last_detected_target
@@ -197,7 +198,7 @@ class Combined(SAC):
                     if(env.task == "pickup"):
                         move_to = self.target_pos + np.array([0, 0, 0.035])
                     else:
-                        move_to = self.target_pos + np.array([0.02, 0.02, 0.05])
+                        move_to = self.target_pos + np.array([0.03, 0.02, 0.05])
             else:
                 # Move in x-z dir
                 x_target = [self.target_pos[0], tcp_pos[1], self.target_pos[2]]
@@ -241,7 +242,7 @@ class Combined(SAC):
         # Move to target position only one
         # Episode ends if outside of radius
         s = self.env.reset()
-        self.env, s, _ = self.detect_and_correct(self.env, s, self.p_dist)
+        self.env, s, _ = self.detect_and_correct(self.env, s, self.p_dist, True)
         for t in range(1, total_timesteps+1):
             s, done, success, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, t, episode_return, episode_length,
@@ -281,7 +282,7 @@ class Combined(SAC):
                 episode_return, episode_length = 0, 0
                 s = self.env.reset()
                 self.env, s, _ = self.detect_and_correct(self.env, s,
-                                                         self.p_dist)
+                                                         self.p_dist, True)
 
         # Evaluate at end of training
         for eval_all_objs in [False, True]:
@@ -428,11 +429,11 @@ class Combined(SAC):
             episode_length, episode_return = 0, 0
             done = False
             # Search affordances and correct position:
-            env, s, no_target = self.detect_and_correct(env, self.env.get_obs())
+            env, s, no_target = self.detect_and_correct(env, self.env.get_obs(), False)
             if(no_target):
                 # If no target model will move to initial position.
                 # Search affordance from this position again
-                self.detect_and_correct(env, self.env.get_obs())
+                self.detect_and_correct(env, self.env.get_obs(), False)
 
             # If it did not find a target again, terminate everything
             while(episode_length < max_episode_length // 2

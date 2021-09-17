@@ -28,7 +28,8 @@ class TargetSearch():
 
     def compute(self, env=None,
                 return_all_centers=False,
-                p_dist=None):
+                p_dist=None,
+                noisy=False):
         if(env is None):
             env = self.env
         if(self.mode == "affordance"):
@@ -39,6 +40,10 @@ class TargetSearch():
             #     # target_pos = np.array([target_pos[0],
             #     #                        target_pos[1] - 0.075,
             #     #                        target_pos[2]])
+            if(noisy):
+                target_pos += np.random.normal(loc=0,
+                                               scale=[0.01, 0.01, 0.005],
+                                               size=(len(target_pos)))
             if(return_all_centers):
                 obj_centers = []
                 for center in object_centers:
@@ -57,19 +62,20 @@ class TargetSearch():
         else:
             if(p_dist):
                 env.pick_rand_obj(p_dist)
-            res = self._env_compute_target(env)
+            res = self._env_compute_target(env, noisy)
         return res
 
     # Env real target pos
-    def _env_compute_target(self, env=None):
+    def _env_compute_target(self, env=None, noisy=False):
         if(not env):
             env = self.env
         # This should come from static cam affordance later on
         target_pos, _ = env.get_target_pos()
         # 2 cm deviation
         target_pos = np.array(target_pos)
-        target_pos += np.random.normal(loc=0, scale=[0.005, 0.005, 0.01],
-                                       size=(len(target_pos)))
+        if(noisy):
+            target_pos += np.random.normal(loc=0, scale=[0.005, 0.005, 0.01],
+                                        size=(len(target_pos)))
 
         # always returns a target position
         no_target = False

@@ -5,12 +5,12 @@ optim_res: False
 models_dir: ${project_path}/Master-project/combined/hydra_outputs
 
 
-model_name: drawer_rgb_nr_img_depth_dist_affMask_dense_17-09_03-14_most_tasks_from_5
-folder_name: ${test.models_dir}/drawer/2021-09-17/03-13-56
+model_name: drawer_rgb_nr_img_depth_sparse_17-09_03-08_most_tasks_from_5
+folder_name: ${test.models_dir}/drawer/2021-09-17/03-08-42
 
 
 eval_cfg:
-  n_episodes: 10
+  n_episodes: 100
   render: False
   print_all_episodes: True
   max_episode_length: 100

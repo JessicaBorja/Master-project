@@ -54,6 +54,9 @@ def load_cfg(cfg_path, cfg, optim_res):
             init_pos = set_init_pos(run_cfg.task, init_pos)
             run_cfg.env.robot_cfg.initial_joint_positions = init_pos
             run_cfg.eval_env.robot_cfg.initial_joint_positions = init_pos
+    if('rand_init_state' in run_cfg.env):
+        run_cfg.env.pop('rand_init_state')
+        run_cfg.eval_env.pop('rand_init_state')
     return run_cfg, net_cfg, env_wrapper, agent_cfg
 
 

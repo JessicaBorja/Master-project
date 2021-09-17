@@ -90,7 +90,7 @@ class RLWrapper(gym.Wrapper):
 
         # Observation and action space
         # 0-2 -> position , 3 -> yaw angle 4 gripper action
-        _action_space = np.ones(5)
+        _action_space = np.ones(4)
         self.action_space = spaces.Box(_action_space * -1, _action_space)
         self.observation_space = get_obs_space(affordance_cfg,
                                                self.gripper_cam_cfg,
@@ -109,6 +109,7 @@ class RLWrapper(gym.Wrapper):
         return self.observation(observation)
 
     def step(self, action):
+        action = np.append(action, 1)
         observation, reward, done, info = self.env.step(action)
         return self.observation(observation), self.reward(reward, observation, done), done, info
 

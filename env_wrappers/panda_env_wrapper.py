@@ -58,7 +58,7 @@ class PandaEnvWrapper(gym.Wrapper):
         gripper_action = action[-1]
 
         curr_pos = self.env.robot.get_tcp_pos_orn()[0]
-        depth_thresh = curr_pos[-1] <= self.env.workspace_limits[0][-1] + 0.007
+        depth_thresh = curr_pos[-1] <= self.env.workspace_limits[0][-1] + 0.01
         if(depth_thresh):
             print("depth tresh")
             gripper_action = -1

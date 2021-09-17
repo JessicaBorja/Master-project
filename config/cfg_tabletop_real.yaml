@@ -11,7 +11,7 @@ viz_obs: False
 # or static_cam
 models_path: "${project_path}/Master-project/trained_models/"
 resume_training: True
-resume_model_path: ${save_dir}
+resume_model_path: ${save_dir} # ./combined/hydra_outputs/${task}/2021-09-15_ours
 
 # Static cam affordance model to detect the targets
 n_objects: 4

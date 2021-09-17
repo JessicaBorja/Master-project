@@ -47,7 +47,7 @@ def get_nets(img_obs, obs_space, action_space, log):
     action_dim = action_space.shape[0]
     if(img_obs):
         log.info("SAC get_nets using: %s" % str([k for k in obs_space]))
-        policy = "CNNPolicy"
+        policy = "CNNPolicyReal"
         critic = "CNNCritic"
         # policy = "legacy_CNNPolicy"
         # critic = "legacy_CNNCritic"

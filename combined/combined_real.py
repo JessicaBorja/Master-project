@@ -96,7 +96,7 @@ class Combined(SAC):
         robot_target_pos = target_pos.copy()
         robot_target_pos[2] += self.above_obj
         target_orn = self.target_orn.copy()
-        target_orn[2] += np.random.uniform(-1, 1) * np.radians(40)
+        target_orn[2] += np.random.uniform(-1, 1) * np.radians(30)
         obs = self.env.reset(robot_target_pos, target_orn)
         return env, obs, no_target
 

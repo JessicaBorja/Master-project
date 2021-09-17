@@ -6,7 +6,7 @@ from omegaconf import OmegaConf
 import os
 import cv2
 import torch
-import pybullet as p
+import time
 
 
 class TargetSearch():

@@ -410,8 +410,16 @@ class RLWrapper(gym.Wrapper):
 
             # Convert back to observation size
             o = (o * orig_shape / pred_shape).astype("int64")
-            v, u = o
-
+            if(self.env.task == "drawer" or self.env.task == "slide"):
+                # As center might  not be exactly in handle
+                # look for max depth around neighborhood
+                n = 10
+                depth_window = depth[o[0] - n:o[0] + n, o[1] - n:o[1] + n]
+                proposal = np.argwhere(depth_window == np.min(depth_window))[0]
+                v = o[0] - n + proposal[0]
+                u = o[1] - n + proposal[1]
+            else:
+                v, u = o
             world_pt = cam.deproject([u, v], depth)
             c_out = {"center": world_pt,
                      "pixel_count": pixel_count,

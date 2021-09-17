@@ -31,7 +31,7 @@ def join_val_ep(dataset_dir, cam):
     files = []
     for ep in ep_data["validation"].keys():
         img_folder = os.path.join(dataset_dir, ep+"/viz_out/%s_cam/" % cam)
-        files += get_files(img_folder, "jpg")
+        files += get_files(img_folder, "png")
     files.sort()
     return files
 
@@ -45,7 +45,7 @@ def make_videos(path, cam, val_dir=False):
         make_video(files, fps=30, video_name=video_name)
     else:
         for img_folder in path:
-            files = get_files(img_folder, "jpg")
+            files = get_files(img_folder, "png")
             if(not files):
                 return
             video_name = os.path.join(
@@ -55,15 +55,13 @@ def make_videos(path, cam, val_dir=False):
 
 
 if __name__ == "__main__":
-    pred_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/tmp/2021-06-21/19-52-03/gripper_dirs"
-    path = ['%s/obj_%d' % (pred_folder, i) for i in range(1, 7)]
-    # pred_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/datasets/tabletop_ep0_600px/episode_0"
-    # path = [
-    #         "%s/viz_direction/static_cam" % pred_folder,
-    #         "%s/viz_direction/gripper_cam" % pred_folder,
-    #         "%s/viz_affordance/static_cam" % pred_folder,
-    #         "%s/viz_affordance/gripper_cam" % pred_folder,
-    #         "%s/viz_frames/static_cam" % pred_folder,
-    #         "%s/viz_frames/gripper_cam" % pred_folder]
+    # pred_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/tmp/2021-06-21/19-52-03/gripper_dirs"
+    # path = ['%s/obj_%d' % (pred_folder, i) for i in range(1, 7)]
+    pred_folder = "/mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/tmp/2021-09-17/13-09-03/images/"
+    path = [
+            "%s/rendering_orig" % pred_folder,
+            "%s/gripper_dirs" % pred_folder,
+            "%s/gripper_depth" % pred_folder,
+            ]
     val_dir = False
     make_videos(path, "", val_dir)

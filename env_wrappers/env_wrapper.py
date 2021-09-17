@@ -377,6 +377,12 @@ class RLWrapper(gym.Wrapper):
         if(self.viz or self.save_images):
             depth_img = cv2.resize(depth, orig_img.shape[:2])
             cv2.imshow("depth", depth_img)
+            if(self.save_images):
+                write_depth = depth_img - depth_img.min() # Now between 0 and 8674
+                write_depth = write_depth / write_depth.max() * 255
+                os.makedirs("./images/gripper_depth", exist_ok=True)
+                cv2.imwrite("./images/gripper_depth/img_%04d.png" % self.obs_it,
+                            np.uint8(write_depth))
             im_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
                                             object_centers, object_masks,
                                             "gripper", self.obs_it,

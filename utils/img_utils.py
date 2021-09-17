@@ -12,7 +12,8 @@ def torch_to_numpy(x):
 
 def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
                           object_centers, object_masks,
-                          cam_type="", obs_it=0, save_images=False):
+                          cam_type="", obs_it=0, save_images=False,
+                          resize=None):
     ''' C = n_classes
         img_obs: numpy array, int64
             - shape = (H, W, 3)
@@ -109,6 +110,12 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
     # cv2.imshow("original_img", orig_img)
     # cv2.imshow("aff_mask", mask)
     # cv2.imshow("flow_img", flow_img)
+    if(resize):
+        orig_img = cv2.resize(orig_img, resize)
+        mask = cv2.resize(mask, resize)
+        out_img = cv2.resize(out_img, resize)
+        flow_over_img = cv2.resize(flow_over_img, resize)
+
     cv2.imshow("flow_over_img-%s" % cam_type, flow_over_img)
     # cv2.imshow("preds-%s" % cam_type, out_img)
     cv2.waitKey(1)

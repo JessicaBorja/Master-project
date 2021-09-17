@@ -39,7 +39,6 @@ class Combined(SAC):
         self.im_lst = []
 
         # To enumerate static cam preds on target search
-        self.global_obs_it = 0
         self.no_detected_target = 0
 
         args = {"cam_id": _cam_id,
@@ -104,12 +103,6 @@ class Combined(SAC):
             #     tcp_pos = env.get_obs()["robot_obs"][:3]
             # else:
             #     tcp_pos = env.get_obs()[:3]
-
-            # if(self.env.save_images):
-            #     im = env.render()
-            #     # self.im_lst.append(im)
-            #     cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it, im)
-            #     self.global_obs_it += 1
         return tcp_pos  # end pos
 
     def move_to_box(self, env, sample=False):
@@ -152,18 +145,12 @@ class Combined(SAC):
             # for i in range(8):  # 1 rl steps
             #     env.p.stepSimulation()
             #     env.fps_controller.step()
-            # # if(self.env.save_images):
-            # #     im = env.render()
-            # #     cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it,
-            # #                 im)
-            # #     self.global_obs_it += 1
 
     def detect_and_correct(self, env, obs, p_dist=None):
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
         target_pos, no_target = \
             self.target_search.compute(env,
-                                       self.global_obs_it,
                                        p_dist=p_dist)
         if(no_target):
             self.no_detected_target += 1
@@ -300,7 +287,7 @@ class Combined(SAC):
         for eval_all_objs in [False, True]:
             if(eval_all_objs and self.env.rand_scenes
                or not eval_all_objs):
-                best_eval_return, plot_data = \
+                best_eval_return, most_tasks, plot_data = \
                     self._eval_and_log(self.writer, t, episode,
                                        plot_data, most_tasks, best_eval_return,
                                        n_eval_ep, max_episode_length,
@@ -337,7 +324,7 @@ class Combined(SAC):
 
         self.log.info(
             "Full evaluation over %d objs \n" % n_objs +
-            "Success: %d/%d " % (np.sum(ep_success), len(ep_success)))
+            "Success: %d/%d " % (np.sum(episodes_success), len(ep_success)))
 
         # Restore scene before loading full sweep eval
         env.load_scene_with_objects(previous_objs)
@@ -357,7 +344,6 @@ class Combined(SAC):
                 s = env.reset()
                 target_pos, no_target, center_targets = \
                     self.target_search.compute(env,
-                                               self.global_obs_it,
                                                return_all_centers=True)
                 n_episodes = len(center_targets)
 
@@ -370,15 +356,14 @@ class Combined(SAC):
                 if(self.target_search.mode == "env"):
                     env.unwrapped.target = tasks[task_it]
                     target_pos, no_target = \
-                        self.target_search.compute(env,
-                                                   self.global_obs_it)
+                        self.target_search.compute(env)
                 else:
                     target_pos = center_targets[task_it]["target_pos"]
                     env.unwrapped.target = center_targets[task_it]["target_str"]
                 task_it += 1
             else:
                 target_pos, no_target = \
-                        self.target_search.compute(env, self.global_obs_it)
+                        self.target_search.compute(env)
             episode_length, episode_return = 0, 0
             done = False
             # Correct Position
@@ -412,12 +397,6 @@ class Combined(SAC):
                 print("Episode %d, Return: %.3f, Success: %s"
                       % (episode, episode_return, str(success)))
 
-        # Save images
-        if(save_images):
-            if(not os.path.exists('./frames/')):
-                os.makedirs("./frames/")
-            for idx, im in enumerate(self.im_lst):
-                cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
         # mean and print
         mean_reward, reward_std = np.mean(ep_returns), np.std(ep_returns)
         mean_length, length_std = np.mean(ep_lengths), np.std(ep_lengths)
@@ -468,11 +447,6 @@ class Combined(SAC):
                 episode_return += r
                 episode_length += 1
                 total_ts += 1
-                # if(self.env.save_images):
-                #     im = env.render()
-                #     # self.im_lst.append(im)
-                #     cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it, im)
-                #     self.global_obs_it += 1
             if(episode_return >= 200 and env.task == "pickup"):
                 self.move_to_box(env, sample=True)
                 success = self.eval_grasp_success(env, any=True)

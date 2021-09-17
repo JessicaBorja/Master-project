@@ -20,20 +20,19 @@ class TargetSearch():
         self.initial_pos = initial_pos
         self.aff_transforms = aff_transforms
         self.affordance_cfg = aff_cfg
+        self.global_obs_it = 0
         self.aff_net_static_cam = self._init_static_cam_aff_net(aff_cfg)
-        self.static_cam_imgs = {}
         self.class_label = class_label
         if(env.task == "pickup"):
             self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(self.env)
 
     def compute(self, env=None,
-                global_it=0,
                 return_all_centers=False,
                 p_dist=None):
         if(env is None):
             env = self.env
         if(self.mode == "affordance"):
-            res = self._compute_target_aff(env, global_it)
+            res = self._compute_target_aff(env)
             target_pos, no_target, object_centers = res
             # if env.task == "slide" or env.task == "hinge":
             #     # Because it most likely will detect the door and not the handle
@@ -77,7 +76,7 @@ class TargetSearch():
         return target_pos, no_target
 
     # Aff-center model
-    def _compute_target_aff(self, env=None, global_obs_it=0):
+    def _compute_target_aff(self, env=None):
         if(not env):
             env = self.env
         # Get environment observation
@@ -111,10 +110,14 @@ class TargetSearch():
             img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs,
                                              center_dir, object_centers,
                                              object_masks, "static",
-                                             global_obs_it,
-                                             self.env.save_images)
-            self.static_cam_imgs.update(img_dict)
-            global_obs_it += 1
+                                             self.global_obs_it,
+                                             self.env.save_images,
+                                             resize=(300, 300))
+            for img_path, img in img_dict.items():
+                folder = os.path.dirname(img_path)
+                os.makedirs(folder, exist_ok=True)
+                cv2.imwrite(img_path, img)
+            self.global_obs_it += 1
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
@@ -180,9 +183,9 @@ class TargetSearch():
                                      line_type=cv2.LINE_AA)
             # cv2.imshow("out_img", out_img)
             # cv2.waitKey(1)
-            os.makedirs("./static_centers/", exist_ok=True)
-            cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
-                        out_img)
+            # os.makedirs("./static_centers/", exist_ok=True)
+            # cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
+            #             out_img)
 
         # p.addUserDebugText("t",
         #                    textPosition=target_pos,

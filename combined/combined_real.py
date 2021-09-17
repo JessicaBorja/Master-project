@@ -159,8 +159,8 @@ class Combined(SAC):
                 # Go to origin then look for obj
                 self.env, s, no_target = self.detect_and_correct(self.env)
 
-            #fps.step()
-            print(1 / (time.time() - t))
+            # fps.step()
+            # print(1 / (time.time() - t))
             self.curr_ts += 1
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,

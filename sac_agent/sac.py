@@ -177,6 +177,7 @@ class SAC():
     def training_step(self, s, ts, ep_return, ep_length, plot_data):
         # sample action and scale it to action space
         a, _ = self._pi.act(tt(s), deterministic=False)
+        # print(a)
         a = a.cpu().detach().numpy()
         ns, r, done, info = self.env.step(a)
 

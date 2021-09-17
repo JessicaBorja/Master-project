@@ -9,6 +9,7 @@ hyperparameters:
     batch_size: 256
     buffer_size: 1e5
     learning_starts: 0 #timesteps before starting updates
+    train_mean_n_ep: 10
 
 net_cfg:
     actor_net:
@@ -23,6 +24,6 @@ net_cfg:
 
 learn_config:
     total_timesteps: 90000
-    log_interval: 2000 #log timestep mean_eval reward every log_interval steps
-    max_episode_length: 150 #max episode length
-    n_eval_ep: 5
+    log_interval: 4500  # log timestep mean_eval reward every log_interval steps
+    max_episode_length: 100 #max episode length
+    n_eval_ep: ${n_objects}

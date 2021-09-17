@@ -69,6 +69,10 @@ class RLWrapper(gym.Wrapper):
         # Cameras defaults
         self.obs_it = 0
         self.save_images = save_images
+        if(save_images):
+            create_dirs = ['./gripper_depth/', "gripper_orig", "gripper_masks", "gripper_aff", "gripper_dirs"]
+            for directory in create_dirs:
+                os.makedirs(directory, exist_ok=True)
         self.viz = viz
 
         # Parameters to define observation
@@ -138,14 +142,14 @@ class RLWrapper(gym.Wrapper):
                 # cannot be larger than 1
                 # scale dist increases as it falls away from object
                 scale_dist = min(distance / self.env.termination_radius, 1)
-                rew += (1 - scale_dist)**0.4
-                self.ts_counter += 1
-            else:
-                # If episode was successful
-                if rew >= 1:
-                    # Reward for remaining ts
-                    rew += self.max_ts - 1 - self.ts_counter
-                self.ts_counter = 0
+                rew += (1 - scale_dist)**0.5
+            #     self.ts_counter += 1
+            # else:
+            #     # If episode was successful
+            #     if rew >= 1:
+            #         # Reward for remaining ts
+            #         rew += self.max_ts - 1 - self.ts_counter
+            #     self.ts_counter = 0
         return rew
 
     def get_cam_obs(self, obs_dict, cam_type, aff_net,
@@ -279,7 +283,11 @@ class RLWrapper(gym.Wrapper):
                                         object_centers, object_masks,
                                         "gripper", self.obs_it,
                                         save_images=self.save_images)
-        self.gripper_cam_imgs.update(im_dict)
+        # im_dict.update({"./gripper_depth/img_%04d.png" % self.obs_it:
+        #                 (255 * (depth_img - depth_img.min()) / (depth_img.max() - depth_img.min())).astype(np.uint8)})
+        # for im_name, im in im_dict.items():
+        #     cv2.imwrite(im_name, im)
+        # self.gripper_cam_imgs.update(im_dict)
 
         # Plot different objects
         cluster_outputs = []

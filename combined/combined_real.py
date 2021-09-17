@@ -1,3 +1,6 @@
+import collections
+import time
+
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import sys
@@ -11,6 +14,17 @@ from sac_agent.sac_utils.utils import tt
 from affordance_model.datasets import get_transforms
 from combined.target_search import TargetSearch
 
+class FpsController:
+    def __init__(self, freq):
+        self.loop_time = 1.0 / freq
+        self.prev_time = time.time()
+
+    def step(self):
+        current_time = time.time()
+        delta_t = current_time - self.prev_time
+        if delta_t < self.loop_time:
+            time.sleep(self.loop_time - delta_t)
+        self.prev_time = time.time()
 
 class Combined(SAC):
     def __init__(self, cfg, sac_cfg=None,
@@ -38,6 +52,7 @@ class Combined(SAC):
                 "aff_transforms": _aff_transforms,
                 "rand_target": rand_target}
         self.target_search = TargetSearch(self.env,
+                                          main_cfg=cfg,
                                           mode="real_world",
                                           **args)
 
@@ -47,7 +62,7 @@ class Combined(SAC):
         self.env.current_target = self.target_pos
         self.env.unwrapped.current_target = self.target_pos
         self.eval_env = self.env
-        self.above_obj = 0.05
+        self.above_obj = 0.06
 
     def move_to_box(self, env, sample=False):
         # Box does not move
@@ -81,7 +96,7 @@ class Combined(SAC):
         robot_target_pos = target_pos.copy()
         robot_target_pos[2] += self.above_obj
         target_orn = self.target_orn.copy()
-        target_orn[2] += np.random.uniform(-1, 1) * np.radians(45)
+        target_orn[2] += np.random.uniform(-1, 1) * np.radians(40)
         obs = self.env.reset(robot_target_pos, target_orn)
         return env, obs, no_target
 
@@ -105,7 +120,11 @@ class Combined(SAC):
         # Move to target position only one
         # Episode ends if outside of radius
         self.env, s, no_target = self.detect_and_correct(self.env)
+
+        #fps = FpsController(20)
+
         for t in range(1, total_timesteps+1):
+            t = time.time()
             s, done, success, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, self.curr_ts, episode_return, episode_length,
                                    plot_data)
@@ -131,15 +150,22 @@ class Combined(SAC):
                                           total_timesteps, self.best_return,
                                           episode_length, episode_return,
                                           success)
+                self.last_n_train_success.append(success)
                 # Reset everything
                 self.episode += 1
+                self.env.gripper_cam_imgs={}
+                self.env.obs_it=0
                 episode_return, episode_length = 0, 0
                 # Go to origin then look for obj
                 self.env, s, no_target = self.detect_and_correct(self.env)
+
+            #fps.step()
+            print(1 / (time.time() - t))
             self.curr_ts += 1
 
-    def evaluate(self, env, max_episode_length=150,
-                 print_all_episodes=False, save_images=False):
+    def evaluate(self, env, max_episode_length=150, n_episodes=5,
+                 print_all_episodes=False, save_images=False, deterministic=True):
+        self.log.info("STARTING EVALUATION")
         ep_returns, ep_lengths = [], []
         no_target = True
         while(no_target):
@@ -151,14 +177,14 @@ class Combined(SAC):
             if(no_target):
                 input("No object detected. Please rearrange table.")
             else:
+                self.env.curr_detected_obj = center_targets[0]
                 for i in range(len(center_targets)):
                     center_targets[i][-1] += self.above_obj
 
-        n_episodes = len(center_targets)
-
+        run_n_episodes = len(center_targets)
         ep_success = []
         # One episode per task
-        for episode in range(n_episodes):
+        for episode in range(run_n_episodes):
             s = env.reset()
             target_pos = center_targets[episode]
             episode_length, episode_return = 0, 0
@@ -166,9 +192,9 @@ class Combined(SAC):
             # Correct Position
             self.env.reset()
             s = self.env.reset(target_pos, self.target_orn)
-            while(episode_length < max_episode_length // 2 and not done):
+            while(episode_length < max_episode_length and not done):
                 # sample action and scale it to action space
-                a, _ = self._pi.act(tt(s), deterministic=True)
+                a, _ = self._pi.act(tt(s), deterministic=deterministic)
                 a = a.cpu().detach().numpy()
                 ns, r, done, info = env.step(a)
                 s = ns
@@ -188,6 +214,7 @@ class Combined(SAC):
             "Mean return: %.3f +/- %.3f, " % (mean_reward, reward_std) +
             "Mean length: %.3f +/- %.3f, over %d episodes" %
             (mean_length, length_std, n_episodes))
+        self.log.info("EVALUATION END")
         return mean_reward, mean_length, ep_success
 
     # Only applies to tabletop

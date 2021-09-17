@@ -167,6 +167,115 @@ class CNNPolicy(nn.Module):
             log_probs = None
         return action, log_probs
 
+class CNNPolicyDiscrete(nn.Module):
+    def __init__(self, obs_space, action_dim, action_space, affordance=None,
+                 activation="relu", hidden_dim=256, gripper_bias=None):
+        super(CNNPolicyDiscrete, self).__init__()
+        self.action_high = torch.tensor(action_space.high).cuda()
+        self.action_low = torch.tensor(action_space.low).cuda()
+        _robot_obs_shape = get_pos_shape(obs_space, "robot_obs")
+        _target_pos_shape = get_pos_shape(obs_space, "detected_target_pos")
+        _distance_shape = get_pos_shape(obs_space, "target_distance")
+        self.cnn_img = get_img_network(
+                            obs_space,
+                            out_feat=16,
+                            activation=activation,
+                            affordance_cfg=affordance.static_cam,
+                            cam_type="static")
+        self.cnn_gripper = get_img_network(
+                            obs_space,
+                            out_feat=16,
+                            activation=activation,
+                            affordance_cfg=affordance.gripper_cam,
+                            cam_type="gripper")
+        out_feat = 0
+        for net in [self.cnn_img, self.cnn_gripper]:
+            if(net is not None):
+                out_feat += 16
+        out_feat += _robot_obs_shape + _target_pos_shape + _distance_shape
+
+        self.fc0 = nn.Linear(out_feat, 32)
+        self.fc1 = nn.Linear(32, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        # Last dimension of action_dim is gripper_action
+        self.mu = nn.Linear(hidden_dim, action_dim - 1)
+        self.sigma = nn.Linear(hidden_dim, action_dim - 1)
+        self.gripper_action = nn.Linear(hidden_dim, 2)  # open / close
+        if(gripper_bias is not None):
+            self.gripper_action.bias = nn.Parameter(torch.Tensor(gripper_bias))
+        self.aff_cfg = affordance
+
+    def forward(self, obs):
+        features = get_concat_features(self.aff_cfg,
+                                       obs,
+                                       self.cnn_img,
+                                       self.cnn_gripper)
+        x = F.elu(self.fc0(features))
+        x = F.elu(self.fc1(x))
+        x = F.elu(self.fc2(x))
+        mu = self.mu(x)
+        log_sigma = self.sigma(x)
+        gripper_action_logits = self.gripper_action(x)
+        # avoid log_sigma to go to infinity
+        sigma = torch.clamp(log_sigma, -20, 2).exp()
+        return mu, sigma, gripper_action_logits
+
+    def scale_action(self, action):
+        slope = (self.action_high - self.action_low) / 2
+        action = self.action_low + slope * (action + 1)
+        return action
+
+    # return action scaled to env
+    def act(self, curr_obs, deterministic=False, reparametrize=False):
+        mu, sigma, gripper_action_logits = self.forward(curr_obs)
+        log_probs, log_prob_a = None, None
+        if(deterministic):
+            action = torch.tanh(mu)
+            if(len(gripper_action_logits.shape) == 1):
+                logits = gripper_action_logits.unsqueeze(0)
+            else:
+                logits = gripper_action_logits
+            gripper_probs = F.softmax(logits, dim=-1)
+            gripper_action = torch.argmax(gripper_probs)
+        else:
+            dist = Normal(mu, sigma)
+            gripper_dist = GumbelSoftmax(0.5, logits=gripper_action_logits)
+            if(reparametrize):
+                sample = dist.rsample()
+                # One hot encoded
+                gripper_action = gripper_dist.rsample()
+                # Single action
+                gripper_action = torch.argmax(gripper_action, -1)
+            else:
+                sample = dist.sample()
+                gripper_action = gripper_dist.sample()
+            action = torch.tanh(sample)
+
+            # For updating policy, Apendix of SAC paper
+            # unsqueeze because log_probs is of dim (batch_size, action_dim)
+            # but the torch.log... is (batch_size)
+            log_probs = dist.log_prob(sample) -\
+                torch.log((1 - action.square() + 1e-6))
+            log_probs = log_probs.sum(-1)  # , keepdim=True)
+
+            # Discrete part of the action
+            log_prob_a = gripper_dist.log_prob(gripper_action)
+
+        # Add gripper action
+        # Gripper action is a integer, not a tensor, so unsqueeze to turn concat
+        # Gripper action is in (0,1) -> needs to be scaled to -1 or 1
+        gripper_action = gripper_action * 2 - 1
+        gripper_action = gripper_action.unsqueeze(-1)
+        action = torch.cat((action, gripper_action), -1)
+        action = self.scale_action(action)
+
+        # add gripper action to log_probs
+        if(log_probs is not None and log_prob_a is not None):
+            log_probs = log_probs + log_prob_a
+        else:
+            log_probs = None
+        return action, log_probs
+
 
 # https://stackoverflow.com/questions/56226133/soft-actor-critic-with-discrete-action-space
 # https://github.com/kengz/SLM-Lab/blob/master/slm_lab/agent/algorithm/sac.py

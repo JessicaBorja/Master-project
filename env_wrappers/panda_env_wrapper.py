@@ -57,6 +57,12 @@ class PandaEnvWrapper(gym.Wrapper):
         rel_target_orn = np.array([0, 0, action[3]]) * self.d_rot
         gripper_action = action[-1]
 
+        curr_pos = self.env.robot.get_tcp_pos_orn()[0]
+        depth_thresh = curr_pos[-1] <= self.env.workspace_limits[0][-1] + 0.007
+        if(depth_thresh):
+            print("depth tresh")
+            gripper_action = -1
+
         action = {"motion": (rel_target_pos, rel_target_orn, gripper_action),
                   "ref": "rel"}
 
@@ -80,6 +86,7 @@ class PandaEnvWrapper(gym.Wrapper):
                 info["failure_case"] = "outside_radius"
         if('failure_case' in info):
             print(info['failure_case'])
+
         obs = self.transform_obs(obs)
         return obs, reward, done, info
 

@@ -14,6 +14,7 @@ resume_training: True
 resume_model_path: ${save_dir}
 
 # Static cam affordance model to detect the targets
+n_objects: 4
 target_search_aff:
   model_path: ${models_path}/static_real_world.ckpt
   img_size: 200
@@ -53,9 +54,10 @@ env_wrapper:
     use_depth: False
   use_pos: True
   img_size: ${img_size}
+  save_images: False
 
 panda_env_wrapper:
-  d_pos: 0.01
+  d_pos: 0.005
   d_rot: 0.3
   gripper_success_threshold: 0.01
   reward_fail: -20
@@ -131,6 +133,7 @@ defaults:
   - robot_io/robot@robot: panda_frankx_interface
   - robot_io/env@robot_env: env
   - robot_io/cams@cams: camera_manager
+  - robot_io/cams/static_cam@static_cam: kinect4_oier
   - agent: default
   - test: test_tabletop
   - transforms@affordance.transforms: aff_transforms

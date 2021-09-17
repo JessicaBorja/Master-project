@@ -11,6 +11,7 @@ from sac_agent.sac_utils.replay_buffer import ReplayBuffer
 from sac_agent.sac_utils.utils import EpisodeStats, tt, soft_update, get_nets
 import logging
 import gym
+import collections
 
 
 class SAC():
@@ -19,6 +20,7 @@ class SAC():
                  actor_lr=3e-4, critic_lr=3e-4, alpha_lr=3e-4,
                  tau=0.005, learning_starts=1000,
                  batch_size=256, buffer_size=1e6,
+                 train_mean_n_ep=5, init_temperature=0.1,
                  model_name="sac", net_cfg=None, log=None):
         self.log = log
         if(not log):
@@ -50,6 +52,9 @@ class SAC():
         self.most_tasks = 0
         self.best_return = -np.inf
         self.best_eval_return = -np.inf
+        self.train_mean_n_ep = train_mean_n_ep
+        self.last_n_train_success = collections.deque(maxlen=self.train_mean_n_ep)
+        self.last_n_train_mean_success = 0
 
         # Agent
         self._gamma = gamma
@@ -62,7 +67,8 @@ class SAC():
             self.ent_coef = 1  # entropy coeficient
             # heuristic value
             self.target_entropy = -np.prod(env.action_space.shape).item()
-            self.log_ent_coef = torch.zeros(1,
+            self.log_ent_coef = torch.tensor(np.log(init_temperature),
+                                            # torch.zeros(1,
                                             requires_grad=True,
                                             device="cuda")  # init value
             self.ent_coef_optimizer = optim.Adam([self.log_ent_coef],
@@ -223,18 +229,32 @@ class SAC():
 
         # Summary Writer
         # log everything on timesteps to get the same scale
+        if(len(self.last_n_train_success) >= self.train_mean_n_ep):
+            last_n_train_mean_success = np.mean(self.last_n_train_success)
+        else:
+            last_n_train_mean_success = 0
+
+        self.last_n_train_success.append(int(success))
         writer.add_scalar('train/success',
                           success, ts)
         writer.add_scalar('train/episode_return',
                           episode_return, ts)
         writer.add_scalar('train/episode_length',
                           episode_length, ts)
+        writer.add_scalar('train/mean_success_%d_ep' % self.train_mean_n_ep,
+                          last_n_train_mean_success, ts)
 
         if(episode_return >= best_return):
             self.log.info("[%d] New best train ep. return!%.3f" %
                           (episode, episode_return))
             self.save(self.trained_path + "_best_train.pth")
             best_return = episode_return
+
+        if(last_n_train_mean_success >= self.last_n_train_mean_success):
+            self.log.info("[%d] New best train ep. success: %.3f over last %d ep !" %
+                          (episode, last_n_train_mean_success, self.train_mean_n_ep))
+            self.save(self.trained_path + "_best_train_success_%d_ep.pth" % self.train_mean_n_ep)
+            self.last_n_train_mean_success = last_n_train_mean_success
 
         # Always save last model(last training episode)
         self.save(self.trained_path + "_last.pth")
@@ -258,11 +278,11 @@ class SAC():
                      "critic_loss": [],
                      "ent_coef_loss": [], "ent_coef": []}
 
-        mean_return, mean_length, success_lst = self.evaluate(self.eval_env, max_ep_length)
-        writer.add_scalar('eval/mean_return(%dep)' %
-                          (n_eval_ep), mean_return, t)
-        writer.add_scalar('eval/mean_ep_length(%dep)' %
-                          (n_eval_ep), mean_length, t)
+        mean_return, mean_length, success_lst = self.evaluate(self.eval_env, max_ep_length, n_eval_ep)
+        writer.add_scalar('eval/mean_return(%dep)' % (n_eval_ep),
+                          mean_return, t)
+        writer.add_scalar('eval/mean_ep_length(%dep)' % (n_eval_ep),
+                          mean_length, t)
         # Log results to writer
         if(mean_return >= best_eval_return):
             self.log.info("[%d] New best eval avg. return!%.3f" %
@@ -273,13 +293,13 @@ class SAC():
         n_success = np.sum(success_lst)
         if(n_success >= most_tasks):
             self.log.info("[%d] New most successful! %d/%d" %
-                          (episode, n_success, len(success_lst)))
+                          (episode, n_success, n_eval_ep))
             self.save(self.trained_path
-                      + "_most_tasks_from_%d.pth" % len(success_lst))
+                      + "_most_tasks_from_%d.pth" % n_eval_ep)
             most_tasks = n_success
 
-        writer.add_scalar('eval/success(%dep)' %
-                          (len(success_lst)), n_success, t)
+        writer.add_scalar('eval/success(%dep)' % (n_eval_ep),
+                          n_success, t)
 
         return best_eval_return, most_tasks, plot_data
 
@@ -304,7 +324,9 @@ class SAC():
             'best_eval_return': self.best_eval_return,
             'episode': self.episode,
             'curr_ts': self.curr_ts,
-            'most_tasks': self.most_tasks
+            'most_tasks': self.most_tasks,
+            'last_n_train_success': self.last_n_train_success,
+            'last_n_train_mean_success': self.last_n_train_mean_success
         }
         if self._auto_entropy:
             save_dict['ent_coef_optimizer'] = \
@@ -344,7 +366,10 @@ class SAC():
                 self.curr_ts = checkpoint['curr_ts']
             if ('episode' in checkpoint):
                 self.episode = checkpoint['episode']
-
+            if ('last_n_train_success' in checkpoint):
+                self.last_n_train_success = checkpoint['last_n_train_success']
+            if ('last_n_train_mean_success' in checkpoint):
+                self.last_n_train_mean_success = checkpoint['last_n_train_mean_success']
             replay_buffer_dir = os.path.join(os.path.dirname(path),
                                              "replay_buffer")
             if(os.path.isdir(replay_buffer_dir)):

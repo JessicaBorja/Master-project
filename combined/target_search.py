@@ -1,3 +1,4 @@
+import hydra.utils
 import numpy as np
 from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
 from affordance_model.segmentator_centers import Segmentator
@@ -9,7 +10,7 @@ import pybullet as p
 
 
 class TargetSearch():
-    def __init__(self, env, mode,
+    def __init__(self, env, main_cfg, mode,
                  aff_transforms=None, aff_cfg=None, class_label=None,
                  cam_id=0, initial_pos=None, rand_target=False) -> None:
         self.env = env
@@ -24,7 +25,8 @@ class TargetSearch():
         self.static_cam_imgs = {}
         self.class_label = class_label
         self.box_mask = None
-        self.T_world_cam = self.env.env.env.camera_manager.static_cam.get_extrinsic_calibration("panda")
+        self.static_cam = hydra.utils.instantiate(main_cfg.static_cam)
+        self.T_world_cam = self.static_cam.get_extrinsic_calibration("panda")
 
     def compute(self, env=None,
                 global_it=0,
@@ -32,9 +34,8 @@ class TargetSearch():
                 p_dist=None):
         if(env is None):
             env = self.env
-        cam = env.env.env.camera_manager.static_cam  # static_cam
-        orig_img, depth_img = cam.get_image()
-        res = self._compute_target_aff(env, cam,
+        orig_img, depth_img = self.static_cam.get_image()
+        res = self._compute_target_aff(env, self.static_cam,
                                        depth_img,
                                        orig_img,
                                        global_it)
@@ -73,8 +74,8 @@ class TargetSearch():
                                          object_masks, "static",
                                          global_obs_it,
                                          False)
-            # self.static_cam_imgs.update(img_dict)
-            #global_obs_it += 1
+        self.static_cam_imgs.update(img_dict)
+        global_obs_it += 1
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
@@ -121,17 +122,17 @@ class TargetSearch():
         # Recover target
         v, u = object_centers[target_idx]
         target_pos = world_pts[target_idx]
-        if(self.env.save_images):
-            out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
-                                     (u, v),
-                                     (0, 255, 0),
-                                     markerType=cv2.MARKER_CROSS,
-                                     markerSize=12,
-                                     line_type=cv2.LINE_AA)
-            # cv2.imshow("out_img", out_img)
-            # cv2.waitKey(1)
-            cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
-                        out_img)
+        # if(self.env.save_images):
+        #     out_img = cv2.drawMarker(orig_img[:, :, ::-1],
+        #                              (u, v),
+        #                              (0, 255, 0),
+        #                              markerType=cv2.MARKER_CROSS,
+        #                              markerSize=12,
+        #                              line_type=cv2.LINE_AA)
+        #     # cv2.imshow("out_img", out_img)
+        #     # cv2.waitKey(1)
+        #     cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
+        #                 out_img)
 
         return target_pos, no_target, world_pts
 

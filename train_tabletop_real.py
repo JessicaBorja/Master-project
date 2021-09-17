@@ -17,15 +17,15 @@ def main(cfg):
     env = hydra.utils.instantiate(cfg.robot_env, robot=robot)
     env = PandaEnvWrapper(**cfg.panda_env_wrapper, env=env)
 
-    training_env = RLWrapper(env=env,
-                             max_ts=cfg.agent.learn_config.max_episode_length,
-                             train=True,
-                             affordance_cfg=cfg.affordance,
-                             viz=cfg.viz_obs,
-                             **cfg.env_wrapper)
+    env = RLWrapper(env=env,
+                    max_ts=cfg.agent.learn_config.max_episode_length,
+                    train=True,
+                    affordance_cfg=cfg.affordance,
+                    viz=cfg.viz_obs,
+                    **cfg.env_wrapper)
 
 
-    sac_cfg = {"env": training_env,
+    sac_cfg = {"env": env,
                 "eval_env": None,
                 "model_name": cfg.model_name,
                 "save_dir": cfg.agent.save_dir,
@@ -48,7 +48,9 @@ def main(cfg):
         else:
             print("Model path does not exist: %s \n Training from start" % os.path.abspath(path))
     model.learn(**cfg.agent.learn_config)
-    training_env.close()
+    # model.evaluate(env, deterministic=False,
+    #                **cfg.test.eval_cfg)
+    env.close()
     # eval_env.close()
 
 

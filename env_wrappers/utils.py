@@ -31,15 +31,19 @@ def get_name(cfg, model_name):
 
 
 def find_cam_ids(cameras):
-    static_id, gripper_id, test_cam_id = 0, 1, None
+    static_id, gripper_id, render_cam_id = 0, 1, None
     for i, cam in enumerate(cameras):
         if "gripper" in cam.name:
             gripper_id = i
         elif "static" in cam.name:
             static_id = i
-        elif "test" in cam.name:
-            test_cam_id = i
-    return static_id, gripper_id, test_cam_id
+        elif "render" in cam.name:
+            render_cam_id = i
+    cameras = {"static": static_id,
+               "gripper": gripper_id}
+    if(render_cam_id):
+        cameras.update({"rendering": render_cam_id})
+    return cameras
 
 
 def get_obs_space(affordance_cfg, gripper_cam_cfg, static_cam_cfg,

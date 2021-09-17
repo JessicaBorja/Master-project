@@ -57,7 +57,7 @@ class RLWrapper(gym.Wrapper):
 
         # REWARD FUNCTION
         self.affordance_cfg = affordance_cfg
-        self.static_id, self.gripper_id, _ = find_cam_ids(self.env.cameras)
+        self.cam_ids = find_cam_ids(self.env.cameras)
         self.ts_counter = 0
         self.max_ts = max_ts
         if(self.affordance_cfg.gripper_cam.densify_reward):
@@ -150,19 +150,23 @@ class RLWrapper(gym.Wrapper):
 
     def observation(self, obs):
         # "rgb_obs", "depth_obs", "robot_obs","scene_obs"
+        self.curr_raw_obs = obs
         obs = {}
-        self.curr_raw_obs = self.get_obs()
-        obs_dict = self.curr_raw_obs
-        obs = {**self.get_cam_obs(obs_dict, "gripper",
-                                  self.gripper_cam_aff_net,
-                                  self.gripper_cam_cfg,
-                                  self.affordance_cfg.gripper_cam,
-                                  self.gripper_id),
-               **self.get_cam_obs(obs_dict, "static",
-                                  self.static_cam_aff_net,
-                                  self.static_cam_cfg,
-                                  self.affordance_cfg.static_cam,
-                                  self.static_id)}
+        obs_dict = self.curr_raw_obs.copy()
+        gripper_obs, gripper_dict = \
+            self.get_cam_obs(obs_dict, "gripper",
+                             self.gripper_cam_aff_net,
+                             self.gripper_cam_cfg,
+                             self.affordance_cfg.gripper_cam,
+                             self.cam_ids["gripper"])
+        static_obs, static_dict = \
+            self.get_cam_obs(obs_dict, "static",
+                             self.static_cam_aff_net,
+                             self.static_cam_cfg,
+                             self.affordance_cfg.static_cam,
+                             self.cam_ids["static"])
+        obs = {**gripper_obs, **static_obs}
+        viz_dict = {**gripper_dict, **static_dict}
         if(self.use_robot_obs):
             if(self.task == "pickup"):
                 # *tcp_pos(3), *tcp_euler(1) z angle ,
@@ -179,10 +183,20 @@ class RLWrapper(gym.Wrapper):
                     obs["robot_obs"] = np.append(obs["robot_obs"],
                                                  self.env.get_target_pos()[-1])
         self.obs_it += 1
-        # p.removeAllUserDebugItems()
-        # p.addUserDebugText("aff_target",
-        #                     textPosition=self.env.unwrapped.current_target,
-        #                     textColorRGB=[0, 1, 0])
+        if(self.viz):
+            for cam_name, cam_id in self.cam_ids.items():
+                cv2.imshow("%s_cam" % cam_name,
+                           self.curr_raw_obs['rgb_obs'][cam_id][:, :, ::-1])
+            cv2.waitKey(1)
+        if(self.save_images):
+            for cam_name, cam_id in self.cam_ids.items():
+                os.makedirs('./images/%s_orig' % cam_name, exist_ok=True)
+                cv2.imwrite("./images/%s_orig/img_%04d.png" % (cam_name, self.obs_it),
+                            self.curr_raw_obs['rgb_obs'][cam_id][:, :, ::-1])
+            for img_path, img in viz_dict.items():
+                folder = os.path.dirname(img_path)
+                os.makedirs(folder, exist_ok=True)
+                cv2.imwrite(img_path, img)
         return obs
 
     def reward(self, rew):
@@ -244,11 +258,8 @@ class RLWrapper(gym.Wrapper):
         #  deviates more than target_radius
         # p.removeAllUserDebugItems()
         # p.addUserDebugText("i",
-        #                    textPosition=self.initial_target_pos,
+        #                    textPosition=self.current_target,
         #                    textColorRGB=[0, 0, 1])
-        # p.addUserDebugText("h",
-        #                    textPosition=self.env.unwrapped.current_target,
-        #                    textColorRGB=[0, 1, 0])
         if(self.use_aff_termination):
             distance = np.linalg.norm(self.env.unwrapped.current_target
                                       - obs["robot_obs"][:3])
@@ -261,7 +272,7 @@ class RLWrapper(gym.Wrapper):
 
     def get_cam_obs(self, obs_dict, cam_type, aff_net,
                     obs_cfg, aff_cfg, cam_id):
-        obs = {}
+        obs, viz_dict = {}, {}
         if(obs_cfg.use_depth):
             # Resize
             depth_obs = depth_preprocessing(
@@ -269,9 +280,6 @@ class RLWrapper(gym.Wrapper):
                             self.img_size)
             obs["%s_depth_obs" % cam_type] = depth_obs
         if(obs_cfg.use_img):
-            if(self.viz and cam_type == "static"):
-                cv2.imshow("static_cam_img", obs_dict['rgb_obs'][cam_id][:, :, ::-1])
-                cv2.waitKey(1)
             # Transform rgb to grayscale
             img_obs = img_preprocessing(
                                 obs_dict['rgb_obs'][cam_id],
@@ -298,11 +306,8 @@ class RLWrapper(gym.Wrapper):
                 # aff_logits, aff_probs, aff_mask, directions
                 _, aff_probs, aff_mask, directions = aff_net(obs_t)
                 # aff_mask = self._mask_transforms(aff_mask).cuda()
-                if(self.viz and cam_type == "static"):
-                    visualize(aff_mask,
-                              obs_dict['rgb_obs'][cam_id][:, :, ::-1],
-                              imshow=True)
-                mask = torch_to_numpy(aff_mask)  # foreground/affordance Mask       
+                # foreground/affordance Mask
+                mask = torch_to_numpy(aff_mask)
                 if(obs_cfg.use_img and aff_mask.shape[1:] != img_obs.shape[1:]):
                     new_shape = (aff_mask.shape[0], *img_obs.shape[1:])
                     mask = np.resize(mask, new_shape)
@@ -312,11 +317,13 @@ class RLWrapper(gym.Wrapper):
                              "%s_aff_probs" % cam_type: aff_probs}
 
                     # Computes newest target
-                    self.find_target_center(self.gripper_id,
-                                            obs_dict['rgb_obs'][self.gripper_id],
-                                            obs_dict['depth_obs'][self.gripper_id],
-                                            obs_dict["robot_obs"][6],
-                                            preds)
+                    gripper_cam_id = self.cam_ids["gripper"]
+                    viz_dict = \
+                        self.find_target_center(gripper_cam_id,
+                                                obs_dict['rgb_obs'][gripper_cam_id],
+                                                obs_dict['depth_obs'][gripper_cam_id],
+                                                obs_dict["robot_obs"][6],
+                                                preds)
             if(self.affordance_cfg.gripper_cam.target_in_obs):
                 obs["detected_target_pos"] = self.env.unwrapped.current_target
             if(self.affordance_cfg.gripper_cam.use_distance):
@@ -329,7 +336,7 @@ class RLWrapper(gym.Wrapper):
                 obs["%s_aff" % cam_type] = mask
             # if(self.viz):
             #     cv2.imshow("static_obs", obs_dict['rgb_obs'][-1][:, :, ::-1])
-        return obs
+        return obs, viz_dict
 
     # Aff-center
     def find_target_center(self, cam_id, orig_img, depth, gripper_width, obs):
@@ -361,7 +368,7 @@ class RLWrapper(gym.Wrapper):
         aff_probs = obs["gripper_aff_probs"]
         directions = obs["gripper_center_dir"]
         cam = self.cameras[cam_id]
-
+        im_dict = {}
         # Predict affordances and centers
         aff_mask, center_dir, object_centers, object_masks = \
             self.gripper_cam_aff_net.predict(aff_mask, directions)
@@ -370,13 +377,10 @@ class RLWrapper(gym.Wrapper):
         if(self.viz or self.save_images):
             depth_img = cv2.resize(depth, orig_img.shape[:2])
             cv2.imshow("depth", depth_img)
-            self.gripper_cam_imgs.update(
-                {"./%s_depth/img_%04d.jpg" % ("gripper", self.obs_it): depth_img * 255})
             im_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
                                             object_centers, object_masks,
                                             "gripper", self.obs_it,
                                             save_images=self.save_images)
-            self.gripper_cam_imgs.update(im_dict)
 
         # Plot different objects
         cluster_outputs = []
@@ -384,7 +388,7 @@ class RLWrapper(gym.Wrapper):
         if(len(object_centers) > 0):
             target_px = object_centers[0]
         else:
-            return
+            return im_dict
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs)
@@ -437,3 +441,4 @@ class RLWrapper(gym.Wrapper):
         # p.addUserDebugText("target",
         #                    textPosition=self.env.unwrapped.current_target,
         #                    textColorRGB=[1, 0, 0])
+        return im_dict

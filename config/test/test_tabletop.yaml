@@ -17,4 +17,4 @@ eval_cfg:
   render: False
   print_all_episodes: True
   max_episode_length: 100
-  save_images: False
+  save_images: ${save_images}

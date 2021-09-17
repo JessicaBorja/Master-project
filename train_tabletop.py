@@ -18,6 +18,7 @@ def main(cfg):
                                  affordance_cfg=cfg.affordance,
                                  target_search=cfg.target_search,
                                  viz=cfg.viz_obs,
+                                 save_images=cfg.save_images,
                                  **cfg.env_wrapper)
 
         sac_cfg = {"env": training_env,

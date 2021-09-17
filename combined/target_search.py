@@ -163,7 +163,8 @@ class TargetSearch():
                 proposal = np.argwhere(depth_window == np.min(depth_window))[0]
                 v = x[0] - n + proposal[0]
                 u = x[1] - n + proposal[1]
-            # v, u = x
+            else:
+                v, u = x
             world_pt = np.array(cam.deproject([u, v], depth_obs))
             world_pts.append(world_pt)
 
@@ -179,6 +180,7 @@ class TargetSearch():
                                      line_type=cv2.LINE_AA)
             # cv2.imshow("out_img", out_img)
             # cv2.waitKey(1)
+            os.makedirs("./static_centers/", exist_ok=True)
             cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
                         out_img)
 

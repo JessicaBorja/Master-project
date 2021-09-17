@@ -27,7 +27,7 @@ class Combined(SAC):
         self._initial_pos = _initial_obs[:3]
         _initial_orn = _initial_obs[3:6]
         if(self.env.task == "pickup"):
-            self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
+            self.target_orn = np.array([- math.pi, 0, math.pi / 2])
         # elif(self.env.task == "slide"):
         #     self.target_orn = np.array([-math.pi / 2, math.pi / 2, 0])
         # elif(self.env.task == "drawer"):
@@ -94,14 +94,16 @@ class Combined(SAC):
               and np.linalg.norm(last_pos - tcp_pos) > 0.0005):
             last_pos = tcp_pos
 
+            ns, _, _, _ = env.step(a)
+            tcp_pos = ns["robot_obs"][:3]
             # Update position
-            for i in range(8):
-                env.robot.apply_action(a)
-                env.p.stepSimulation(physicsClientId=env.cid)
-            if(dict_obs):
-                tcp_pos = env.get_obs()["robot_obs"][:3]
-            else:
-                tcp_pos = env.get_obs()[:3]
+            # for i in range(8):
+            #     env.robot.apply_action(a)
+            #     env.p.stepSimulation(physicsClientId=env.cid)
+            # if(dict_obs):
+            #     tcp_pos = env.get_obs()["robot_obs"][:3]
+            # else:
+            #     tcp_pos = env.get_obs()[:3]
 
             # if(self.env.save_images):
             #     im = env.render()
@@ -145,15 +147,16 @@ class Combined(SAC):
         tcp_pos = env.get_obs()["robot_obs"][:3]
         a = [tcp_pos, self.target_orn, 1]  # drop object
         for i in range(8):  # 8 steps
-            env.robot.apply_action(a)
-            for i in range(8):  # 1 rl steps
-                env.p.stepSimulation()
-                env.fps_controller.step()
-            # if(self.env.save_images):
-            #     im = env.render()
-            #     cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it,
-            #                 im)
-            #     self.global_obs_it += 1
+            env.step(a)
+            # env.robot.apply_action(a)
+            # for i in range(8):  # 1 rl steps
+            #     env.p.stepSimulation()
+            #     env.fps_controller.step()
+            # # if(self.env.save_images):
+            # #     im = env.render()
+            # #     cv2.imwrite("./frames/image_%04d.jpg" % self.global_obs_it,
+            # #                 im)
+            # #     self.global_obs_it += 1
 
     def detect_and_correct(self, env, obs, p_dist=None):
         # Compute target in case it moved
@@ -205,9 +208,9 @@ class Combined(SAC):
                 else:
                     # Affordances detect the surface of an object
                     if(env.task == "pickup"):
-                        move_to = self.target_pos + np.array([0, 0, 0.035])  # 0.05
+                        move_to = self.target_pos + np.array([0, 0, 0.035])
                     else:
-                        move_to = self.target_pos + np.array([0, 0.02, 0])
+                        move_to = self.target_pos + np.array([0.02, 0.02, 0.05])
             else:
                 # Move in x-z dir
                 x_target = [self.target_pos[0], tcp_pos[1], self.target_pos[2]]
@@ -233,7 +236,6 @@ class Combined(SAC):
         if not isinstance(total_timesteps, int):   # auto
             total_timesteps = int(total_timesteps)
         episode = 1
-        s = self.env.reset()
         episode_return, episode_length = 0, 0
         best_return, best_eval_return = -np.inf, -np.inf
         most_tasks = 0
@@ -251,6 +253,7 @@ class Combined(SAC):
 
         # Move to target position only one
         # Episode ends if outside of radius
+        s = self.env.reset()
         self.env, s, _ = self.detect_and_correct(self.env, s, self.p_dist)
         for t in range(1, total_timesteps+1):
             s, done, success, episode_return, episode_length, plot_data, info = \
@@ -351,7 +354,7 @@ class Combined(SAC):
                 n_episodes = len(tasks)
             else:
                 # Search by affordance
-                # s = env.reset()
+                s = env.reset()
                 target_pos, no_target, center_targets = \
                     self.target_search.compute(env,
                                                self.global_obs_it,

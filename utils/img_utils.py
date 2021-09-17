@@ -114,10 +114,10 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
     cv2.waitKey(1)
 
     if(save_images):
-        return {"./%s_orig/img_%04d.jpg" % (cam_type, obs_it): orig_img,
-                "./%s_masks/img_%04d.jpg" % (cam_type, obs_it): mask,
-                "./%s_aff/img_%04d.jpg" % (cam_type, obs_it): out_img,
-                "./%s_dirs/img_%04d.jpg" % (cam_type, obs_it): flow_over_img}
+        return {"./images/%s_orig/img_%04d.png" % (cam_type, obs_it): orig_img,
+                "./images/%s_masks/img_%04d.png" % (cam_type, obs_it): mask,
+                "./images/%s_aff/img_%04d.png" % (cam_type, obs_it): out_img,
+                "./images/%s_dirs/img_%04d.png" % (cam_type, obs_it): flow_over_img}
     else:
         return {}
 

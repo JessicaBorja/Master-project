@@ -5,6 +5,13 @@ import os
 import re
 import glob
 from scipy.interpolate import interp1d
+import seaborn as sns
+
+plt.rc('text', usetex=True)
+
+sns.set(style='white', font_scale=2)
+# plt.rcParams['text.latex.preamble'] = [r"\usepackage{lmodern}"]
+plt.rcParams['font.size'] = 24
 
 
 def plot_data(data, ax, label, n_ep=6, color="gray", stats_axis=0):
@@ -29,13 +36,14 @@ def plot_data(data, ax, label, n_ep=6, color="gray", stats_axis=0):
     #                                             min_periods=smooth_window).mean())
     #     ax.plot(learning_curve[:, 0], smooth_data, 'k', linewidth=1, color=color)
 
-    ax.plot(steps, mean, 'k', linewidth=2, label=label, color=color)
+    ax.plot(steps, mean, 'k', label=label, color=color)
     # lb = mean - std
     lb = min_values
     lb[lb < 0] = 0
     # ax.fill_between(steps, mean + std, lb, color=color, alpha=0.15)
     ax.fill_between(steps, max_values, min_values, color=color, alpha=0.15)
     # ax.axhline(n_ep, color="gray", ls="--")
+    ax.set_ylim([0, 14])
     return ax
 
 
@@ -85,8 +93,7 @@ def plot_experiments(data, show=True, save=True, n_ep=6,
                      save_folder="./analysis/figures/",
                      x_label="timesteps",
                      y_label="Completed tasks"):
-    plt.rcParams.update({'font.size': 20})
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6), sharey=True)
+    fig, ax = plt.subplots(1, 1, figsize=(10, 5.5), sharey=True)
     # ax.set_title("Evaluation")
 
     cm = plt.get_cmap('tab10')
@@ -108,12 +115,10 @@ def plot_experiments(data, show=True, save=True, n_ep=6,
     if(save):
         fig.savefig(os.path.join(save_folder, "%s.pdf" % save_name),
                     bbox_inches="tight",
-                    pad_inches=0,
-                    dpi=200)
+                    pad_inches=0)
 
 
 def plot_by_time(plot_dict, csv_dir="./results_csv/"):
-    plt.rcParams.update({'font.size': 20})
     data, labels = [], []
     for exp_name, label in plot_dict.items():
         # Skip wall time
@@ -127,7 +132,7 @@ def plot_by_time(plot_dict, csv_dir="./results_csv/"):
     else:
         n_eval_ep = 10
 
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6), sharey=True)
+    fig, ax = plt.subplots(1, 1, figsize=(10, 5.5), sharey=True)
     cm = plt.get_cmap('tab10')
     colors = cm(np.linspace(0, 1, len(data)))
 
@@ -138,7 +143,7 @@ def plot_by_time(plot_dict, csv_dir="./results_csv/"):
                                           min_periods=smooth_window).mean())
         d[np.isnan(d)] = 0
         time = np.linspace(0, 2, num=len(d))
-        ax.plot(time, d, color=c, label=label, linewidth=3)
+        ax.plot(time, d, color=c, label=label)
 
     ax.set_xlabel("Time (hours)")
     ax.set_ylabel("Mean episode success")
@@ -151,8 +156,7 @@ def plot_by_time(plot_dict, csv_dir="./results_csv/"):
     plt.show()
     fig.savefig(os.path.join(save_folder, "%s.pdf" % save_name),
                 bbox_inches="tight",
-                pad_inches=0,
-                dpi=200)
+                pad_inches=0)
 
 
 # Plot validation data for a single experiment, multiple seeds
@@ -217,7 +221,7 @@ def plot_eval_and_train(eval_files, train_files, task, top_row=-1,
     if not os.path.exists("./results/figures"):
         os.makedirs("./results/figures")
     if(save):
-        fig.savefig("./results/figures/%s.png" % save_name, dpi=200)
+        fig.savefig("./results/figures/%s.png" % save_name)
     if(show):
         plt.show()
 
@@ -315,7 +319,7 @@ if __name__ == "__main__":
     plot_dict = {"sparse": "local-SAC",
                  "dense": "VAPO"}
     plot_by_episodes(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_rand/")
-    plot_by_timesteps(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_rand/")
-    # plot_dict = {"sparse": "local-SAC",
-    #              "dense": "VAPO"}
-    # plot_by_time(plot_dict, csv_dir="/home/jessica/Downloads/real-world/")
+    # plot_by_timesteps(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_rand/")
+    plot_dict = {"sparse": "local-SAC",
+                 "dense": "VAPO"}
+    plot_by_time(plot_dict, csv_dir="/home/jessica/Downloads/real-world/")

@@ -1,6 +1,4 @@
-
-cameras:
-  - '${all_cameras.tabletop_test}'
-  - '${all_cameras.gripper}'
-  - '${all_cameras.tabletop_topview}'
-
+defaults:
+  - cameras@static: tabletop_sideview
+  - cameras@gripper: gripper
+  - cameras@render: tabletop_render

@@ -1,7 +1,7 @@
 split_by_episodes: False
 teleop_data: True
 back_frames_max: 60
-back_frames_min: 10
+back_frames_min: 0
 fixed_pt_radius: 0.08  # Meters
 label_size:
   static_cam: 17

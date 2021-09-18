@@ -268,6 +268,7 @@ def instantiate_cameras(cfg, teleop_data):
 
 def collect_dataset_close_open(cfg):
     global pixel_indices
+    save_viz = cfg.save_viz
     gripper_out_size = (cfg.img_size.gripper, cfg.img_size.gripper)
     static_out_size = (cfg.img_size.static, cfg.img_size.static)
     pixel_indices = {"gripper": np.indices(gripper_out_size,
@@ -426,29 +427,35 @@ def collect_dataset_close_open(cfg):
             curr_folder = next_folder
             save_data(save_static,
                       cfg.output_dir + "episode_%02d" % episode,
-                      sub_dir="static_cam")
+                      sub_dir="static_cam",
+                      save_viz=save_viz)
             save_data(save_gripper,
                       cfg.output_dir + "episode_%02d" % episode,
-                      sub_dir="gripper_cam")
+                      sub_dir="gripper_cam",
+                      save_viz=save_viz)
             save_static, save_gripper = {}, {}
             episode += 1
 
         if (len(save_gripper.keys()) + len(save_static.keys()) > 150):
             save_data(save_static,
                       cfg.output_dir + "episode_%02d" % episode,
-                      sub_dir="static_cam")
+                      sub_dir="static_cam",
+                      save_viz=save_viz)
             save_data(save_gripper,
                       cfg.output_dir + "episode_%02d" % episode,
-                      sub_dir="gripper_cam")
+                      sub_dir="gripper_cam",
+                      save_viz=save_viz)
             save_static, save_gripper = {}, {}
         past_action = gripper_action
 
     save_data(save_static,
               cfg.output_dir + "episode_%02d" % episode,
-              sub_dir="static_cam")
+              sub_dir="static_cam",
+              save_viz=save_viz)
     save_data(save_gripper,
               cfg.output_dir + "episode_%02d" % episode,
-              sub_dir="gripper_cam")
+              sub_dir="gripper_cam",
+              save_viz=save_viz)
     create_data_ep_split(cfg.output_dir, cfg.labeling.split_by_episodes)
 
 

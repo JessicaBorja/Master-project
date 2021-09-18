@@ -6,8 +6,8 @@ project_folder: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/Master-proj
 #            ../datasets/tabletop_multiscene_MoC-True/tabletop_tools_MoC-True/episode_10/data/gripper_cam/,
 #            ../datasets/tabletop_multiscene_MoC-True/tabletop_misc_MoC-True/episode_10/data/gripper_cam/]
 
-get_eval_files: True
-data_dir: [./affordance_model/inference/static/]
+get_eval_files: False
+data_dir: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/datasets/teleop_real/teleop_real_08_09/episode_05/data/static_cam/
 # # Gripper camera
 # folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-05-30/00-41-40
 # model_name: last.ckpt

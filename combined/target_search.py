@@ -60,8 +60,7 @@ class TargetSearch():
                     env.target = env_target
                     env.unwrapped.target = env_target
         else:
-            if(p_dist):
-                env.pick_rand_obj(p_dist)
+            env.pick_rand_obj(p_dist)
             res = self._env_compute_target(env, noisy)
         return res
 
@@ -75,7 +74,7 @@ class TargetSearch():
         target_pos = np.array(target_pos)
         if(noisy):
             target_pos += np.random.normal(loc=0, scale=[0.005, 0.005, 0.01],
-                                        size=(len(target_pos)))
+                                           size=(len(target_pos)))
 
         # always returns a target position
         no_target = False

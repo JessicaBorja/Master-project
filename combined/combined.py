@@ -58,13 +58,14 @@ class Combined(SAC):
             self.p_dist = \
                 {c: 0 for c in self.env.objs_per_class.keys()}
 
-        self.target_pos, _ = self.target_search.compute()
+        self.target_pos, _ = self.target_search.compute(rand_sample=True)
         self.last_detected_target = self.target_pos
 
         # Target specifics
         self.env.unwrapped.current_target = self.target_pos
         self.eval_env.unwrapped.current_target = self.target_pos
         self.radius = self.env.target_radius  # Distance in meters
+        self.move_above = 0.04
 
     def get_task_label(self):
         task = self.env.task
@@ -146,13 +147,16 @@ class Combined(SAC):
             #     env.p.stepSimulation()
             #     env.fps_controller.step()
 
-    def detect_and_correct(self, env, obs, p_dist=None, noisy=False):
+    def detect_and_correct(self, env, obs,
+                           p_dist=None, noisy=False,
+                           rand_sample=False):
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
         target_pos, no_target = \
             self.target_search.compute(env,
                                        p_dist=p_dist,
-                                       noisy=noisy)
+                                       noisy=noisy,
+                                       rand_sample=rand_sample)
         if(no_target):
             self.no_detected_target += 1
             target_pos = self.last_detected_target
@@ -192,11 +196,13 @@ class Combined(SAC):
                 tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
                 if(self.target_search.mode == "env"):
                     # Environment returns the center of mass..
-                    move_to = self.target_pos + np.array([0, 0, 0.04])
+                    move_to = \
+                        self.target_pos + np.array([0, 0, self.move_above])
                 else:
                     # Affordances detect the surface of an object
                     if(env.task == "pickup"):
-                        move_to = self.target_pos + np.array([0, 0, 0.035])
+                        move_to = \
+                            self.target_pos + np.array([0, 0, self.move_above - 0.05])
                     else:
                         move_to = self.target_pos + np.array([0.03, 0.02, 0.05])
             else:
@@ -242,7 +248,9 @@ class Combined(SAC):
         # Move to target position only one
         # Episode ends if outside of radius
         s = self.env.reset()
-        self.env, s, _ = self.detect_and_correct(self.env, s, self.p_dist, True)
+        self.env, s, _ = self.detect_and_correct(self.env, s,
+                                                 self.p_dist, True,
+                                                 rand_sample=True)
         for t in range(1, total_timesteps+1):
             s, done, success, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, t, episode_return, episode_length,
@@ -282,7 +290,8 @@ class Combined(SAC):
                 episode_return, episode_length = 0, 0
                 s = self.env.reset()
                 self.env, s, _ = self.detect_and_correct(self.env, s,
-                                                         self.p_dist, True)
+                                                         self.p_dist, True,
+                                                         rand_sample=True)
 
         # Evaluate at end of training
         for eval_all_objs in [False, True]:
@@ -414,9 +423,7 @@ class Combined(SAC):
         tasks = []
         # get from static cam affordance
         if(env.task == "pickup"):
-            tasks = list(self.env.objects.keys())
-            tasks.remove("table")
-            tasks.remove("bin")
+            tasks = self.env.table_objs
             n_tasks = len(tasks)
 
         ep_success = []
@@ -429,7 +436,9 @@ class Combined(SAC):
             episode_length, episode_return = 0, 0
             done = False
             # Search affordances and correct position:
-            env, s, no_target = self.detect_and_correct(env, self.env.get_obs(), False)
+            env, s, no_target = self.detect_and_correct(env,
+                                                        self.env.get_obs(),
+                                                        False)
             if(no_target):
                 # If no target model will move to initial position.
                 # Search affordance from this position again

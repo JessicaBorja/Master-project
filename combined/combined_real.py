@@ -59,6 +59,7 @@ class Combined(SAC):
         self.target_pos, _ = self.target_search.compute()
 
         # Target specifics
+        self.env.target_search = self.target_search
         self.env.current_target = self.target_pos
         self.env.unwrapped.current_target = self.target_pos
         self.eval_env = self.env
@@ -92,12 +93,12 @@ class Combined(SAC):
             input("No object detected. Please rearrange table.")
             return self.detect_and_correct(env, p_dist)
 
-        self.env.curr_detected_obj = target_pos
         robot_target_pos = target_pos.copy()
         robot_target_pos[2] += self.above_obj
         target_orn = self.target_orn.copy()
         target_orn[2] += np.random.uniform(-1, 1) * np.radians(30)
         obs = self.env.reset(robot_target_pos, target_orn)
+        self.env.curr_detected_obj = target_pos
         return env, obs, no_target
 
     # RL Policy
@@ -169,29 +170,25 @@ class Combined(SAC):
         ep_returns, ep_lengths = [], []
         no_target = True
         while(no_target):
-            s = self.env.reset()
+            s = env.reset()
             target_pos, no_target, center_targets = \
                 self.target_search.compute(env,
                                            self.global_obs_it,
                                            return_all_centers=True)
             if(no_target):
                 input("No object detected. Please rearrange table.")
-            else:
-                self.env.curr_detected_obj = center_targets[0]
-                for i in range(len(center_targets)):
-                    center_targets[i][-1] += self.above_obj
 
         run_n_episodes = len(center_targets)
         ep_success = []
         # One episode per task
         for episode in range(run_n_episodes):
-            s = env.reset()
+            env.reset()
             target_pos = center_targets[episode]
+            env.curr_detected_obj = target_pos
             episode_length, episode_return = 0, 0
             done = False
-            # Correct Position
-            self.env.reset()
-            s = self.env.reset(target_pos, self.target_orn)
+            target_pos[-1] += self.above_obj
+            s = env.reset(target_pos, self.target_orn)
             while(episode_length < max_episode_length and not done):
                 # sample action and scale it to action space
                 a, _ = self._pi.act(tt(s), deterministic=deterministic)

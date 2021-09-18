@@ -104,11 +104,15 @@ class RLWrapper(gym.Wrapper):
 
         self.T_tcp_cam = self.env.env.camera_manager.gripper_cam.get_extrinsic_calibration('panda')
 
+        # Debug
+        self.target_search = None
+
     def reset(self, *args, **kwargs):
         observation = self.env.reset(*args, **kwargs)
         return self.observation(observation)
 
     def step(self, action):
+        print("angle: %d" % action[-1])
         action = np.append(action, 1)
         observation, reward, done, info = self.env.step(action)
         return self.observation(observation), self.reward(reward, observation, done), done, info
@@ -344,3 +348,26 @@ class RLWrapper(gym.Wrapper):
                     if(out_dict["robustness"] > most_robust):
                         self.curr_detected_obj = c
                         most_robust = out_dict["robustness"]
+
+            u, v = self.target_search.static_cam.project(self.curr_detected_obj)
+            u, v = self.get_px_after_crop_resize(self.target_search.static_cam, (u, v))
+            img = self.target_search.orig_img.copy()
+            img = cv2.drawMarker(img, (int(u), int(v)),
+                                (0, 0, 0),
+                                markerType=cv2.MARKER_CROSS,
+                                markerSize=15,
+                                thickness=3,
+                                line_type=cv2.LINE_AA)
+            cv2.imshow("detected target", img[:, :, ::-1])
+
+    def get_px_after_crop_resize(self, cam, px):
+        tcp_x, tcp_y = px
+        # Img coords after crop
+        tcp_x = tcp_x - cam.crop_coords[2]
+        tcp_y = tcp_y - cam.crop_coords[0]
+        # Get img coords after resize
+        old_w = cam.crop_coords[3] - cam.crop_coords[2]
+        old_h = cam.crop_coords[1] - cam.crop_coords[0]
+        tcp_x = int((tcp_x/old_w)*cam.resize_resolution[0])
+        tcp_y = int((tcp_y/old_h)*cam.resize_resolution[1])
+        return tcp_x, tcp_y

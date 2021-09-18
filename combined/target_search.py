@@ -27,6 +27,7 @@ class TargetSearch():
         self.box_mask = None
         self.static_cam = hydra.utils.instantiate(main_cfg.static_cam)
         self.T_world_cam = self.static_cam.get_extrinsic_calibration("panda")
+        self.orig_img, _ = self.static_cam.get_image()
 
     def compute(self, env=None,
                 global_it=0,
@@ -35,6 +36,7 @@ class TargetSearch():
         if(env is None):
             env = self.env
         orig_img, depth_img = self.static_cam.get_image()
+        self.orig_img = orig_img
         res = self._compute_target_aff(env, self.static_cam,
                                        depth_img,
                                        orig_img,
@@ -107,8 +109,6 @@ class TargetSearch():
         pred_shape = aff_probs.shape[:2]
         orig_shape = depth_obs.shape[:2]
 
-
-
         # World coords
         world_pts = []
         for o in object_centers:
@@ -116,8 +116,9 @@ class TargetSearch():
             x = (x * orig_shape / pred_shape).astype("int64")
             v, u = x
             pt_cam = cam.deproject([u, v], depth_obs, homogeneous=True)
-            world_pt = self.T_world_cam @ pt_cam
-            world_pts.append(world_pt[:3])
+            if(pt_cam is not None and len(pt_cam) > 0):
+                world_pt = self.T_world_cam @ pt_cam
+                world_pts.append(world_pt[:3])
 
         # Recover target
         v, u = object_centers[target_idx]

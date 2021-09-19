@@ -150,6 +150,8 @@ class Combined(SAC):
     def detect_and_correct(self, env, obs,
                            p_dist=None, noisy=False,
                            rand_sample=False):
+        _, obs, no_target = \
+            self.correct_position(env, obs, self._initial_pos, False)
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
         target_pos, no_target = \
@@ -159,9 +161,9 @@ class Combined(SAC):
                                        rand_sample=rand_sample)
         if(no_target):
             self.no_detected_target += 1
-            target_pos = self.last_detected_target
-        else:
-            self.last_detected_target = target_pos
+        #     #   target_pos = self.last_detected_target
+        # else:
+        #     self.last_detected_target = target_pos
         res = self.correct_position(env, obs, target_pos, no_target)
         return res
 
@@ -202,7 +204,8 @@ class Combined(SAC):
                     # Affordances detect the surface of an object
                     if(env.task == "pickup"):
                         move_to = \
-                            self.target_pos + np.array([0, 0, self.move_above - 0.05])
+                            self.target_pos + np.array([0, 0,
+                                                        self.move_above - 0.01])
                     else:
                         move_to = self.target_pos + np.array([0.03, 0.02, 0.05])
             else:
@@ -430,7 +433,7 @@ class Combined(SAC):
         total_ts = 0
         s = env.reset()
         # Set total timeout to timeout per task times all tasks + 1
-        while(total_ts <= max_episode_length // 2 * n_tasks
+        while(total_ts <= max_episode_length * n_tasks
               and self.no_detected_target < 3
               and not self.all_objs_in_box(env)):
             episode_length, episode_return = 0, 0
@@ -445,7 +448,7 @@ class Combined(SAC):
                 self.detect_and_correct(env, self.env.get_obs(), False)
 
             # If it did not find a target again, terminate everything
-            while(episode_length < max_episode_length // 2
+            while(episode_length < max_episode_length
                   and self.no_detected_target < 3
                   and not done):
                 # sample action and scale it to action space
@@ -463,7 +466,6 @@ class Combined(SAC):
             else:
                 success = False
             ep_success.append(success)
-        self.save_images(env)
         self.log.info("Success: %d/%d " % (np.sum(ep_success), len(ep_success)))
         return ep_success
 

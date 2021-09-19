@@ -5,8 +5,8 @@ optim_res: False
 models_dir: ${project_path}/Master-project/combined/hydra_outputs
 
 
-model_name: drawer_rgb_nr_img_depth_sparse_17-09_03-08_most_tasks_from_5
-folder_name: ${test.models_dir}/drawer/2021-09-17/03-08-42
+model_name: drawer_rgb_nr_img_sparse_17-09_13-39_most_tasks_from_5
+folder_name: ${test.models_dir}/drawer/13-39-38_aff_rl
 
 
 eval_cfg:

@@ -51,9 +51,11 @@ def main(cfg):
     success = model.load(path)
 
     if(success):
-        # model.tidy_up(env)
-        model.eval_all_objs(env,
-                            **cfg.test.eval_cfg)
+        model.tidy_up(env)
+        # model.evaluate(env)
+        # model.eval_all_objs(env,
+        #                     **cfg.test.eval_cfg)
+
     env.close()
 
 

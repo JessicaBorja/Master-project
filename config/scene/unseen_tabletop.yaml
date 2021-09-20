@@ -24,7 +24,7 @@ objects:
     initial_pos: [0.15, 0.9, 0.64]
     initial_orn: [1.57, 0, 0]
     fixed: false
-    global_scaling: 0.7
+    scale: 0.7
   cleaner:
     file: ais_objects/cleaner/cleaner.urdf
     initial_pos: [-0.1, 0.55, 0.62]
@@ -34,7 +34,7 @@ objects:
     file: 072-a_toy_airplane/google_16k/textured.urdf
     initial_pos: [0.15, 0.66, 0.62]
     initial_orn: [0, 0, 0]
-    global_scaling: 0.4
+    scale: 0.4
     fixed: false
   thuna:
     file: 007_tuna_fish_can/google_16k/textured.urdf

@@ -16,7 +16,7 @@ objects:
     fixed: false
   knife:
     file: tabletop/kitchen_knife/kitchen_knife.urdf
-    initial_pos: [0.37, 0.91, 0.6069920607828857]
+    initial_pos: [0.42, 0.60, 0.61]
     initial_orn: [0, 0, 0]
     fixed: false
   bowl:
@@ -36,6 +36,6 @@ objects:
     fixed: false
   spatula:
     file: tabletop/spatula/spatula.urdf
-    initial_pos: [0.42, 0.54, 0.61]
+    initial_pos: [0.37, 0.91, 0.6069920607828857]
     initial_orn: [0, 0, 3.1416]
     fixed: false

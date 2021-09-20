@@ -29,7 +29,7 @@ class Combined(SAC):
         if(self.env.task == "pickup"):
             self.target_orn = np.array([- math.pi, 0, math.pi / 2])
         # elif(self.env.task == "slide"):
-        #     self.target_orn = np.array([-math.pi / 2, math.pi / 2, 0])
+        #     self.target_orn = np.array([-math.pi / 2, -math.pi / 2, 0])
         # elif(self.env.task == "drawer"):
         #     self.target_orn = np.array([- math.pi, math.pi/8, - math.pi / 2])
         else:
@@ -113,7 +113,7 @@ class Combined(SAC):
         top_left, bott_right = self.box_3D_end_points
         if(sample):
             x_pos = np.random.uniform(top_left[0] + 0.06, bott_right[0] - 0.06)
-            y_pos = np.random.uniform(top_left[1] - 0.06, bott_right[1] + 0.06)
+            y_pos = np.random.uniform(top_left[1] - 0.12, bott_right[1] + 0.06)
         else:
             center_x, center_y, z = env.objects["bin"]["initial_pos"]
             x_pos = center_x
@@ -445,11 +445,15 @@ class Combined(SAC):
             if(no_target):
                 # If no target model will move to initial position.
                 # Search affordance from this position again
-                self.detect_and_correct(env, self.env.get_obs(), False)
+                env, s, no_target = \
+                    self.detect_and_correct(env, self.env.get_obs(), False)
 
             # If it did not find a target again, terminate everything
+            init_pos = s['robot_obs'][:3]
+            dist = 0
             while(episode_length < max_episode_length
                   and self.no_detected_target < 3
+                  and dist < env.target_radius
                   and not done):
                 # sample action and scale it to action space
                 a, _ = self._pi.act(tt(s), deterministic=True)
@@ -460,6 +464,7 @@ class Combined(SAC):
                 episode_return += r
                 episode_length += 1
                 total_ts += 1
+                dist = np.linalg.norm(init_pos - s['robot_obs'][:3])
             if(episode_return >= 200 and env.task == "pickup"):
                 self.move_to_box(env, sample=True)
                 success = self.eval_grasp_success(env, any=True)

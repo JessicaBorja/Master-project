@@ -8,6 +8,9 @@ models_dir: ${project_path}/Master-project/combined/hydra_outputs
 # model_name: rgb_img_depth_sparse_29-06_19-23_most_tasks
 # folder_name: ${test.models_dir}/pickup/2021-06-29/19-21-58_aff_rl
 
+# model_name: tabletop_rand_relative_img_depth_sparse_19-09_12-13_most_tasks_from_20
+# folder_name: ${test.models_dir}/pickup/2021-09-19/12-11-57_aff_rl
+
 # RGB rgb_img_depth_dist_affMask_dense
 model_name: tabletop_rand_relative_img_depth_dist_affMask_dense_19-09_01-12_most_tasks_from_20
 folder_name: ${test.models_dir}/pickup/2021-09-19/01-10-30_aff_rl

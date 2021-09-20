@@ -420,7 +420,9 @@ class RLWrapper(gym.Wrapper):
                 # As center might  not be exactly in handle
                 # look for max depth around neighborhood
                 n = 10
-                depth_window = depth[o[0] - n:o[0] + n, o[1] - n:o[1] + n]
+                uv_max = np.clip(o + [n, n], 0, orig_shape)
+                uv_min = np.clip(o - [n, n], 0, orig_shape)
+                depth_window = depth[uv_min[0]:uv_max[0], uv_min[1]:uv_max[1]]
                 proposal = np.argwhere(depth_window == np.min(depth_window))[0]
                 v = o[0] - n + proposal[0]
                 u = o[1] - n + proposal[1]

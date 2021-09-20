@@ -62,7 +62,7 @@ panda_env_wrapper:
   gripper_success_threshold: 0.01
   reward_fail: -20
   reward_success: 200
-  termination_radius: 0.13
+  termination_radius: 0.10
 
 # Affordance configuration for RL agent observation inputs
 affordance:

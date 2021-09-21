@@ -27,7 +27,7 @@ class FpsController:
         self.prev_time = time.time()
 
 class Combined(SAC):
-    def __init__(self, cfg, sac_cfg=None,
+    def __init__(self, cfg, sac_cfg=None, save_images=False,
                  rand_target=False, target_search_mode="env"):
         super(Combined, self).__init__(**sac_cfg)
         self.writer = SummaryWriter(self.writer_name)
@@ -50,7 +50,8 @@ class Combined(SAC):
         args = {"initial_pos": self.origin,
                 "aff_cfg": cfg.target_search_aff,
                 "aff_transforms": _aff_transforms,
-                "rand_target": rand_target}
+                "rand_target": rand_target,
+                "save_images": save_images}
         self.target_search = TargetSearch(self.env,
                                           main_cfg=cfg,
                                           mode="real_world",
@@ -96,7 +97,7 @@ class Combined(SAC):
         robot_target_pos = target_pos.copy()
         robot_target_pos[2] += self.above_obj
         target_orn = self.target_orn.copy()
-        target_orn[2] += np.random.uniform(-1, 1) * np.radians(30)
+        # target_orn[2] += np.random.uniform(-1, 1) * np.radians(30)
         obs = self.env.reset(robot_target_pos, target_orn)
         self.env.curr_detected_obj = target_pos
         return env, obs, no_target
@@ -145,7 +146,7 @@ class Combined(SAC):
                                        self.best_eval_return,
                                        n_eval_ep, max_episode_length)
 
-            if(end_ep):
+            if end_ep:
                 self.best_return = \
                     self._on_train_ep_end(self.writer, self.curr_ts, self.episode,
                                           total_timesteps, self.best_return,
@@ -197,6 +198,7 @@ class Combined(SAC):
                 s = ns
                 episode_return += r
                 episode_length += 1
+                time.sleep(0.05)
             success = info['success']
             ep_success.append(success)
             ep_returns.append(episode_return)
@@ -215,77 +217,35 @@ class Combined(SAC):
         return mean_reward, mean_length, ep_success
 
     # Only applies to tabletop
-    def tidy_up(self, env, max_episode_length=100):
+    def tidy_up(self, env, max_episode_length=100, n_objects=4, deterministic=True):
         tasks = []
-        # get from static cam affordance
-        if(env.task == "pickup"):
-            tasks = list(self.env.objects.keys())
-            tasks.remove("table")
-            tasks.remove("bin")
-            n_tasks = len(tasks)
-
+        self.target_search.random_target = False
         ep_success = []
         total_ts = 0
         s = env.reset()
         self.no_detected_target = 0
         # Set total timeout to timeout per task times all tasks + 1
-        while(total_ts <= max_episode_length // 2 * n_tasks
-              and self.no_detected_target < 3):
+        while(total_ts <= max_episode_length * n_objects):
             episode_length, episode_return = 0, 0
             done = False
-            # Search affordances and correct position:
             env, s, no_target = self.detect_and_correct(env, self.env.get_obs())
-            if(no_target):
-                # If no target model will move to initial position.
-                # Search affordance from this position again
-                self.detect_and_correct(env, self.env.get_obs())
 
             # If it did not find a target again, terminate everything
-            while(episode_length < max_episode_length // 2
-                  and self.no_detected_target < 3
+            while(episode_length < max_episode_length
                   and not done):
                 # sample action and scale it to action space
-                a, _ = self._pi.act(tt(s), deterministic=True)
+                a, _ = self._pi.act(tt(s),
+                                    deterministic=deterministic)
                 a = a.cpu().detach().numpy()
-                ns, r, _, info = env.step(a)
-                done = r >= 200
+                ns, r, done, info = env.step(a, move_to_box=True)
                 s = ns
                 episode_return += r
                 episode_length += 1
                 total_ts += 1
-            if(episode_return >= 200 and env.task == "pickup"):
-                success = self.eval_grasp_success(env)
-            else:
-                success = False
+                success = info['success']
+            self.log.info(
+                "Success: %s " % str(success) +
+                "Return: %.3f" % episode_return)
             ep_success.append(success)
-        self.save_images(env)
         self.log.info("Success: %d/%d " % (np.sum(ep_success), len(ep_success)))
         return ep_success
-
-    def eval_grasp_success(self, env, any=False):
-        self.move_to_box(env)
-        if(any):
-            success = False
-            for name in env.table_objs:
-                if(env.obj_in_box(env.objects[name])):
-                    success = True
-        else:
-            success = env.obj_in_box(env.objects[env.target])
-        return success
-
-    # Save images
-    def save_images(self, env):
-        # Write all images
-        if(env.save_images):
-            # for idx, im in enumerate(self.im_lst):
-            #     cv2.imwrite("./frames/image_%04d.jpg" % idx, im)
-            for name, im in self.target_search.static_cam_imgs.items():
-                head, _ = os.path.split(name)
-                if(not os.path.exists(head)):
-                    os.makedirs(head)
-                cv2.imwrite(name, im)
-            for name, im in env.gripper_cam_imgs.items():
-                head, _ = os.path.split(name)
-                if(not os.path.exists(head)):
-                    os.makedirs(head)
-                cv2.imwrite(name, im)

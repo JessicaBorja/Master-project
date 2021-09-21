@@ -10,7 +10,7 @@ import time
 
 
 class TargetSearch():
-    def __init__(self, env, main_cfg, mode,
+    def __init__(self, env, main_cfg, mode, save_images=False,
                  aff_transforms=None, aff_cfg=None, class_label=None,
                  cam_id=0, initial_pos=None, rand_target=False) -> None:
         self.env = env
@@ -28,6 +28,8 @@ class TargetSearch():
         self.static_cam = hydra.utils.instantiate(main_cfg.static_cam)
         self.T_world_cam = self.static_cam.get_extrinsic_calibration("panda")
         self.orig_img, _ = self.static_cam.get_image()
+        self.save_images = True
+        self.global_obs_it = 0
 
     def compute(self, env=None,
                 global_it=0,
@@ -74,10 +76,14 @@ class TargetSearch():
         img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs,
                                          center_dir, object_centers,
                                          object_masks, "static",
-                                         global_obs_it,
-                                         False)
-        self.static_cam_imgs.update(img_dict)
-        global_obs_it += 1
+                                         self.global_obs_it,
+                                         self.save_images)
+        if(self.save_images):
+            for filename, img in img_dict.items():
+                folder_name = os.path.dirname(filename)
+                os.makedirs(folder_name, exist_ok=True)
+                cv2.imwrite(filename, img)
+        self.global_obs_it += 1
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2

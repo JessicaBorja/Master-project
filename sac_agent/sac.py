@@ -336,7 +336,7 @@ class SAC():
                                  "replay_buffer"))
         torch.save(save_dict, path)
 
-    def load(self, path):
+    def load(self, path, load_replay_buffer=True):
         if os.path.isfile(path):
             print("Loading checkpoint")
             checkpoint = torch.load(path)
@@ -373,7 +373,7 @@ class SAC():
                 self.last_n_train_mean_success = checkpoint['last_n_train_mean_success']
             replay_buffer_dir = os.path.join(os.path.dirname(path),
                                              "replay_buffer")
-            if(os.path.isdir(replay_buffer_dir)):
+            if(os.path.isdir(replay_buffer_dir) and load_replay_buffer):
                 self._replay_buffer.load(replay_buffer_dir)
             print("load done")
             return True

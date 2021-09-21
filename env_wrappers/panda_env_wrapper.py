@@ -41,6 +41,14 @@ class PandaEnvWrapper(gym.Wrapper):
             raise Exception
         return gripper_width > self.gripper_success_threshold
 
+    def move_to_box(self, box_pos=[0.5, 0.4, 0.3]):
+        pos, orn = self.env.robot.get_tcp_pos_orn()
+        pos[2] = box_pos[-1] + MOVE_UP_AFTER_GRASP * 2
+        self.env.robot.move_cart_pos_abs_ptp(pos, orn)
+        time.sleep(WAIT_FOR_WIDTH_MEASUREMENT)
+        self.env.robot.move_cart_pos_abs_ptp(box_pos, orn)
+        self.env.robot.open_gripper(blocking=True)
+
     def put_back_object(self):
         pos, orn = self.env.robot.get_tcp_pos_orn()
         pos[2] -= MOVE_UP_AFTER_GRASP * 0.8
@@ -50,7 +58,7 @@ class PandaEnvWrapper(gym.Wrapper):
     def check_termination(self, current_pos):
         return np.linalg.norm(self.target_pos - current_pos) > self.termination_radius
 
-    def step(self, action):
+    def step(self, action, move_to_box=False):
         assert len(action) == 5
 
         rel_target_pos = np.array(action[:3]) * self.d_pos
@@ -75,7 +83,10 @@ class PandaEnvWrapper(gym.Wrapper):
             if self.check_success():
                 reward = self.reward_success
                 info["success"] = True
-                self.put_back_object()
+                if(move_to_box):
+                    self.move_to_box()
+                else:
+                    self.put_back_object()
             else:
                 reward = self.reward_fail
                 info["failure_case"] = "failed_grasp"

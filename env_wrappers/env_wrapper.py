@@ -69,10 +69,6 @@ class RLWrapper(gym.Wrapper):
         # Cameras defaults
         self.obs_it = 0
         self.save_images = save_images
-        if(save_images):
-            create_dirs = ['./gripper_depth/', "gripper_orig", "gripper_masks", "gripper_aff", "gripper_dirs"]
-            for directory in create_dirs:
-                os.makedirs(directory, exist_ok=True)
         self.viz = viz
 
         # Parameters to define observation
@@ -111,10 +107,9 @@ class RLWrapper(gym.Wrapper):
         observation = self.env.reset(*args, **kwargs)
         return self.observation(observation)
 
-    def step(self, action):
-        print("angle: %d" % action[-1])
+    def step(self, action, move_to_box=False):
         action = np.append(action, 1)
-        observation, reward, done, info = self.env.step(action)
+        observation, reward, done, info = self.env.step(action, move_to_box)
         return self.observation(observation), self.reward(reward, observation, done), done, info
 
     def observation(self, obs):
@@ -288,11 +283,11 @@ class RLWrapper(gym.Wrapper):
                                         object_centers, object_masks,
                                         "gripper", self.obs_it,
                                         save_images=self.save_images)
-        # im_dict.update({"./gripper_depth/img_%04d.png" % self.obs_it:
-        #                 (255 * (depth_img - depth_img.min()) / (depth_img.max() - depth_img.min())).astype(np.uint8)})
-        # for im_name, im in im_dict.items():
-        #     cv2.imwrite(im_name, im)
-        # self.gripper_cam_imgs.update(im_dict)
+        if self.save_images:
+            for filename, img in im_dict.items():
+                folder_name = os.path.dirname(filename)
+                os.makedirs(folder_name, exist_ok=True)
+                cv2.imwrite(filename, img)
 
         # Plot different objects
         cluster_outputs = []

@@ -1,6 +1,6 @@
 project_path:  /home/hermannl/phd/repos/affordance_rl
 data_path: ${project_path}/VREnv/data/
-save_dir: ./combined/hydra_outputs/${task}/${now:%Y-%m-%d}/
+save_dir: ./combined/hydra_outputs/${task}/${now:%Y-%m-%d}_${now:%H-%M-%S}_test/
 model_name: real_world
 task: pickup
 euler_obs: true
@@ -12,6 +12,7 @@ viz_obs: False
 models_path: "${project_path}/Master-project/trained_models/"
 resume_training: True
 resume_model_path: ${save_dir} # ./combined/hydra_outputs/${task}/2021-09-15_ours
+save_images: True
 
 # Static cam affordance model to detect the targets
 n_objects: 4
@@ -54,7 +55,7 @@ env_wrapper:
     use_depth: False
   use_pos: True
   img_size: ${img_size}
-  save_images: False
+  save_images: ${save_images}
 
 panda_env_wrapper:
   d_pos: 0.005
@@ -62,7 +63,7 @@ panda_env_wrapper:
   gripper_success_threshold: 0.01
   reward_fail: -20
   reward_success: 200
-  termination_radius: 0.10
+  termination_radius: 0.08
 
 # Affordance configuration for RL agent observation inputs
 affordance:
@@ -135,7 +136,7 @@ defaults:
   - robot_io/cams@cams: camera_manager
   - robot_io/cams/static_cam@static_cam: kinect4_oier
   - agent: default
-  - test: test_tabletop
+  - test: test
   - transforms@affordance.transforms: aff_transforms
   - transforms@env_wrapper.transforms: rl_transforms
   - override hydra/hydra_logging: colorlog

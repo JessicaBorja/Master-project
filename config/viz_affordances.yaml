@@ -7,7 +7,7 @@ project_folder: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/Master-proj
 #            ../datasets/tabletop_multiscene_MoC-True/tabletop_misc_MoC-True/episode_10/data/gripper_cam/]
 
 get_eval_files: False
-data_dir: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/datasets/teleop_real/teleop_real_08_09/episode_05/data/static_cam/
+data_dir: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/datasets/showcase_1/episode_00/data/static_cam/
 # # Gripper camera
 # folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-05-30/00-41-40
 # model_name: last.ckpt
@@ -36,14 +36,29 @@ data_dir: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/datasets/teleop_r
 # model_name: tabletop_multiscene_gripper_epoch=98-val_miou=0.577.ckpt
 
 # Tabletop real-world Static cam
-folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-09-09/10-39-36_aff_rl
-model_name: last.ckpt
+folder_name: ${project_folder}/
+model_name: static_real_world.ckpt
 cam_type: static
 
 save_images: True
-imshow: True
+imshow: False
 out_size: 300
-output_dir: ${project_folder}/affordance_model/predictions/aff_static_multitask
+output_dir: ${project_folder}/affordance_model/predictions/static_real_world
+
+dataset:
+  root_dir: ${data_dir}
+  cam: ${cam_type}
+  n_train_ep: -1  # Train using all episodes
+  transforms_cfg: ${transforms}
+
+dataloader:
+  num_workers: 4
+  batch_size : 128 #28
+  pin_memory: True
+
+img_size:
+  static: 200
+  gripper: 64
 
 model_cfg:
   n_classes: 2

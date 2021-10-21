@@ -52,21 +52,22 @@ def make_videos(path, cam, val_dir=False):
             video_name = os.path.join(
                     os.path.dirname(img_folder),
                     os.path.basename(img_folder) + ".mp4")
-            make_video(files, fps=60, video_name=video_name)
+            make_video(files, fps=30, video_name=video_name)
 
 
 if __name__ == "__main__":
     # pred_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/tmp/2021-06-21/19-52-03/gripper_dirs"
     # path = ['%s/obj_%d' % (pred_folder, i) for i in range(1, 7)]
-    pred_folder = "/mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/datasets/teleop_showcase/episode_00"
+    pred_folder = "D:/GoogleDrive/ICRA/real_world_exps/generalization/images/gripper_dirs"
     # path = [
     #         "%s/rendering_orig" % pred_folder,
     #         "%s/gripper_dirs" % pred_folder,
     #         "%s/gripper_depth" % pred_folder,
     #         ]
     path = [
-            "%s/viz_direction/gripper_cam" % pred_folder,
-            "%s/viz_direction/static_cam" % pred_folder,
+            "%s/roller" % pred_folder,
+            "%s/screwdriver1" % pred_folder,
+            "%s/screwdriver2" % pred_folder,
             ]
     val_dir = False
     make_videos(path, "", val_dir)

@@ -106,8 +106,6 @@ def viz(cfg):
     files, np_comprez = get_filenames(cfg.data_dir,
                                       get_eval_files=cfg.get_eval_files,
                                       cam_type=cfg.cam_type)
-    n = len(files) // 2
-    files = files[n:]
     out_shape = (cfg.out_size, cfg.out_size)
     im_size = (200, 200) if cfg.cam_type=="static" else (64, 64)
     for filename in tqdm.tqdm(files):
@@ -224,7 +222,7 @@ def viz(cfg):
             split = tail.split('.')
             name = "".join(split[:-1])
             ext = split[-1]
-            output_file = os.path.join(cfg.output_dir, name + ".jpg")
+            output_file = os.path.join(cfg.output_dir, name + ".png")
             cv2.imwrite(output_file, res)
         if(cfg.imshow):
             cv2.imshow("Affordance masks", affordances)

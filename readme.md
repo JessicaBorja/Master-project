@@ -1,9 +1,9 @@
 # Installation
 - Setup a conda environment by running:
 ```
-git clone https://github.com/JessicaBorja/Master-project.git
-cd Master-project/
-conda env create -f conda_env.yml
+git clone https://github.com/JessicaBorja/vapo.git
+cd vapo/
+pip install -e .
 ```
 
 In conda_env.yml, we set cudatoolkit=10.1 by default. Set the CUDA toolkit version to match the native CUDA version (in /usr/local/cuda/), since you must compile the hough voting code with corresponding CUDA compiler (nvcc is not provided with the conda cudatoolkit distribution). This can be checked with: nvcc --version.
@@ -23,7 +23,7 @@ sudo make install
 Go to the directory of the voting layer and run [setup.py](./affordance_model/hough_voting/setup.py). If you do not have sudo privileges, don't run `sudo make install` instead change the diretory in "include_dirs" to match where the eigen-git-mirror repo was downloaded, then run: 
 
 ```
-conda activate Master-Project
+conda activate vapo
 cd /ROOT_DIR/affordance_model/hough_voting/
 python setup.py install
 ```

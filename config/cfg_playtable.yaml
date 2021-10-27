@@ -3,7 +3,6 @@ data_path: ${project_path}/VREnv/data/
 save_dir: ./combined/hydra_outputs/${task}
 model_name: "full"
 task: drawer
-euler_obs: true
 img_size: 64
 repeat_training: 1
 
@@ -11,7 +10,7 @@ viz_obs: False
 init_angle: False
 # path to load affordance models either gripper_cam 
 # or static_cam
-models_path: "${project_path}/Master-project/trained_models/"
+models_path: "${project_path}/vapo/trained_models/"
 
 # Static cam affordance model to detect the targets
 target_search_aff:
@@ -123,7 +122,7 @@ hydra:
     dir: ${save_dir}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 defaults:
-  - robot: panda_playtable
+  - robot: panda
   - scene: empty_playtable_left
   - env: env_combined
   - env@eval_env: env_combined

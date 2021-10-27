@@ -4,30 +4,17 @@ import torch
 import numpy as np
 import cv2
 import pybullet as p
-import os
 
 import gym
 from gym import spaces
 
-from vr_env.utils.utils import EglDeviceNotFoundError, get_egl_device_id
-from utils.img_utils import torch_to_numpy, viz_aff_centers_preds, visualize
+from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
 from .utils import get_obs_space, get_transforms_and_shape, find_cam_ids, \
                    init_aff_net, depth_preprocessing, img_preprocessing
 logger = logging.getLogger(__name__)
 
 
-def wrap_env(env_cfg, max_ts, save_images=False,
-             viz=False, use_aff_target=False, **args):
-    env = RLWrapper(env_cfg, max_ts,
-                    save_images=save_images,
-                    viz=viz,
-                    **args)
-    # env = RewardWrapper(env, max_ts)
-    # env = TerminationWrapper(env, use_aff_target=use_aff_target)
-    return env
-
-
-class RLWrapper(gym.Wrapper):
+class AffordanceWrapper(gym.Wrapper):
     def __init__(self, EnvClass, env_cfg, max_ts, img_size,
                  gripper_cam, static_cam, transforms=None,
                  use_pos=False, use_aff_termination=False,
@@ -35,25 +22,17 @@ class RLWrapper(gym.Wrapper):
                  max_target_dist=0.15, use_env_state=False,
                  train=False, save_images=False, viz=False,
                  history_length=None, skip_frames=None):
-        # ENV definition
-        if(env_cfg.use_egl):
-            # if("CUDA_VISIBLE_DEVICES" in os.environ):
-            #     device_id = os.environ["CUDA_VISIBLE_DEVICES"]
-            #     device = int(device_id)
-            # else:
-            device = torch.cuda.current_device()
-            device = torch.device(device)
-            self.set_egl_device(device)
         env_cfg.seed = None
         self.env = EnvClass(**env_cfg)
         self.env.target_radius = max_target_dist
 
-        super(RLWrapper, self).__init__(self.env)
+        super(AffordanceWrapper, self).__init__(self.env)
         self.task = self.env.task
         self.target_radius = self.env.target_radius
 
         # TERMINATION
-        self.use_aff_termination = use_aff_termination # or target_search == "affordance"
+        # or target_search == "affordance"
+        self.use_aff_termination = use_aff_termination
 
         # REWARD FUNCTION
         self.affordance_cfg = affordance_cfg
@@ -124,21 +103,6 @@ class RLWrapper(gym.Wrapper):
         # Save images
         self.gripper_cam_imgs = {}
 
-    def set_egl_device(self, device):
-        assert "EGL_VISIBLE_DEVICES" not in os.environ, "Do not manually set EGL_VISIBLE_DEVICES"
-        cuda_id = device.index if device.type == "cuda" else 0
-        try:
-            egl_id = get_egl_device_id(cuda_id)
-        except EglDeviceNotFoundError:
-            logger.warning(
-                "Couldn't find correct EGL device. Setting EGL_VISIBLE_DEVICE=0. "
-                "When using DDP with many GPUs this can lead to OOM errors. "
-                "Did you install PyBullet correctly? Please refer to VREnv README"
-            )
-            egl_id = 0
-        os.environ["EGL_VISIBLE_DEVICES"] = str(egl_id)
-        logger.info(f"EGL_DEVICE_ID {egl_id} <==> CUDA_DEVICE_ID {cuda_id}")
-
     def reset(self, **kwargs):
         observation = self.env.reset(**kwargs)
         return self.observation(observation)
@@ -191,7 +155,8 @@ class RLWrapper(gym.Wrapper):
         if(self.save_images):
             for cam_name, cam_id in self.cam_ids.items():
                 os.makedirs('./images/%s_orig' % cam_name, exist_ok=True)
-                cv2.imwrite("./images/%s_orig/img_%04d.png" % (cam_name, self.obs_it),
+                cv2.imwrite("./images/%s_orig/img_%04d.png"
+                            % (cam_name, self.obs_it),
                             self.curr_raw_obs['rgb_obs'][cam_id][:, :, ::-1])
             for img_path, img in viz_dict.items():
                 folder = os.path.dirname(img_path)
@@ -222,7 +187,8 @@ class RLWrapper(gym.Wrapper):
             # If episode is not done because of moving to far away
             if(not self.termination(self.env._termination(), obs_dict)
                and self.ts_counter < self.max_ts - 1):
-                distance = np.linalg.norm(tcp_pos - self.env.unwrapped.current_target)
+                distance = np.linalg.norm(
+                        tcp_pos - self.env.unwrapped.current_target)
                 # cannot be larger than 1
                 # scale dist increases as it falls away from object
                 scale_dist = min(distance / self.target_radius, 1)
@@ -230,14 +196,16 @@ class RLWrapper(gym.Wrapper):
                     rew += (1 - scale_dist)**0.4
                 elif(self.task == "slide"):
                     # goal_pose = np.array([0.25, 0.75, 0.74])
-                    # dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
+                    # dist_to_goal = np.linalg.norm(
+                    #   self.env.unwrapped.current_target - goal_pose)
                     # # max posible distance clip
                     # dist_to_goal = 1 - min(dist_to_goal/0.6, 1)
                     scale_dist = 1 - scale_dist
                     rew += scale_dist
                 elif(self.task == "drawer"):
                     # goal_pose = np.array([-0.05, 0.30, 0.42])
-                    # dist_to_goal = np.linalg.norm(self.env.unwrapped.current_target - goal_pose)
+                    # dist_to_goal = np.linalg.norm(
+                    #   self.env.unwrapped.current_target - goal_pose)
                     # # max posible distance clip
                     # dist_to_goal = 1 - min(dist_to_goal/0.25, 1)
                     scale_dist = 1 - scale_dist
@@ -257,15 +225,19 @@ class RLWrapper(gym.Wrapper):
         # If distance between detected target and robot pos
         #  deviates more than target_radius
         # p.removeAllUserDebugItems()
-        # p.addUserDebugText("i",
-        #                    textPosition=self.current_target,
-        #                    textColorRGB=[0, 0, 1])
+        p.addUserDebugText("i",
+                           textPosition=self.current_target,
+                           textColorRGB=[0, 0, 1])
+        done = self.env._termination()
         if(self.use_aff_termination):
             distance = np.linalg.norm(self.env.unwrapped.current_target
                                       - obs["robot_obs"][:3])
         else:
             # Real distance
             target_pos, _ = self.env.get_target_pos()
+            p.addUserDebugText("t",
+                    textPosition=target_pos,
+                    textColorRGB=[0, 1, 0])
             distance = np.linalg.norm(target_pos
                                       - obs["robot_obs"][:3])
         return done or distance > self.target_radius
@@ -378,22 +350,24 @@ class RLWrapper(gym.Wrapper):
             depth_img = cv2.resize(depth, orig_img.shape[:2])
             cv2.imshow("depth", depth_img)
             if(self.save_images):
-                write_depth = depth_img - depth_img.min() # Now between 0 and 8674
+                # Now between 0 and 8674
+                write_depth = depth_img - depth_img.min()
                 write_depth = write_depth / write_depth.max() * 255
                 os.makedirs("./images/gripper_depth", exist_ok=True)
-                cv2.imwrite("./images/gripper_depth/img_%04d.png" % self.obs_it,
+                cv2.imwrite("./images/gripper_depth/img_%04d.png"
+                            % self.obs_it,
                             np.uint8(write_depth))
-            im_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs, center_dir,
-                                            object_centers, object_masks,
-                                            "gripper", self.obs_it,
+            im_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs,
+                                            center_dir, object_centers,
+                                            object_masks,
+                                            "gripper",
+                                            self.obs_it,
                                             save_images=self.save_images)
 
         # Plot different objects
         cluster_outputs = []
         object_centers = [torch_to_numpy(o) for o in object_centers]
-        if(len(object_centers) > 0):
-            target_px = object_centers[0]
-        else:
+        if(len(object_centers) <= 0):
             return im_dict
 
         # To numpy

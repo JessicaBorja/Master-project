@@ -1,9 +1,10 @@
 import hydra
 import logging
 
-from vr_env.envs.play_table_env import PlayTableSimEnv
-from env_wrappers.env_wrapper import RLWrapper
-from env_wrappers.utils import get_name
+from vapo.env_wrappers.play_table_rl import PlayTableRL
+from vapo.env_wrappers.aff_wrapper import AffordanceWrapper
+from vapo.env_wrappers.utils import get_name
+
 from combined.combined import Combined
 from sac_agent.sac_utils.utils import set_init_pos
 
@@ -20,11 +21,13 @@ def main(cfg):
     cfg.model_name = get_name(cfg, cfg.model_name)
     max_ts = cfg.agent.learn_config.max_episode_length
     for i in range(cfg.repeat_training):
-        training_env = RLWrapper(PlayTableSimEnv, cfg.env, max_ts,
-                                 train=True,
-                                 affordance_cfg=cfg.affordance,
-                                 viz=cfg.viz_obs,
-                                 **cfg.env_wrapper)
+        training_env = AffordanceWrapper(
+                                PlayTableRL,
+                                cfg.env, max_ts,
+                                train=True,
+                                affordance_cfg=cfg.affordance,
+                                viz=cfg.viz_obs,
+                                **cfg.env_wrapper)
 
         sac_cfg = {"env": training_env,
                    "eval_env": None,

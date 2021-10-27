@@ -1,7 +1,5 @@
 #Environment
 project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/ # "C:/Users/Jessica/Documents/Proyecto_ssd" #
-vrenv_path: ${project_path}/VREnv
-vrenv_data_path: ${vrenv_path}/data/
 img_size:
   static: 300
   gripper: 200

@@ -56,7 +56,7 @@ class Combined(SAC):
             self.box_mask, self.box_3D_end_points = \
                 self.target_search.get_box_pos_mask(self.env)
             self.p_dist = \
-                {c: 0 for c in self.env.objs_per_class.keys()}
+                {c: 0 for c in self.env.scene.objs_per_class.keys()}
 
         self.target_pos, _ = self.target_search.compute(rand_sample=True)
         self.last_detected_target = self.target_pos
@@ -115,7 +115,7 @@ class Combined(SAC):
             x_pos = np.random.uniform(top_left[0] + 0.06, bott_right[0] - 0.06)
             y_pos = np.random.uniform(top_left[1] - 0.12, bott_right[1] + 0.06)
         else:
-            center_x, center_y, z = env.objects["bin"]["initial_pos"]
+            center_x, center_y, z = env.box_pos
             x_pos = center_x
             y_pos = center_y
         box_pos = [x_pos, y_pos, 0.65]
@@ -313,11 +313,11 @@ class Combined(SAC):
             return
 
         # Store current objs to restore them later
-        previous_objs = env.table_objs
+        previous_objs = env.scene.table_objs
 
         #
-        tasks = list(env.interactable_objs)
-        n_objs = len(env.rand_positions)
+        tasks = list(env.scene.movable_objects)
+        n_objs = len(env.scene.rand_positions)
         n_total_objs = len(tasks)
         succesful_objs = []
         episodes_success = []
@@ -350,7 +350,7 @@ class Combined(SAC):
 
         if(env.task == "pickup"):
             if(self.target_search.mode == "env"):
-                tasks = env.table_objs
+                tasks = env.scene.table_objs
                 n_episodes = len(tasks)
             else:
                 # Search by affordance
@@ -426,7 +426,7 @@ class Combined(SAC):
         tasks = []
         # get from static cam affordance
         if(env.task == "pickup"):
-            tasks = self.env.table_objs
+            tasks = self.env.scene.table_objs
             n_tasks = len(tasks)
 
         ep_success = []
@@ -475,7 +475,7 @@ class Combined(SAC):
         return ep_success
 
     def all_objs_in_box(self, env):
-        for obj_name in env.table_objs:
+        for obj_name in env.scene.table_objs:
             obj = env.objects[obj_name]
             if(not env.obj_in_box(obj)):
                 return False
@@ -484,7 +484,7 @@ class Combined(SAC):
     def eval_grasp_success(self, env, any=False):
         if(any):
             success = False
-            for name in env.table_objs:
+            for name in env.scene.table_objs:
                 if(env.obj_in_box(env.objects[name])):
                     success = True
         else:

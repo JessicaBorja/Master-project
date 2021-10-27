@@ -268,7 +268,7 @@ class SAC():
 
         # Evaluate agent for n_eval_ep with max_ep_length
         if(self.eval_env.task == "pickup"):
-            n_eval_ep = len(self.eval_env.table_objs)
+            n_eval_ep = len(self.eval_env.scene.table_objs)
 
         if(eval_all_objs):
             self.log.info("Running full objs validation...")

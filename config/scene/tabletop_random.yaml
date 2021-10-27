@@ -1,4 +1,15 @@
-positions:  # x,y pos to randomly place objects
+_target_: vapo.env_wrappers.play_table_rand_scene.PlayTableRandScene
+_recursive_: false
+data_path: ${data_path}
+global_scaling: 0.8
+euler_obs: ${robot.euler_obs}
+robot_base_position: [0.3, 0.15, 0.6]
+robot_base_orientation: [0, 0, 1.5707963]
+robot_initial_joint_positions: [-2.353483185958092, 1.6888534743695272, 1.7867690106203291, -2.4913252474417362, -1.4701322596554691, 1.3461304694755656, -2.2195062694339756]
+surfaces: []
+
+# x,y pos to randomly place objects
+positions:
   [[-0.05, 0.88],
    [0.3, 0.85],
    [0.18, 0.58],
@@ -7,113 +18,115 @@ positions:  # x,y pos to randomly place objects
    [0.42, 0.54]]
 
 objects:
-  table:
-    file: table/hightable.urdf
-    initial_pos: [0.3, 0.7, 0.02]
-    initial_orn: [0, 0, 0]
-    fixed: true
-  bin:
-    file: ais_objects/bin_10_30_50/bin_10_30_50.urdf
-    initial_pos: [0.7, 0.75, 0.60]
-    initial_orn: [1.57, 0, 0]
-    fixed: true
-  hammer_1:
-    file: tabletop/hammer/hammer.urdf
-    initial_pos: [0.18, 0.67, 0.6146252633582707]
-    initial_orn: [0, 0, -3]
-    fixed: false
-  hammer_2:
-    file: tabletop/hammer_2/hammer.urdf
-    initial_pos: [0.4, 0.8, 0.6120640316496356]
-    initial_orn: [0, 0, 0]
-    fixed: false
-  hammer_3:
-    file: 048_hammer/google_16k/textured.urdf
-    initial_pos: [0.15, 0.9, 0.613950484085916]
-    initial_orn: [0, 0, 0]
-    fixed: false
-  drill_1:
-    file: tabletop/power_drill/power_drill.urdf
-    initial_pos: [0.2, 0.45, 0.6303941365790483]
-    initial_orn: [3.14, 0, 0]
-    fixed: false
-  drill_2:
-    file: 035_power_drill/google_16k/textured.urdf
-    initial_pos: [0.13, 0.7, 0.6227179623018667]
-    initial_orn: [0, 0, 0]
-    fixed: false
-  frying_pan_1:
-    file: tabletop/frying_pan/frying_pan.urdf
-    initial_pos: [0.11, 0.88, 0.6018220029124765]
-    initial_orn: [0, 0, -1.54]
-    fixed: false
-  frying_pan_2:
-    file: tabletop/frying_pan_2/frying_pan.urdf
-    initial_pos: [-0.13, 0.58, 0.6035380616166205]
-    initial_orn: [0, 0, -1]
-    fixed: false
-  frying_pan_3:
-    file: tabletop/skillet/textured.urdf
-    initial_pos: [0.1, 0.9, 0.637398831966368]
-    initial_orn: [0, 0, 0.5]
-    fixed: false
-  teapot:
-    file: tabletop/teapot/teapot.urdf
-    initial_pos: [-0.1, 0.6, 0.6026503452492561]
-    initial_orn: [0, 0, 2.5]
-    fixed: false
-  teapot_lid:
-    file: tabletop/teapot_lid/teapot_lid.urdf
-    initial_pos: [0.4, 0.5, 0.6016315999956388]
-    initial_orn: [0, 0, 0]
-    fixed: false
-  spatula:
-    file: tabletop/spatula/spatula.urdf
-    initial_pos: [0.42, 0.54, 0.6104]
-    initial_orn: [0, 0, 3.1416]
-    fixed: false
-  salt:
-    file: ais_objects/salt/salt.urdf
-    initial_pos: [-0.15, 0.85, 0.621952896559465]
-    initial_orn: [1.57, -1.57, 0]
-    fixed: false
-  marker:
-    file: tabletop/marker/textured.urdf
-    initial_pos: [0.35, 0.92, 0.65]
-    initial_orn: [0, 0, 0]
-    fixed: false
-  small_tool_1:
-    file: tabletop/flat_screwdriver/textured.urdf
-    initial_pos: [-0.1, 0.6, 0.5997716566898477]
-    initial_orn: [0, 0, -1.57]
-    fixed: false
-  small_tool_2:
-    file: tabletop/utility_knife/utility_knife.urdf
-    initial_pos: [0.4, 0.5, 0.6116962993721645]
-    initial_orn: [0, 0, -1.54]
-    fixed: false
-  small_tool_3:
-    file: tabletop/plaster_spatula/plaster_spatula.urdf
-    initial_pos: [0.2, 0.45, 0.6111299521513464]
-    initial_orn: [0, 0, 0]
-    fixed: false
-  knife:
-    file: tabletop/kitchen_knife/kitchen_knife.urdf
-    initial_pos: [0.37, 0.91, 0.61895]
-    initial_orn: [0, 0, 0]
-    fixed: false
-  flashlight:
-    file: tabletop/flashlight/flashlight.urdf
-    initial_pos: [-0.1, 0.85, 0.624595131201244]
-    initial_orn: [0, 0, 0]
-    fixed: false
-  bowl:
-    file: 024_bowl/google_16k/textured.urdf
-    initial_pos: [0.18, 0.58, 0.6230520401985216]
-    initial_orn: [0, 0, 0]
-    fixed: false
-  whisk:
-    file: tabletop/whisk/whisk.urdf
-    initial_pos: [-0.11, 0.83, 0.6139381604012671]
-    initial_orn: [0, 0, 0.5]
-    fixed: false
+  fixed_objects:
+    table:
+      file: table/hightable.urdf
+      initial_pos: [0.3, 0.7, 0.02]
+      initial_orn: [0, 0, 0]
+      fixed: true
+    bin:
+      file: ais_objects/bin_10_30_50/bin_10_30_50.urdf
+      initial_pos: [0.7, 0.75, 0.6]
+      initial_orn: [1.57, 0, 0]
+      fixed: true
+  movable_objects:
+    hammer_1:
+      file: tabletop/hammer/hammer.urdf
+      initial_pos: [0.18, 0.67, 0.6146252633582707]
+      initial_orn: [0, 0, -3]
+      fixed: false
+    hammer_2:
+      file: tabletop/hammer_2/hammer.urdf
+      initial_pos: [0.4, 0.8, 0.6120640316496356]
+      initial_orn: [0, 0, 0]
+      fixed: false
+    hammer_3:
+      file: 048_hammer/google_16k/textured.urdf
+      initial_pos: [0.15, 0.9, 0.613950484085916]
+      initial_orn: [0, 0, 0]
+      fixed: false
+    drill_1:
+      file: tabletop/power_drill/power_drill.urdf
+      initial_pos: [0.2, 0.45, 0.6303941365790483]
+      initial_orn: [3.14, 0, 0]
+      fixed: false
+    drill_2:
+      file: 035_power_drill/google_16k/textured.urdf
+      initial_pos: [0.13, 0.7, 0.6227179623018667]
+      initial_orn: [0, 0, 0]
+      fixed: false
+    frying_pan_1:
+      file: tabletop/frying_pan/frying_pan.urdf
+      initial_pos: [0.11, 0.88, 0.6018220029124765]
+      initial_orn: [0, 0, -1.54]
+      fixed: false
+    frying_pan_2:
+      file: tabletop/frying_pan_2/frying_pan.urdf
+      initial_pos: [-0.13, 0.58, 0.6035380616166205]
+      initial_orn: [0, 0, -1]
+      fixed: false
+    frying_pan_3:
+      file: tabletop/skillet/textured.urdf
+      initial_pos: [0.1, 0.9, 0.637398831966368]
+      initial_orn: [0, 0, 0.5]
+      fixed: false
+    teapot:
+      file: tabletop/teapot/teapot.urdf
+      initial_pos: [-0.1, 0.6, 0.6026503452492561]
+      initial_orn: [0, 0, 2.5]
+      fixed: false
+    teapot_lid:
+      file: tabletop/teapot_lid/teapot_lid.urdf
+      initial_pos: [0.4, 0.5, 0.6016315999956388]
+      initial_orn: [0, 0, 0]
+      fixed: false
+    spatula:
+      file: tabletop/spatula/spatula.urdf
+      initial_pos: [0.42, 0.54, 0.6104]
+      initial_orn: [0, 0, 3.1416]
+      fixed: false
+    salt:
+      file: ais_objects/salt/salt.urdf
+      initial_pos: [-0.15, 0.85, 0.621952896559465]
+      initial_orn: [1.57, -1.57, 0]
+      fixed: false
+    marker:
+      file: tabletop/marker/textured.urdf
+      initial_pos: [0.35, 0.92, 0.65]
+      initial_orn: [0, 0, 0]
+      fixed: false
+    small_tool_1:
+      file: tabletop/flat_screwdriver/textured.urdf
+      initial_pos: [-0.1, 0.6, 0.5997716566898477]
+      initial_orn: [0, 0, -1.57]
+      fixed: false
+    small_tool_2:
+      file: tabletop/utility_knife/utility_knife.urdf
+      initial_pos: [0.4, 0.5, 0.6116962993721645]
+      initial_orn: [0, 0, -1.54]
+      fixed: false
+    small_tool_3:
+      file: tabletop/plaster_spatula/plaster_spatula.urdf
+      initial_pos: [0.2, 0.45, 0.6111299521513464]
+      initial_orn: [0, 0, 0]
+      fixed: false
+    knife:
+      file: tabletop/kitchen_knife/kitchen_knife.urdf
+      initial_pos: [0.37, 0.91, 0.61895]
+      initial_orn: [0, 0, 0]
+      fixed: false
+    flashlight:
+      file: tabletop/flashlight/flashlight.urdf
+      initial_pos: [-0.1, 0.85, 0.624595131201244]
+      initial_orn: [0, 0, 0]
+      fixed: false
+    bowl:
+      file: 024_bowl/google_16k/textured.urdf
+      initial_pos: [0.18, 0.58, 0.6230520401985216]
+      initial_orn: [0, 0, 0]
+      fixed: false
+    whisk:
+      file: tabletop/whisk/whisk.urdf
+      initial_pos: [-0.11, 0.83, 0.6139381604012671]
+      initial_orn: [0, 0, 0.5]
+      fixed: false

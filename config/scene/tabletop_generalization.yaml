@@ -21,33 +21,34 @@ objects:
       initial_orn: [1.57, 0, 0]
       fixed: true
   movable_objects:
-    frying_pan:
-      file: tabletop/frying_pan/frying_pan.urdf
-      initial_pos: [0.11, 0.88, 0.6018220029124765]
-      initial_orn: [0, 0, -1.54]
+    meat:
+      file: 010_potted_meat_can/google_16k/textured.urdf
+      initial_pos: [0.35, 0.92, 0.623]
+      initial_orn: [0, 0, 2]
       fixed: false
-    knife:
-      file: tabletop/kitchen_knife/kitchen_knife.urdf
-      initial_pos: [0.42, 0.60, 0.61]
+    beans:
+      file: ais_objects/beans/beans.urdf
+      initial_pos: [0.2, 0.7, 0.65]
       initial_orn: [0, 0, 0]
       fixed: false
-    bowl:
-      file: 024_bowl/google_16k/textured.urdf
-      initial_pos: [0.18, 0.58, 0.6230520401985216]
-      initial_orn: [0, 0, 0]
-      fixed: false
-    frying_pan_2:
-      file: tabletop/frying_pan_2/frying_pan.urdf
-      initial_pos: [-0.13, 0.58, 0.6035380616166205]
-      initial_orn: [0, 0, -1]
-      fixed: false
-    whisk:
-      file: tabletop/whisk/whisk.urdf
-      initial_pos: [-0.11, 0.83, 0.6156331388887535]
+    airplane:
+      file: 072-a_toy_airplane/google_16k/textured.urdf
+      initial_pos: [0.15, 0.9, 0.63]
       initial_orn: [0, 0, 0.5]
+      scale: 0.4
       fixed: false
-    spatula:
-      file: tabletop/spatula/spatula.urdf
-      initial_pos: [0.37, 0.91, 0.6069920607828857]
-      initial_orn: [0, 0, 3.1416]
+    gelatin:
+      file: 009_gelatin_box/google_16k/textured.urdf
+      initial_pos: [-0.1, 0.6, 0.623]
+      initial_orn: [0, 0, 0]
+      fixed: false
+    chewinggum:
+      file: ais_objects/chewinggum/chewinggum.urdf
+      initial_pos: [-0.05, 0.85, 0.63]
+      initial_orn: [0, 0, 0]
+      fixed: false
+    rubic cube:
+      file: 077_rubiks_cube/google_16k/textured.urdf
+      initial_pos: [0.08, 0.48, 0.623]
+      initial_orn: [0, 0, 0]
       fixed: false

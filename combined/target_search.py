@@ -202,7 +202,7 @@ class TargetSearch():
     def find_env_target(self, env, target_pos):
         min_dist = np.inf
         env_target = env.target
-        for name in env.table_objs:
+        for name in env.scene.table_objs:
             target_obj = env.objects[name]
             base_pos = p.getBasePositionAndOrientation(target_obj["uid"],
                                                        physicsClientId=env.cid)[0]
@@ -219,7 +219,7 @@ class TargetSearch():
     def get_box_pos_mask(self, env):
         if(not env):
             env = self.env
-        box_pos = env.objects["bin"]["initial_pos"]
+        box_pos = env.box_pos
         x, y, z = box_pos
         # Homogeneous cords
         box_top_left = [x - 0.12, y + 0.2, z, 1]

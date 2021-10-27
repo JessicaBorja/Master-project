@@ -25,11 +25,11 @@ class AffordanceWrapper(gym.Wrapper):
                  history_length=None, skip_frames=None):
         env_cfg.seed = None
         self.env = EnvClass(**env_cfg)
-        self.env.target_radius = max_target_dist
+        self.env.termination_radius = max_target_dist
 
         super(AffordanceWrapper, self).__init__(self.env)
         self.task = self.env.task
-        self.target_radius = self.env.target_radius
+        self.termination_radius = max_target_dist
 
         # TERMINATION
         # or target_search == "affordance"
@@ -192,7 +192,7 @@ class AffordanceWrapper(gym.Wrapper):
                         tcp_pos - self.env.unwrapped.current_target)
                 # cannot be larger than 1
                 # scale dist increases as it falls away from object
-                scale_dist = min(distance / self.target_radius, 1)
+                scale_dist = min(distance / self.termination_radius, 1)
                 if(self.task == "pickup"):
                     rew += (1 - scale_dist)**0.4
                 elif(self.task == "slide"):
@@ -224,11 +224,11 @@ class AffordanceWrapper(gym.Wrapper):
 
     def termination(self, done, obs):
         # If distance between detected target and robot pos
-        #  deviates more than target_radius
+        #  deviates more than termination_radius
         # p.removeAllUserDebugItems()
-        p.addUserDebugText("i",
-                           textPosition=self.current_target,
-                           textColorRGB=[0, 0, 1])
+        # p.addUserDebugText("i",
+        #                    textPosition=self.current_target,
+        #                    textColorRGB=[0, 0, 1])
         done = self.env._termination()
         if(self.use_aff_termination):
             distance = np.linalg.norm(self.env.unwrapped.current_target
@@ -236,12 +236,12 @@ class AffordanceWrapper(gym.Wrapper):
         else:
             # Real distance
             target_pos, _ = self.env.get_target_pos()
-            p.addUserDebugText("t",
-                    textPosition=target_pos,
-                    textColorRGB=[0, 1, 0])
+            # p.addUserDebugText("t",
+            #         textPosition=target_pos,
+            #         textColorRGB=[0, 1, 0])
             distance = np.linalg.norm(target_pos
                                       - obs["robot_obs"][:3])
-        return done or distance > self.target_radius
+        return done or distance > self.termination_radius
 
     def get_cam_obs(self, obs_dict, cam_type, aff_net,
                     obs_cfg, aff_cfg, cam_id):
@@ -423,7 +423,7 @@ class AffordanceWrapper(gym.Wrapper):
             # If aff detects closer target which is large enough
             # and Detected affordance close to target
             dist = np.linalg.norm(self.env.unwrapped.current_target - c)
-            if(dist < self.target_radius/2):
+            if(dist < self.termination_radius/2):
                 if(out_dict["robustness"] > most_robust):
                     self.env.unwrapped.current_target = c
                     most_robust = out_dict["robustness"]

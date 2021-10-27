@@ -22,7 +22,6 @@ def main(cfg):
                                  viz=cfg.viz_obs,
                                  save_images=cfg.save_images,
                                  **cfg.env_wrapper)
-
         sac_cfg = {"env": training_env,
                    "eval_env": None,
                    "model_name": cfg.model_name,

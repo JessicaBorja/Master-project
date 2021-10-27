@@ -1,5 +1,0 @@
-hydra-core==1.1.1
-opencv-python==4.5.3.56
-pybullet==3.1.7
-hydra-colorlog
-matplotlib

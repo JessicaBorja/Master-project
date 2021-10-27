@@ -50,7 +50,8 @@ class PlayTableRL(PlayTableSimEnv):
         }
         self.observation_space = gym.spaces.Dict(obs_space_dict)
         self.sparse_reward = sparse_reward
-        self.rand_scenes = "positions" in args["scene_cfg"]
+        self.rand_positions = "positions" in args["scene_cfg"]
+        self.target = self.scene.target
         if(task == "pickup"):
             self.box_pos = self.scene.object_cfg['fixed_objects']['bin']["initial_pos"]
 
@@ -216,7 +217,7 @@ class PlayTableRL(PlayTableSimEnv):
                 #                         textColorRGB=[0, 0, 1])
                 # 2.5cm above initial position and object not already in box
                 if(base_pos[-1] >= target_obj["initial_pos"][-1] + 0.025
-                   and not self.obj_in_box(target_obj)):
+                   and not self.obj_in_box(self.target)):
                     lifted = True
             targetState = 2 if lifted else 1
             # Return position of current target for training
@@ -230,10 +231,11 @@ class PlayTableRL(PlayTableSimEnv):
                 targetWorldPos = p.getLinkState(curr_target_uid, 0)[0]
         return targetWorldPos, targetState  # normalized
 
-    def obj_in_box(self, target_obj):
+    def obj_in_box(self, obj_name):
         box_pos = self.box_pos
+        obj_uid = self.scene.get_info()['movable_objects'][obj_name]['uid']
         targetPos = p.getBasePositionAndOrientation(
-            target_obj["uid"],
+            obj_uid,
             physicsClientId=self.cid)[0]
         # x range
         x_range, y_range = False, False

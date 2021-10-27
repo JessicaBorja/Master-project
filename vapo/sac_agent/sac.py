@@ -303,7 +303,7 @@ class SAC():
         # If environment definition allows for randoming environment
         # Change scene when method already does something
         if(self.eval_env.task == "pickup"
-           and self.eval_env.rand_scenes
+           and self.eval_env.rand_positions
            and not eval_all_objs
            and n_success >= 2):
             for obj in success_objs:

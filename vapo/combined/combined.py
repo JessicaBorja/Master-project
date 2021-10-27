@@ -62,8 +62,8 @@ class Combined(SAC):
         # Target specifics
         self.env.unwrapped.current_target = self.target_pos
         self.eval_env.unwrapped.current_target = self.target_pos
-        self.radius = self.env.target_radius  # Distance in meters
-        self.move_above = 0.04
+        self.radius = self.env.termination_radius  # Distance in meters
+        self.move_above = 0.03
 
     def get_task_label(self):
         task = self.env.task
@@ -89,7 +89,7 @@ class Combined(SAC):
         last_pos = target
         # When robot is moving and far from target
         while(np.linalg.norm(tcp_pos - target) > 0.01
-              and np.linalg.norm(last_pos - tcp_pos) > 0.0005):
+              and np.linalg.norm(last_pos - tcp_pos) > 0.0001):
             last_pos = tcp_pos
 
             ns, _, _, _ = env.step(a)
@@ -218,7 +218,7 @@ class Combined(SAC):
 
             # Move to target
             a = [move_to, self.target_orn, 1]
-            self.move_to_target(env, tcp_pos, a, dict_obs)
+            tcp_pos = self.move_to_target(env, tcp_pos, a, dict_obs)
             # p.addUserDebugText("init_pos",
             #                    textPosition=self.target_pos,
             #                    textColorRGB=[0, 0, 1])
@@ -273,7 +273,7 @@ class Combined(SAC):
                                        plot_data, most_tasks,
                                        best_eval_return,
                                        n_eval_ep, max_episode_length)
-                if(eval_all_objs and self.eval_env.rand_scenes):
+                if(eval_all_objs and self.eval_env.rand_positions):
                     _, most_full_tasks, plot_data = \
                         self._eval_and_log(self.writer, t, episode,
                                            plot_data, most_full_tasks,
@@ -297,7 +297,7 @@ class Combined(SAC):
 
         # Evaluate at end of training
         for eval_all_objs in [False, True]:
-            if(eval_all_objs and self.env.rand_scenes
+            if(eval_all_objs and self.env.rand_positions
                or not eval_all_objs):
                 best_eval_return, most_tasks, plot_data = \
                     self._eval_and_log(self.writer, t, episode,
@@ -454,7 +454,7 @@ class Combined(SAC):
             dist = 0
             while(episode_length < max_episode_length
                   and self.no_detected_target < 3
-                  and dist < env.target_radius
+                  and dist < env.termination_radius
                   and not done):
                 # sample action and scale it to action space
                 a, _ = self._pi.act(tt(s), deterministic=True)
@@ -478,8 +478,7 @@ class Combined(SAC):
 
     def all_objs_in_box(self, env):
         for obj_name in env.scene.table_objs:
-            obj = env.objects[obj_name]
-            if(not env.obj_in_box(obj)):
+            if(not env.obj_in_box(obj_name)):
                 return False
         return True
 
@@ -487,10 +486,10 @@ class Combined(SAC):
         if(any):
             success = False
             for name in env.scene.table_objs:
-                if(env.obj_in_box(env.objects[name])):
+                if(env.obj_in_box(name)):
                     success = True
         else:
-            success = env.obj_in_box(env.objects[env.target])
+            success = env.obj_in_box(env.target)
         return success
 
     # Save images

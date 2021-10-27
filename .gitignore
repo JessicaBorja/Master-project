@@ -15,3 +15,5 @@ vapo/affordance_model/inference/*
 tmp/
 dataset_creation/__init__.py
 dataset_creation/motion_vectors.json
+workspace.code-workspace
+project.egg-info

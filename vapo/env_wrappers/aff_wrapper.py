@@ -8,9 +8,10 @@ import pybullet as p
 import gym
 from gym import spaces
 
-from utils.img_utils import torch_to_numpy, viz_aff_centers_preds
-from .utils import get_obs_space, get_transforms_and_shape, find_cam_ids, \
-                   init_aff_net, depth_preprocessing, img_preprocessing
+from vapo.utils.img_utils import torch_to_numpy, viz_aff_centers_preds
+from vapo.env_wrappers.utils import get_obs_space, get_transforms_and_shape, \
+                                    find_cam_ids, init_aff_net, \
+                                    depth_preprocessing, img_preprocessing
 logger = logging.getLogger(__name__)
 
 

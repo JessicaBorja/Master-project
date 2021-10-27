@@ -5,8 +5,8 @@ from vapo.env_wrappers.play_table_rl import PlayTableRL
 from vapo.env_wrappers.aff_wrapper import AffordanceWrapper
 from vapo.env_wrappers.utils import get_name
 
-from combined.combined import Combined
-from sac_agent.sac_utils.utils import set_init_pos
+from vapo.combined.combined import Combined
+from vapo.sac_agent.sac_utils.utils import set_init_pos
 
 
 @hydra.main(config_path="./config", config_name="cfg_playtable")

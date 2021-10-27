@@ -1,9 +1,10 @@
 import hydra
 import logging
+
 from vapo.env_wrappers.play_table_rl import PlayTableRL
 from vapo.env_wrappers.aff_wrapper import AffordanceWrapper
 from vapo.env_wrappers.utils import get_name
-from combined.combined import Combined
+from vapo.combined.combined import Combined
 
 
 @hydra.main(config_path="./config", config_name="cfg_tabletop")

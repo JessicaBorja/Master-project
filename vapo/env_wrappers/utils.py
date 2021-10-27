@@ -6,10 +6,9 @@ import torch
 import os
 import pybullet as p
 
-from affordance_model.segmentator_centers import Segmentator
-from affordance_model.datasets import get_transforms
-
-from utils.img_utils import torch_to_numpy, visualize
+from vapo.affordance_model.segmentator_centers import Segmentator
+from vapo.affordance_model.datasets import get_transforms
+from vapo.utils.img_utils import torch_to_numpy, visualize
 
 
 def get_name(cfg, model_name):

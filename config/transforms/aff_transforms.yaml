@@ -5,11 +5,11 @@ train:
   - _target_: affordance_model.utils.transforms.ColorTransform
   - _target_: torchvision.transforms.Grayscale
     num_output_channels: 1
-  - _target_: affordance_model.utils.transforms.ScaleImageTensor  # Scale 0-255 to 0-1
+  - _target_: vapo.affordance_model.utils.transforms.ScaleImageTensor  # Scale 0-255 to 0-1
   - _target_: torchvision.transforms.Normalize
     mean: [0.5,]
     std: [0.5,]
-  - _target_: affordance_model.utils.transforms.AddGaussianNoise
+  - _target_: vapo.affordance_model.utils.transforms.AddGaussianNoise
     mean: [0.0]
     std: [0.01]
     
@@ -18,7 +18,7 @@ validation:
     size: ${img_size}
   - _target_: torchvision.transforms.Grayscale
     num_output_channels: 1
-  - _target_: affordance_model.utils.transforms.ScaleImageTensor
+  - _target_: vapo.affordance_model.utils.transforms.ScaleImageTensor
   - _target_: torchvision.transforms.Normalize
     mean: [0.5,]
     std: [0.5,]
@@ -26,8 +26,8 @@ validation:
 masks:
   - _target_: torchvision.transforms.Resize
     size: ${img_size}
-  # - _target_: affordance_model.utils.transforms.ScaleImageTensor  # Scale 0-255 to 0-1
-  - _target_: affordance_model.utils.transforms.ThresholdMasks # Mask is between 0 and 255
+  # - _target_: vapo.affordance_model.utils.transforms.ScaleImageTensor  # Scale 0-255 to 0-1
+  - _target_: vapo.affordance_model.utils.transforms.ThresholdMasks # Mask is between 0 and 255
     threshold: 50
   
 masks_multitask:

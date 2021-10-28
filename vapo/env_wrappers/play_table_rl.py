@@ -51,8 +51,8 @@ class PlayTableRL(PlayTableSimEnv):
         self.observation_space = gym.spaces.Dict(obs_space_dict)
         self.sparse_reward = sparse_reward
         self.rand_positions = "positions" in args["scene_cfg"]
-        self.target = self.scene.target
         if(task == "pickup"):
+            self.target = self.scene.target
             self.box_pos = self.scene.object_cfg['fixed_objects']['bin']["initial_pos"]
 
     def pick_rand_obj(self, p_dist=None):
@@ -69,7 +69,8 @@ class PlayTableRL(PlayTableSimEnv):
 
     def reset(self):
         res = super(PlayTableRL, self).reset()
-        self.target = self.scene.target
+        if(self.task == "pickup"):
+            self.target = self.scene.target
         return res
 
     def set_egl_device(self, device):
@@ -88,16 +89,17 @@ class PlayTableRL(PlayTableSimEnv):
         logger.info(f"EGL_DEVICE_ID {egl_id} <==> CUDA_DEVICE_ID {cuda_id}")
 
     def step(self, action):
+        a = action.copy()
         # Action space that SAC sees is between -1,1 for all elements in vector
         if(self.task == "pickup" and len(action) == 5):  # Constraint angle
-            action = [*action[:3], 0, 0, action[-2], action[-1]]
+            a = [*a[:3], 0, 0, a[-2], a[-1]]
             # Scale vector to true values that it can take
-            action = self.robot.relative_to_absolute(action)
-            action = list(action)
+            a = self.robot.relative_to_absolute(a)
+            a = list(a)
             # constraint angle
-            action[1] = np.array([- math.pi, 0, action[1][-1]])
+            a[1] = np.array([- math.pi, 0, a[1][-1]])
+        self.robot.apply_action(a.copy())
         for i in range(self.action_repeat):
-            self.robot.apply_action(action.copy())
             self.p.stepSimulation(physicsClientId=self.cid)
         self.scene.step()
         # dict w/keys: "rgb_obs", "depth_obs", "robot_obs","scene_obs"

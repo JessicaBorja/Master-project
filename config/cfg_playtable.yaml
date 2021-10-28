@@ -2,7 +2,7 @@ project_path:  /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/
 data_path: ${project_path}/VREnv/data/
 save_dir: ./combined/hydra_outputs/${task}
 model_name: "full"
-task: drawer
+task: slide
 img_size: 64
 repeat_training: 1
 
@@ -123,7 +123,7 @@ hydra:
 
 defaults:
   - robot: panda
-  - scene: empty_playtable_left
+  - scene: empty_playtable_side
   - env: env_combined
   - env@eval_env: env_combined
   - camera_conf: playtable

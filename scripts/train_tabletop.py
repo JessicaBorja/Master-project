@@ -7,7 +7,7 @@ from vapo.env_wrappers.utils import get_name
 from vapo.combined.combined import Combined
 
 
-@hydra.main(config_path="./config", config_name="cfg_tabletop")
+@hydra.main(config_path="../config", config_name="cfg_tabletop")
 def main(cfg):
     # Auto generate names given dense, aff-mask, aff-target
     log = logging.getLogger(__name__)

@@ -17,7 +17,7 @@ def print_cfg(cfg):
     return OmegaConf.create(print_cfg)
 
 
-@hydra.main(config_path="./config", config_name="cfg_affordance")
+@hydra.main(config_path="../config", config_name="cfg_affordance")
 def train(cfg):
     print("Running configuration: ", cfg)
     logger = logging.getLogger(__name__)

@@ -8,17 +8,24 @@ logger = logging.getLogger(__name__)
 
 
 class PlayTableRandScene(PlayTableScene):
-    def __init__(self, positions, **args):
+    def __init__(self, **args):
         super(PlayTableRandScene, self).__init__(**args)
         # all the objects
         self.obj_names = list(self.object_cfg['movable_objects'].keys())
         self.objs_per_class, self.class_per_obj = {}, {}
         self._find_obj_class()
-        self.rand_positions = positions
+        if('positions' in args):
+            self.rand_positions = args['positions']
+        else:
+            self.rand_positions = None
 
         # Load Environment
         self.target = "banana"
-        self.load_rand_scene(load_scene=True)
+        if(self.rand_positions):
+            self.load_rand_scene(load_scene=True)
+        else:
+            self.table_objs = self.obj_names
+            self.pick_rand_obj()
 
     # Loading random objects
     def _find_obj_class(self):
@@ -66,10 +73,11 @@ class PlayTableRandScene(PlayTableScene):
                 weights = 1 - weights
                 weights = weights / weights.sum(axis=0)
             choose_class = self.np_random.choice(labels, p=weights)
+            _class_in_table = []
             for obj in self.table_objs:
                 if(self.class_per_obj[obj] == choose_class):
-                    self.target = obj
-                    return
+                    _class_in_table.append(obj)
+            self.target = self.np_random.choice(_class_in_table)
         else:
             self.target = self.np_random.choice(self.table_objs)
 

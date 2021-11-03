@@ -9,12 +9,13 @@ import pybullet as p
 from gym import spaces
 from vr_env.envs.play_table_env import PlayTableSimEnv
 from vr_env.utils.utils import EglDeviceNotFoundError, get_egl_device_id
+from vapo.env_wrappers.play_table_rand_scene import PlayTableRandScene
 logger = logging.getLogger(__name__)
 
 
 class PlayTableRL(PlayTableSimEnv):
     def __init__(self, task="slide", sparse_reward=False, **args):
-        if(args['use_egl']):
+        if('use_egl' in args and args['use_egl']):
             # if("CUDA_VISIBLE_DEVICES" in os.environ):
             #     device_id = os.environ["CUDA_VISIBLE_DEVICES"]
             #     device = int(device_id)
@@ -50,7 +51,11 @@ class PlayTableRL(PlayTableSimEnv):
         }
         self.observation_space = gym.spaces.Dict(obs_space_dict)
         self.sparse_reward = sparse_reward
-        self.rand_positions = "positions" in args["scene_cfg"]
+        self.scene = PlayTableRandScene(p=self.p, cid=self.cid,
+                                        np_random=self.np_random,
+                                        **args['scene_cfg'])
+        self.rand_positions = self.scene.rand_positions
+        self.load()
         if(task == "pickup"):
             self.target = self.scene.target
             self.box_pos = self.scene.object_cfg['fixed_objects']['bin']["initial_pos"]
@@ -89,16 +94,19 @@ class PlayTableRL(PlayTableSimEnv):
         logger.info(f"EGL_DEVICE_ID {egl_id} <==> CUDA_DEVICE_ID {cuda_id}")
 
     def step(self, action):
-        a = action.copy()
         # Action space that SAC sees is between -1,1 for all elements in vector
-        if(self.task == "pickup" and len(action) == 5):  # Constraint angle
-            a = [*a[:3], 0, 0, a[-2], a[-1]]
-            # Scale vector to true values that it can take
-            a = self.robot.relative_to_absolute(a)
-            a = list(a)
-            # constraint angle
-            a[1] = np.array([- math.pi, 0, a[1][-1]])
-        self.robot.apply_action(a.copy())
+        if(len(action) == 5):
+            a = action.copy()
+            if(self.task == "pickup"):  # Constraint angle
+                a = [*a[:3], 0, 0, a[-2], a[-1]]
+                # Scale vector to true values that it can take
+                a = self.robot.relative_to_absolute(a)
+                a = list(a)
+                # constraint angle
+                a[1] = np.array([- math.pi, 0, a[1][-1]])
+        else:
+            a = action
+        self.robot.apply_action(a)
         for i in range(self.action_repeat):
             self.p.stepSimulation(physicsClientId=self.cid)
         self.scene.step()

@@ -9,7 +9,7 @@ from vapo.combined.combined import Combined
 from vapo.sac_agent.sac_utils.utils import set_init_pos
 
 
-@hydra.main(config_path="./config", config_name="cfg_playtable")
+@hydra.main(config_path="../config", config_name="cfg_playtable")
 def main(cfg):
     if(cfg.init_angle):
         init_pos = cfg.env.robot_cfg.initial_joint_positions

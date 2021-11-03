@@ -204,7 +204,7 @@ class TargetSearch():
         min_dist = np.inf
         env_target = env.target
         for name in env.scene.table_objs:
-            target_obj = env.objects[name]
+            target_obj = env.scene.get_info()['movable_objects'][name]
             base_pos = p.getBasePositionAndOrientation(target_obj["uid"],
                                                        physicsClientId=env.cid)[0]
             if(p.getNumJoints(target_obj["uid"]) == 0):

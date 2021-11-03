@@ -25,7 +25,7 @@ class Combined(SAC):
         self._initial_pos = _initial_obs[:3]
         _initial_orn = _initial_obs[3:6]
         if(self.env.task == "pickup"):
-            self.target_orn = np.array([- math.pi, 0, math.pi / 2])
+            self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
         # elif(self.env.task == "slide"):
         #     self.target_orn = np.array([-math.pi / 2, -math.pi / 2, 0])
         # elif(self.env.task == "drawer"):
@@ -53,8 +53,9 @@ class Combined(SAC):
         if(self.env.task == "pickup"):
             self.box_mask, self.box_3D_end_points = \
                 self.target_search.get_box_pos_mask(self.env)
-            self.p_dist = \
-                {c: 0 for c in self.env.scene.objs_per_class.keys()}
+            if(self.env.rand_positions):
+                self.p_dist = \
+                    {c: 0 for c in self.env.scene.objs_per_class.keys()}
 
         self.target_pos, _ = self.target_search.compute(rand_sample=True)
         self.last_detected_target = self.target_pos

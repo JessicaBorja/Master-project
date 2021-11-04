@@ -65,7 +65,7 @@ class PlayTableRL(PlayTableSimEnv):
         self.target = self.scene.target
 
     def load_scene_with_objects(self, obj_lst, load_scene=False):
-        self.scene.pick_rand_obj(obj_lst, load_scene)
+        self.scene.load_scene_with_objects(obj_lst, load_scene)
         self.target = self.scene.target
 
     def load_rand_scene(self, replace_objs=None, load_scene=False):

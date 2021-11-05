@@ -89,21 +89,37 @@ class PlayTableRandScene(PlayTableScene):
         assert len(obj_lst) == len(self.rand_positions)
         rand_pos = self.rand_positions[:len(obj_lst)]
         shuffle(obj_lst)
-        movable_objs = self.object_cfg['movable_objects']
-        # Add positions to new table ojects
-        for name, new_pos in zip(obj_lst, rand_pos):
-            movable_objs[name]["initial_pos"][:2] = new_pos
-
-        # Add other objects away from view
-        far_objs = {k: v for k, v in movable_objs.items()
-                    if k not in obj_lst + ['table', 'bin']}
-        far_pos = [[100 + 20 * i, 0] for i in range(len(far_objs))]
-        for i, (name, properties) in enumerate(far_objs.items()):
-            movable_objs[name]["initial_pos"][:2] = far_pos[i]
-
-        self.table_objs = obj_lst
+        # movable_objs is a reference to self.object_cfg
         if(load_scene):
+            movable_objs = self.object_cfg['movable_objects']
+            # Add positions to new table ojects
+            for name, new_pos in zip(obj_lst, rand_pos):
+                movable_objs[name]["initial_pos"][:2] = new_pos
+
+            # Add other objects away from view
+            far_objs = {k: v for k, v in movable_objs.items()
+                        if k not in obj_lst}
+            far_pos = [[100 + 20 * i, 0] for i in range(len(far_objs))]
+            for i, (name, properties) in enumerate(far_objs.items()):
+                movable_objs[name]["initial_pos"][:2] = far_pos[i]
             self.load()
+        else:
+            movable_objs = {obj.name: i for i, obj in
+                            enumerate(self.movable_objects)}
+            # Add positions to new table ojects
+            for name, new_pos in zip(obj_lst, rand_pos):
+                _obj = self.movable_objects[movable_objs[name]]
+                _obj.initial_pos[:2] = new_pos
+
+            # Add other objects away from view
+            far_objs = {k: v for k, v in movable_objs.items()
+                        if k not in obj_lst}
+            far_pos = [[100 + 20 * i, 0] for i in range(len(far_objs))]
+            for i, (name, properties) in enumerate(far_objs.items()):
+                _obj = self.movable_objects[movable_objs[name]]
+                _obj.initial_pos[:2] = far_pos[i]
+
+        self.table_objs = obj_lst.copy()
         self.reset()
         self.pick_rand_obj()
 

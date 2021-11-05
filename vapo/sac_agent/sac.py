@@ -307,7 +307,7 @@ class SAC():
            and not eval_all_objs
            and n_success >= 2):
             for obj in success_objs:
-                obj_class = self.eval_env.class_per_obj[obj]
+                obj_class = self.eval_env.scene.class_per_obj[obj]
                 self.p_dist[obj_class] += 1
             self.eval_env.load_rand_scene(success_objs)
         return best_eval_return, most_tasks, plot_data

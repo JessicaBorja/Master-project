@@ -5,7 +5,7 @@ global_scaling: 0.8
 euler_obs: ${robot.euler_obs}
 robot_base_position: [0.3, 0.15, 0.6]
 robot_base_orientation: [0, 0, 1.5707963]
-robot_initial_joint_positions: [-2.353483185958092, 1.6888534743695272, 1.7867690106203291, -2.4913252474417362, -1.4701322596554691, 1.3461304694755656, -2.2195062694339756]
+robot_initial_joint_positions: [-2.89729991127609, -0.4938039455346415, 2.0279181629528003, -2.452034864170419, 0.8169455735653277, 2.518634686738336, -0.7972044699504698]
 surfaces: []
 objects:
   fixed_objects:
@@ -22,13 +22,17 @@ objects:
       file: tabletop/hammer_3/hammer_3.urdf
       initial_pos: [0.18, 0.67, 0.614]
       initial_orn: [0, 0, 0.5]
-    magnifying_glass:
-      file: tabletop/magnifying_glass/magnifying_glass.urdf
-      initial_pos: [0.4, 0.8, 0.607]
+    frying_pan_4:
+      file: tabletop/frying_pan_4/frying_pan_4.urdf
+      initial_pos: [0.4, 0.5, 0.61]
       initial_orn: [0, 0, 0]
-    scissors:
-      file: tabletop/scissors/scissors.urdf
-      initial_pos: [0.2, 0.45, 0.61]
+    tennis_racket:
+      file: tabletop/tennis_racket/tennis_racket.urdf
+      initial_pos: [0.15, 0.45, 0.618]
+      initial_orn: [0, 0, 0]
+    paint_brush:
+      file: tabletop/paint_brush/paint_brush.urdf
+      initial_pos: [0.4, 0.8, 0.61]
       initial_orn: [0, 0, 0]
     screwdriver:
       file: tabletop/screwdriver/screwdriver.urdf
@@ -38,15 +42,23 @@ objects:
       file: tabletop/spatula_3/spatula_3.urdf
       initial_pos: [-0.1, 0.6, 0.601]
       initial_orn: [0, 0, 0]
-    tape:
-      file: tabletop/tape/tape.urdf
-      initial_pos: [0.4, 0.5, 0.618]
-      initial_orn: [0, 0, 0]
     teapot_3:
       file: tabletop/teapot_3/teapot_3.urdf
       initial_pos: [-0.15, 0.85, 0.642]
       initial_orn: [0, 0, -1]
+    # tape:
+    #   file: tabletop/tape/tape.urdf
+    #   initial_pos: [0.4, 0.5, 0.618]
+    #   initial_orn: [0, 0, 0]
     # tool_box:
     #   file: tabletop/tool_box/tool_box.urdf
     #   initial_pos: [-0.15, 0.85, 0.642]
+    #   initial_orn: [0, 0, 0]
+    # magnifying_glass:
+    #   file: tabletop/magnifying_glass/magnifying_glass.urdf
+    #   initial_pos: [0.4, 0.8, 0.607]
+    #   initial_orn: [0, 0, 0]
+    # scissors:
+    #   file: tabletop/scissors/scissors.urdf
+    #   initial_pos: [0.2, 0.45, 0.61]
     #   initial_orn: [0, 0, 0]

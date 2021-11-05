@@ -90,7 +90,7 @@ class Combined(SAC):
         last_pos = target
         # When robot is moving and far from target
         while(np.linalg.norm(tcp_pos - target) > 0.01
-              and np.linalg.norm(last_pos - tcp_pos) > 0.0001):
+              and np.linalg.norm(last_pos - tcp_pos) > 0.001):
             last_pos = tcp_pos
 
             ns, _, _, _ = env.step(a)
@@ -183,7 +183,7 @@ class Combined(SAC):
         if(np.linalg.norm(tcp_pos - target_pos) > self.radius):
             if(env.task == "pickup" or env.task == "drawer"):
                 # To never collide with the box
-                z_value = max(self.target_pos[2] + 0.08, 0.76)
+                z_value = max(self.target_pos[2] + 0.09, 0.8)
                 up_target = [tcp_pos[0],
                              tcp_pos[1],
                              z_value]
@@ -274,7 +274,7 @@ class Combined(SAC):
                                        plot_data, most_tasks,
                                        best_eval_return,
                                        n_eval_ep, max_episode_length)
-                if(eval_all_objs and self.eval_env.rand_positions):
+                if(self.eval_env.rand_positions):
                     _, most_full_tasks, plot_data = \
                         self._eval_and_log(self.writer, t, episode,
                                            plot_data, most_full_tasks,
@@ -317,7 +317,7 @@ class Combined(SAC):
         previous_objs = env.scene.table_objs
 
         #
-        tasks = list(env.scene.movable_objects)
+        tasks = env.scene.obj_names
         n_objs = len(env.scene.rand_positions)
         n_total_objs = len(tasks)
         succesful_objs = []

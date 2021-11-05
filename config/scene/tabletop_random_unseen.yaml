@@ -26,10 +26,10 @@ objects:
       initial_pos: [0.7, 0.75, 0.6]
       initial_orn: [1.57, 0, 0]
   movable_objects:
-    mug:
-      file: tabletop/coffee_mug/coffee_mug.urdf
-      initial_pos: [0.2, 0.45, 0.642]
-      initial_orn: [0, 0, -1.8]
+    # mug:
+    #   file: tabletop/coffee_mug/coffee_mug.urdf
+    #   initial_pos: [0.2, 0.45, 0.642]
+    #   initial_orn: [0, 0, -1.8]
     teapot_3:
       file: tabletop/teapot_3/teapot_3.urdf
       initial_pos: [-0.15, 0.85, 0.642]

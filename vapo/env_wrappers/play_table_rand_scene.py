@@ -86,7 +86,7 @@ class PlayTableRandScene(PlayTableScene):
             obj_lst: list of strings containing names of objs
             load_scene: Only true in initialization of environment
         '''
-        assert len(obj_lst) == len(self.rand_positions)
+        assert len(obj_lst) <= len(self.rand_positions)
         rand_pos = self.rand_positions[:len(obj_lst)]
         shuffle(obj_lst)
         # movable_objs is a reference to self.object_cfg

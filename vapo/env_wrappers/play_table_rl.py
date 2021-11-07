@@ -51,12 +51,13 @@ class PlayTableRL(PlayTableSimEnv):
         }
         self.observation_space = gym.spaces.Dict(obs_space_dict)
         self.sparse_reward = sparse_reward
-        self.scene = PlayTableRandScene(p=self.p, cid=self.cid,
-                                        np_random=self.np_random,
-                                        **args['scene_cfg'])
-        self.rand_positions = self.scene.rand_positions
-        self.load()
+
         if(task == "pickup"):
+            self.scene = PlayTableRandScene(p=self.p, cid=self.cid,
+                                            np_random=self.np_random,
+                                            **args['scene_cfg'])
+            self.rand_positions = self.scene.rand_positions
+            self.load()
             self.target = self.scene.target
             self.box_pos = self.scene.object_cfg['fixed_objects']['bin']["initial_pos"]
 

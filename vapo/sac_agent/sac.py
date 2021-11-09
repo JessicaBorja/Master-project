@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+from matplotlib.pyplot import plot
 import numpy as np
 import torch
 import torch.nn as nn
@@ -7,6 +8,8 @@ import torch.optim as optim
 import itertools
 import logging
 import gym
+import collections
+import wandb
 
 from vapo.sac_agent.sac_utils.replay_buffer import ReplayBuffer
 from vapo.sac_agent.sac_utils.utils import tt, soft_update, get_nets
@@ -19,7 +22,11 @@ class SAC():
                  tau=0.005, learning_starts=1000,
                  batch_size=256, buffer_size=1e6,
                  model_name="sac", net_cfg=None, log=None,
-                 save_replay_buffer=False, init_temp=0.01):
+                 save_replay_buffer=False, init_temp=0.01,
+                 train_mean_n_ep=5, wandb_login=None):
+        if(wandb_login):
+            wandb.init(name=model_name,
+                       **wandb_login)
         self._save_replay_buffer = save_replay_buffer
         self.log = log
         if(not log):
@@ -44,6 +51,16 @@ class SAC():
         self._max_size = buffer_size
         self._replay_buffer = ReplayBuffer(buffer_size, _img_obs, self.log)
         self.batch_size = batch_size
+
+        # Reload
+        self.episode = 1
+        self.curr_ts = 0
+        self.most_tasks = 0
+        self.best_return = -np.inf
+        self.best_eval_return = -np.inf
+        self.train_mean_n_ep = train_mean_n_ep
+        self.last_n_train_success = collections.deque(maxlen=self.train_mean_n_ep)
+        self.last_n_train_mean_success = 0
 
         # Agent
         self._gamma = gamma
@@ -95,11 +112,7 @@ class SAC():
         # models folder
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        self.model_name = "{}_{}".format(
-                                    model_name,
-                                    datetime.now().strftime('%d-%m_%H-%M'))
-        self.writer_name = "./results/{}".format(self.model_name)
-        # self.eval_writer_name = "./results/%s_eval"%self.model_name
+        self.model_name = model_name
         self.trained_path = "{}/{}".format(self.save_dir, self.model_name)
 
     # update alpha(entropy coeficient)
@@ -149,7 +162,7 @@ class SAC():
 
         # ---------------- Entropy network update -------------#
         ent_coef_loss = self._update_entropy(log_probs)
-        plot_data["ent_coef"] = self.ent_coef
+        plot_data["ent_coef"] = self.ent_coef.item()
         plot_data["ent_coef_loss"] = ent_coef_loss
 
         # ------------------ Target Networks update -------------------#
@@ -160,7 +173,7 @@ class SAC():
 
     # One single training timestep
     # Take one step in the environment and update the networks
-    def training_step(self, s, ts, ep_return, ep_length, plot_data):
+    def training_step(self, s, ts, ep_return, ep_length):
         # sample action and scale it to action space
         a, _ = self._pi.act(tt(s), deterministic=False)
         a = a.cpu().detach().numpy()
@@ -185,6 +198,7 @@ class SAC():
         ep_length += 1
 
         # Replay buffer has enough data
+        new_data = {}
         if(self._replay_buffer.__len__() >= self.batch_size
            and not done and ts > self.learning_starts):
 
@@ -211,12 +225,12 @@ class SAC():
             new_data = self._update(td_target,
                                     batch_states,
                                     batch_actions)
-            for k, v in plot_data.items():
-                v.append(new_data[k])
-        return s, done, success, ep_return, ep_length, plot_data, info
+        return s, done, success, ep_return, ep_length, \
+            new_data.copy(), info
 
-    def _on_train_ep_end(self, writer, ts, episode, total_ts,
-                         best_return, episode_length, episode_return, success):
+    def _on_train_ep_end(self, ts, episode, total_ts,
+                         best_return, episode_length, episode_return,
+                         success, plot_data):
         self.log.info(
             "Episode %d: %d Steps," % (episode, episode_length) +
             "Success: %s " % str(success) +
@@ -225,12 +239,28 @@ class SAC():
 
         # Summary Writer
         # log everything on timesteps to get the same scale
-        writer.add_scalar('train/success',
-                          success, ts)
-        writer.add_scalar('train/episode_return',
-                          episode_return, ts)
-        writer.add_scalar('train/episode_length',
-                          episode_length, ts)
+        if(len(self.last_n_train_success) >= self.train_mean_n_ep):
+            last_n_train_mean_success = np.mean(self.last_n_train_success)
+        else:
+            last_n_train_mean_success = 0
+
+        self.last_n_train_success.append(int(success))
+        write_dict = {"timesteps": ts,
+                      "episode": episode}
+        for key, value in plot_data.items():
+            if value:  # not empty
+                if(key == "critic_loss"):
+                    data = np.mean(value[-1])
+                else:
+                    data = value  # np.mean(value)
+                write_dict.update({"train/%s" % key: data})
+        wandb.log({
+            "train/success": success,
+            "train/episode_return": episode_return,
+            "train/episode_length": episode_length,
+            "train/mean_success_%d_ep" % self.train_mean_n_ep: last_n_train_mean_success,
+            **write_dict
+        })
 
         if(episode_return >= best_return):
             self.log.info("[%d] New best train ep. return!%.3f" %
@@ -238,13 +268,19 @@ class SAC():
             self.save(self.trained_path + "_best_train.pth")
             best_return = episode_return
 
+        if(last_n_train_mean_success >= self.last_n_train_mean_success):
+            self.log.info("[%d] New best train ep. success: %.3f over last %d ep !" %
+                          (episode, last_n_train_mean_success, self.train_mean_n_ep))
+            self.save(self.trained_path + "_best_train_success_%d_ep.pth" % self.train_mean_n_ep)
+            self.last_n_train_mean_success = last_n_train_mean_success
+
         # Always save last model(last training episode)
         self.save(self.trained_path + "_last.pth")
         return best_return
 
     # Evaluate model and log plot_data to writter
     # Returns: Reseted plot_data and newest best_eval_reward
-    def _eval_and_log(self, writer, t, episode, plot_data, most_tasks,
+    def _eval_and_log(self, t, episode, most_tasks,
                       best_eval_return, n_eval_ep, max_ep_length,
                       eval_all_objs=False):
         # If all objs are already on the table
@@ -252,18 +288,19 @@ class SAC():
            and self.eval_env.rand_positions is None):
             return
         # Log plot_data to writer
-        for key, value in plot_data.items():
-            if value:  # not empty
-                if(key == "critic_loss"):
-                    data = np.mean(value[-1])
-                else:
-                    data = value[-1]  # np.mean(value)
-                writer.add_scalar("train/%s" % key, data, t)
-
-        # Reset plot_data
-        plot_data = {"actor_loss": [],
-                     "critic_loss": [],
-                     "ent_coef_loss": [], "ent_coef": []}
+        write_dict = {"eval_timestep": t,
+                      "eval_episode": episode}
+        # for key, value in plot_data.items():
+        #     if value:  # not empty
+        #         if(key == "critic_loss"):
+        #             data = np.mean(value[-1])
+        #         else:
+        #             data = value[-1]  # np.mean(value)
+        #         write_dict.update({"train/%s" % key: data})
+        # # Reset plot_data
+        # plot_data = {"actor_loss": [],
+        #              "critic_loss": [],
+        #              "ent_coef_loss": [], "ent_coef": []}
 
         # Evaluate agent for n_eval_ep with max_ep_length
         if(self.eval_env.task == "pickup"):
@@ -278,17 +315,17 @@ class SAC():
             mean_return, mean_length, success_lst, success_objs = \
                 self.evaluate(self.eval_env, max_ep_length,
                               n_episodes=n_eval_ep)
-            writer.add_scalar('eval/mean_return(%dep)' %
-                              (n_eval_ep), mean_return, t)
-            writer.add_scalar('eval/mean_ep_length(%dep)' %
-                              (n_eval_ep), mean_length, t)
+            write_dict.update({
+                "eval/mean_return(%dep)" % n_eval_ep: mean_return,
+                "eval/mean_ep_length(%dep)" % n_eval_ep: mean_length,
+            })
             # Log results to writer
             if(mean_return >= best_eval_return):
                 self.log.info("[%d] New best eval avg. return!%.3f" %
-                              (episode, mean_return))
+                            (episode, mean_return))
                 self.save(self.trained_path+"_best_eval.pth")
                 best_eval_return = mean_return
-                # Meassure success
+            # Meassure success
         n_success = np.sum(success_lst)
         if(n_success >= most_tasks):
             self.log.info("[%d] New most successful! %d/%d" %
@@ -296,10 +333,10 @@ class SAC():
             self.save(self.trained_path
                       + "_most_tasks_from_%d.pth" % len(success_lst))
             most_tasks = n_success
-
-        writer.add_scalar('eval/success(%dep)' %
-                          (len(success_lst)), n_success, t)
-
+        wandb.log({
+            **write_dict,
+            "eval/success(%dep)" % len(success_lst): n_success,
+        })
         # If environment definition allows for randoming environment
         # Change scene when method already does something
         if(self.eval_env.task == "pickup"
@@ -310,7 +347,7 @@ class SAC():
                 obj_class = self.eval_env.scene.class_per_obj[obj]
                 self.p_dist[obj_class] += 1
             self.eval_env.load_rand_scene(success_objs)
-        return best_eval_return, most_tasks, plot_data
+        return best_eval_return, most_tasks
 
     def eval_all_objs(self):
         raise NotImplementedError
@@ -328,8 +365,15 @@ class SAC():
             'critic_2_target_dict': self._q2_target.state_dict(),
             'critic_2_optimizer_dict': self._q2_optimizer.state_dict(),
             'critics_optim': self._q_optim.state_dict(),
-
-            'ent_coef': self.ent_coef}
+            'ent_coef': self.ent_coef,
+            'best_return': self.best_return,
+            'best_eval_return': self.best_eval_return,
+            'episode': self.episode,
+            'curr_ts': self.curr_ts,
+            'most_tasks': self.most_tasks,
+            'last_n_train_success': self.last_n_train_success,
+            'last_n_train_mean_success': self.last_n_train_mean_success
+        }
         if self._auto_entropy:
             save_dict['ent_coef_optimizer'] = \
                  self.ent_coef_optimizer.state_dict()
@@ -338,7 +382,7 @@ class SAC():
                                      "replay_buffer"))
         torch.save(save_dict, path)
 
-    def load(self, path):
+    def load(self, path, resume_training=False):
         if os.path.isfile(path):
             print("Loading checkpoint")
             checkpoint = torch.load(path)
@@ -359,11 +403,20 @@ class SAC():
             self.ent_coef = checkpoint["ent_coef"]
             self.ent_coef_optimizer.load_state_dict(checkpoint['ent_coef_optimizer'])
 
-            replay_buffer_dir = os.path.join(os.path.dirname(path),
-                                             "replay_buffer")
-            if(os.path.isdir(replay_buffer_dir)):
-                self._replay_buffer.load(replay_buffer_dir)
+            if(resume_training):
+                self.best_return = checkpoint['best_return']
+                self.best_eval_return = checkpoint['best_eval_return']
+                self.most_tasks = checkpoint['most_tasks']
+                self.curr_ts = checkpoint['curr_ts']
+                self.episode = checkpoint['episode']
+                self.last_n_train_success = checkpoint['last_n_train_success']
+                self.last_n_train_mean_success = checkpoint['last_n_train_mean_success']
+                replay_buffer_dir = os.path.join(os.path.dirname(path),
+                                                 "replay_buffer")
+                if(os.path.isdir(replay_buffer_dir)):
+                    self._replay_buffer.load(replay_buffer_dir)
             print("load done")
             return True
         else:
-            raise TypeError("Cannot find path " + path)
+            raise TypeError(
+                "Model path does not exist: %s \n" % os.path.abspath(path))

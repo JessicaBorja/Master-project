@@ -41,11 +41,11 @@ def main(cfg):
     model = Combined(run_cfg,
                      sac_cfg=sac_cfg,
                      target_search_mode="affordance")
-    path = "%s/trained_models/%s.pth" % (
-            test_cfg.folder_name,
-            test_cfg.model_name)
-    success = model.load(path)
-
+    original_dir = hydra.utils.get_original_cwd()
+    model_path = os.path.join(original_dir, cfg.resume_model_path)
+    path = "%s/trained_models/%s.pth" % (cfg.test.folder_name,
+                                         cfg.test.model_name)
+    success = model.load(path, load_replay_buffer=False)
     if(success):
         model.tidy_up(env)
         # model.evaluate(env)

@@ -13,7 +13,7 @@ class ReplayBuffer:
         self._data = deque(maxlen=int(max_size))
         self._max_size = max_size
         self.dict_state = dict_state
-        self.last_saved_idx = 0
+        self.last_saved_idx = -1
         self.logger = logger
 
     def __len__(self):
@@ -47,8 +47,11 @@ class ReplayBuffer:
         p = Path(path)
         p.mkdir(parents=True, exist_ok=True)
         num_entries = len(self._data)
-        for i in range(self.last_saved_idx, num_entries):
+        for i in range(self.last_saved_idx + 1, num_entries):
             transition = self._data[i]
+            if(not isinstance(transition.state, dict)
+               or not isinstance(transition.next_state, dict)):
+                continue
             file_name = "%s/transition_%d.npz" % (path, i)
             np.savez(file_name,
                      state=transition.state,
@@ -56,8 +59,10 @@ class ReplayBuffer:
                      next_state=transition.next_state,
                      reward=transition.reward,
                      terminal_flag=transition.terminal_flag)
-        self.logger.info("Saved transitions with indices : %d - %d" % (self.last_saved_idx, i))
-        self.last_saved_idx = i
+        if( self.last_saved_idx + 1 - num_entries > 0):
+            self.logger.info("Saved transitions with indices : %d - %d" 
+                % (self.last_saved_idx, i))
+            self.last_saved_idx = i
 
     def load(self, path="./replay_buffer"):
         p = Path(path)
@@ -69,8 +74,8 @@ class ReplayBuffer:
                     data = np.load(file, allow_pickle=True)
                     transition = self._transition(data['state'].item(),
                                                   data['action'],
-                                                  data['next_state'].item(),
                                                   data['reward'].item(),
+                                                  data['next_state'].item(),
                                                   data['terminal_flag'].item())
                     self._data.append(transition)
                 self.last_saved_idx = len(files)

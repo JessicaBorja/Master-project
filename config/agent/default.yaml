@@ -1,4 +1,6 @@
 save_dir: "./trained_models"
+save_replay_buffer: ${save_replay_buffer}
+train_mean_n_ep: 10  # Compute the mean over train_mean_n_ep episodes to log
 hyperparameters:
     gamma: 0.99
     actor_lr: 3e-4
@@ -8,7 +10,7 @@ hyperparameters:
     tau: 0.005
     batch_size: 256
     buffer_size: 1e5
-    learning_starts: 0 # timesteps before starting updates
+    learning_starts: 1000 # timesteps before starting updates
     init_temp: 0.01 # Initialization of entropy coeficient
 
 net_cfg:

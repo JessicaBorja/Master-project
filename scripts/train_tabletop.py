@@ -1,5 +1,6 @@
 import hydra
 import logging
+import os
 
 from vapo.env_wrappers.play_table_rl import PlayTableRL
 from vapo.env_wrappers.aff_wrapper import AffordanceWrapper
@@ -27,6 +28,8 @@ def main(cfg):
                    "model_name": cfg.model_name,
                    "save_dir": cfg.agent.save_dir,
                    "net_cfg": cfg.agent.net_cfg,
+                   "train_mean_n_ep": cfg.agent.train_mean_n_ep,
+                   "save_replay_buffer": cfg.agent.save_replay_buffer,
                    "log": log,
                    **cfg.agent.hyperparameters}
 
@@ -34,10 +37,20 @@ def main(cfg):
         model = Combined(cfg,
                          sac_cfg=sac_cfg,
                          target_search_mode=cfg.target_search,
+                         wandb_login=cfg.wandb_login,
                          rand_target=True)
+
+        if cfg.resume_training:
+            original_dir = hydra.utils.get_original_cwd()
+            model_path = os.path.join(original_dir, cfg.resume_model_path)
+            path = "%s/trained_models/%s.pth" % (model_path,
+                                                 cfg.model_name + "_last")
+            if(os.path.exists(path)):
+                model.load(path)
+            else:
+                print("Model path does not exist: %s \n Training from start" % os.path.abspath(path))
         model.learn(**cfg.agent.learn_config)
         training_env.close()
-        # eval_env.close()
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ import os
 import cv2
 import math
 import sys
+import wandb
 
 from vapo.sac_agent.sac import SAC
 from vapo.sac_agent.sac_utils.utils import tt
@@ -12,10 +13,9 @@ from vapo.combined.target_search import TargetSearch
 
 
 class Combined(SAC):
-    def __init__(self, cfg, sac_cfg=None,
+    def __init__(self, cfg, sac_cfg=None, wandb_login=None,
                  rand_target=False, target_search_mode="env"):
-        super(Combined, self).__init__(**sac_cfg)
-        self.writer = SummaryWriter(self.writer_name)
+        super(Combined, self).__init__(**sac_cfg, wandb_login=wandb_login)
         _cam_id = self._find_cam_id()
         _aff_transforms = get_transforms(
             cfg.affordance.transforms.validation,
@@ -256,8 +256,7 @@ class Combined(SAC):
                                                  rand_sample=True)
         for t in range(1, total_timesteps+1):
             s, done, success, episode_return, episode_length, plot_data, info = \
-                self.training_step(s, t, episode_return, episode_length,
-                                   plot_data)
+                self.training_step(s, t, episode_return, episode_length)
 
             # End episode
             timeout = (max_episode_length
@@ -269,25 +268,23 @@ class Combined(SAC):
                or (self._log_by_episodes and end_ep
                    and episode % _log_n_ep == 0)):
                 eval_all_objs = episode % (2 * _log_n_ep) == 0
-                best_eval_return, most_tasks, plot_data = \
-                    self._eval_and_log(self.writer, t, episode,
-                                       plot_data, most_tasks,
+                best_eval_return, most_tasks = \
+                    self._eval_and_log(t, episode, most_tasks,
                                        best_eval_return,
                                        n_eval_ep, max_episode_length)
                 if(self.eval_env.rand_positions):
-                    _, most_full_tasks, plot_data = \
-                        self._eval_and_log(self.writer, t, episode,
-                                           plot_data, most_full_tasks,
+                    _, most_full_tasks = \
+                        self._eval_and_log(t, episode, most_full_tasks,
                                            best_eval_return,
                                            n_eval_ep, max_episode_length,
                                            eval_all_objs=True)
 
             if(end_ep):
                 best_return = \
-                    self._on_train_ep_end(self.writer, t, episode,
+                    self._on_train_ep_end(t, episode,
                                           total_timesteps, best_return,
                                           episode_length, episode_return,
-                                          success)
+                                          success, plot_data)
                 # Reset everything
                 episode += 1
                 episode_return, episode_length = 0, 0
@@ -300,9 +297,9 @@ class Combined(SAC):
         for eval_all_objs in [False, True]:
             if(eval_all_objs and self.env.rand_positions
                or not eval_all_objs):
-                best_eval_return, most_tasks, plot_data = \
-                    self._eval_and_log(self.writer, t, episode,
-                                       plot_data, most_tasks, best_eval_return,
+                best_eval_return, most_tasks = \
+                    self._eval_and_log(t, episode, most_tasks,
+                                       best_eval_return,
                                        n_eval_ep, max_episode_length,
                                        eval_all_objs=eval_all_objs)
 

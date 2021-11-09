@@ -59,7 +59,7 @@ class ReplayBuffer:
                      next_state=transition.next_state,
                      reward=transition.reward,
                      terminal_flag=transition.terminal_flag)
-        if( self.last_saved_idx + 1 - num_entries > 0):
+        if(self.last_saved_idx + 1 - num_entries > 0):
             self.logger.info("Saved transitions with indices : %d - %d" 
                 % (self.last_saved_idx, i))
             self.last_saved_idx = i

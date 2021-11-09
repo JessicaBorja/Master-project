@@ -272,7 +272,7 @@ class Combined(SAC):
                     self._eval_and_log(t, episode, most_tasks,
                                        best_eval_return,
                                        n_eval_ep, max_episode_length)
-                if(self.eval_env.rand_positions):
+                if(self.eval_env.rand_positions and eval_all_objs):
                     _, most_full_tasks = \
                         self._eval_and_log(t, episode, most_full_tasks,
                                            best_eval_return,
@@ -334,7 +334,7 @@ class Combined(SAC):
             episodes_success.extend(ep_success)
 
         self.log.info(
-            "Full evaluation over %d objs \n" % n_objs +
+            "Full evaluation over %d objs \n" % n_total_objs +
             "Success: %d/%d " % (np.sum(episodes_success), len(ep_success)))
 
         # Restore scene before loading full sweep eval

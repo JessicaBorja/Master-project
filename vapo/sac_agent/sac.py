@@ -25,7 +25,16 @@ class SAC():
                  save_replay_buffer=False, init_temp=0.01,
                  train_mean_n_ep=5, wandb_login=None):
         if(wandb_login):
+            config = {"batch_size": batch_size,
+                      "learning_starts": learning_starts,
+                      "actor_lr": actor_lr,
+                      "critic_lr": critic_lr,
+                      "alpha_lr": alpha_lr,
+                      "hidden_dim": net_cfg.hidden_dim,
+                      "init_temp": init_temp,
+                      "gamma": gamma}
             wandb.init(name=model_name,
+                       config=config,
                        **wandb_login)
         self._save_replay_buffer = save_replay_buffer
         self.log = log

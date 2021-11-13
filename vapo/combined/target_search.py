@@ -133,9 +133,7 @@ class TargetSearch():
 
         # Plot different objects
         no_target = False
-        if(len(object_centers) > 0):
-            target_px = object_centers[0]
-        else:
+        if(len(object_centers) <= 0):
             # No center detected
             default = self.initial_pos
             no_target = True

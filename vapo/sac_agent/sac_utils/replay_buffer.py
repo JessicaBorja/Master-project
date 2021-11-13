@@ -52,14 +52,15 @@ class ReplayBuffer:
             if(not isinstance(transition.state, dict)
                or not isinstance(transition.next_state, dict)):
                 continue
-            file_name = "%s/transition_%d.npz" % (path, i)
-            np.savez(file_name,
-                     state=transition.state,
-                     action=transition.action,
-                     next_state=transition.next_state,
-                     reward=transition.reward,
-                     terminal_flag=transition.terminal_flag)
-        if(self.last_saved_idx + 1 - num_entries > 0):
+            file_name = "%s/transition_%d.npy" % (path, i)
+            np.save(file_name,
+                    {"state": transition.state,
+                     "action": transition.action,
+                     "next_state": transition.next_state,
+                     "reward": transition.reward,
+                     "terminal_flag": transition.terminal_flag}
+                    )
+        if(num_entries - 1 - self.last_saved_idx > 0):
             self.logger.info("Saved transitions with indices : %d - %d" 
                 % (self.last_saved_idx, i))
             self.last_saved_idx = i

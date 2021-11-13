@@ -19,7 +19,6 @@ def main(cfg):
                                  PlayTableRL, cfg.env, max_ts,
                                  train=True,
                                  affordance_cfg=cfg.affordance,
-                                 target_search=cfg.target_search,
                                  viz=cfg.viz_obs,
                                  save_images=cfg.save_images,
                                  **cfg.env_wrapper)
@@ -48,7 +47,8 @@ def main(cfg):
             if(os.path.exists(path)):
                 model.load(path)
             else:
-                print("Model path does not exist: %s \n Training from start" % os.path.abspath(path))
+                print("Model path does not exist: %s \n Training from start"
+                      % os.path.abspath(path))
         model.learn(**cfg.agent.learn_config)
         training_env.close()
 

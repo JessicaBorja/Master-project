@@ -30,6 +30,7 @@ class SAC():
                       "critic_lr": critic_lr,
                       "alpha_lr": alpha_lr,
                       "hidden_dim": net_cfg.hidden_dim,
+                      "alpha": net_cfg.alpha,
                       "init_temp": init_temp,
                       "gamma": gamma,
                       "save_replay_buffer": save_replay_buffer}

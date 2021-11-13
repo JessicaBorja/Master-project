@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import torch
+from torch.jit import Error
 import torch.nn as nn
 import torch.optim as optim
 import itertools
@@ -78,7 +79,11 @@ class SAC():
         self._auto_entropy = False
         if isinstance(alpha, str):  # auto
             self._auto_entropy = True
-            self.ent_coef = 1  # entropy coeficient
+            alpha = alpha.split('_')[0]
+            try:
+                self.ent_coef = float(alpha)
+            except ValueError:
+                self.ent_coef = 1  # entropy coeficient
             # heuristic value
             self.target_entropy = -np.prod(env.action_space.shape).item()
             self.log_ent_coef = torch.tensor(np.log(init_temp),

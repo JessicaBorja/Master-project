@@ -73,7 +73,7 @@ class CNNCritic(nn.Module):
 class CNNCriticRes(CNNCritic):
     def __init__(self, *args, **kwargs):
         super(CNNCriticRes, self).__init__(*args, **kwargs)
-        out_size = self.hidden_dim + self.out_feat
+        out_size = self.hidden_dim + self.out_feat + self.action_dim
         self.fc0 = nn.Linear(self.out_feat + self.action_dim, self.hidden_dim)
         self.fc1 = nn.Linear(out_size, self.hidden_dim)
         self.fc2 = nn.Linear(out_size, self.hidden_dim)
@@ -86,10 +86,10 @@ class CNNCriticRes(CNNCritic):
                                        self.cnn_gripper)
         features = torch.cat((features, actions), -1)
         x = F.elu(self.fc0(features))
-        x = torch.cat([x, features])
+        x = torch.cat([x, features], -1)
         x = F.elu(self.fc1(x))
-        x = torch.cat([x, features])
+        x = torch.cat([x, features], -1)
         x = F.elu(self.fc2(x))
-        x = torch.cat([x, features])
+        x = torch.cat([x, features], -1)
         x = self.q(x).squeeze()
         return x

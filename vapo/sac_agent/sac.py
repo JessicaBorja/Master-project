@@ -32,7 +32,8 @@ class SAC():
                       "alpha_lr": alpha_lr,
                       "hidden_dim": net_cfg.hidden_dim,
                       "init_temp": init_temp,
-                      "gamma": gamma}
+                      "gamma": gamma,
+                      "save_replay_buffer": save_replay_buffer}
             wandb.init(name=model_name,
                        config=config,
                        **wandb_login)

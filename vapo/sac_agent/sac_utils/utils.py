@@ -44,27 +44,28 @@ def set_init_pos(task, init_pos):
     return init_pos
 
 
-def get_nets(img_obs, obs_space, action_space, log):
+def get_nets(img_obs, obs_space, action_space, log,
+             actor_net_str=None, critic_net_str=None):
     action_dim = action_space.shape[0]
     if(img_obs):
         log.info("SAC get_nets using: %s" % str([k for k in obs_space]))
         policy = "CNNPolicy"
         critic = "CNNCritic"
-        # policy = "legacy_CNNPolicy"
-        # critic = "legacy_CNNCritic"
     else:
         obs_space = obs_space.shape[0]
         policy = "ActorNetwork"
         critic = "CriticNetwork"
+    policy = actor_net_str if actor_net_str is not None else policy
+    critic = critic_net_str if critic_net_str is not None else critic
 
-    policy_net = getattr(
+    actor_net = getattr(
         importlib.import_module("vapo.sac_agent.networks.actor_network"),
         policy)
     critic_net = getattr(
         importlib.import_module("vapo.sac_agent.networks.critic_network"),
         critic)
     log.info("SAC get_nets: %s, \t%s" % (policy, critic))
-    return policy_net, critic_net, obs_space, action_dim
+    return actor_net, critic_net, obs_space, action_dim
 
 
 def tt(x):

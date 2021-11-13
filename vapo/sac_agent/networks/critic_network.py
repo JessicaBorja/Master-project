@@ -25,7 +25,7 @@ class CriticNetwork(nn.Module):
 
 class CNNCritic(nn.Module):
     def __init__(self, obs_space, action_dim, affordance=None,
-                 hidden_dim=256, activation="relu"):
+                 hidden_dim=256, activation="relu", **kwargs):
         super(CNNCritic, self).__init__()
         _tcp_pos_shape = get_pos_shape(obs_space, "robot_obs")
         _target_pos_shape = get_pos_shape(obs_space, "detected_target_pos")
@@ -47,7 +47,9 @@ class CNNCritic(nn.Module):
             if(net is not None):
                 out_feat += 16
         out_feat += _tcp_pos_shape + _target_pos_shape + _distance_shape
-
+        self.out_feat = out_feat
+        self.hidden_dim = hidden_dim
+        self.action_dim = action_dim
         self._activation = activation
         self.fc0 = nn.Linear(out_feat, 32)
         self.fc1 = nn.Linear(32 + action_dim, hidden_dim)
@@ -64,5 +66,30 @@ class CNNCritic(nn.Module):
         x = torch.cat((x, actions), -1)
         x = F.elu(self.fc1(x))
         x = F.elu(self.fc2(x))
+        x = self.q(x).squeeze()
+        return x
+
+
+class CNNCriticRes(CNNCritic):
+    def __init__(self, *args, **kwargs):
+        super(CNNCriticRes, self).__init__(*args, **kwargs)
+        out_size = self.hidden_dim + self.out_feat
+        self.fc0 = nn.Linear(self.out_feat + self.action_dim, self.hidden_dim)
+        self.fc1 = nn.Linear(out_size, self.hidden_dim)
+        self.fc2 = nn.Linear(out_size, self.hidden_dim)
+        self.q = nn.Linear(out_size, 1)
+
+    def forward(self, states, actions):
+        features = get_concat_features(self.aff_cfg,
+                                       states,
+                                       self.cnn_img,
+                                       self.cnn_gripper)
+        features = torch.cat((features, actions), -1)
+        x = F.elu(self.fc0(features))
+        x = torch.cat([x, features])
+        x = F.elu(self.fc1(x))
+        x = torch.cat([x, features])
+        x = F.elu(self.fc2(x))
+        x = torch.cat([x, features])
         x = self.q(x).squeeze()
         return x

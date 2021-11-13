@@ -60,7 +60,7 @@ class ActorNetwork(nn.Module):
 
 class CNNPolicy(nn.Module):
     def __init__(self, obs_space, action_dim, action_space, affordance=None,
-                 activation="relu", hidden_dim=256):
+                 activation="relu", hidden_dim=256, **kwargs):
         super(CNNPolicy, self).__init__()
         self.action_high = torch.tensor(action_space.high).cuda()
         self.action_low = torch.tensor(action_space.low).cuda()
@@ -84,7 +84,9 @@ class CNNPolicy(nn.Module):
             if(net is not None):
                 out_feat += 16
         out_feat += _robot_obs_shape + _target_pos_shape + _distance_shape
-
+        self.out_feat = out_feat
+        self.hidden_dim = hidden_dim
+        self.action_dim = action_dim
         self.fc0 = nn.Linear(out_feat, 32)
         self.fc1 = nn.Linear(32, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
@@ -164,6 +166,37 @@ class CNNPolicy(nn.Module):
         else:
             log_probs = None
         return action, log_probs
+
+
+class CNNPolicyRes(CNNPolicy):
+    def __init__(self, *args, **kwargs):
+        super(CNNPolicyRes, self).__init__(*args, **kwargs)
+        out_size = self.hidden_dim + self.out_feat
+        self.fc0 = nn.Linear(self.out_feat, self.hidden_dim)
+        self.fc1 = nn.Linear(out_size, self.hidden_dim)
+        self.fc2 = nn.Linear(out_size, self.hidden_dim)
+        # Last dimension of action_dim is gripper_action
+        self.mu = nn.Linear(out_size, self.action_dim - 1)
+        self.sigma = nn.Linear(out_size, self.action_dim - 1)
+        self.gripper_action = nn.Linear(out_size, 2)  # open / close
+
+    def forward(self, obs):
+        features = get_concat_features(self.aff_cfg,
+                                       obs,
+                                       self.cnn_img,
+                                       self.cnn_gripper)
+        x = F.elu(self.fc0(features))
+        x = torch.cat([x, features])
+        x = F.elu(self.fc1(x))
+        x = torch.cat([x, features])
+        x = F.elu(self.fc2(x))
+        x = torch.cat([x, features])
+        mu = self.mu(x)
+        log_sigma = self.sigma(x)
+        gripper_action_logits = self.gripper_action(x)
+        # avoid log_sigma to go to infinity
+        sigma = torch.clamp(log_sigma, -20, 2).exp()
+        return mu, sigma, gripper_action_logits
 
 
 # https://stackoverflow.com/questions/56226133/soft-actor-critic-with-discrete-action-space

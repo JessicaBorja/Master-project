@@ -1,6 +1,4 @@
-from datetime import datetime
 import os
-from matplotlib.pyplot import plot
 import numpy as np
 import torch
 import torch.nn as nn
@@ -10,7 +8,7 @@ import logging
 import gym
 import collections
 import wandb
-
+from omegaconf import OmegaConf
 from vapo.sac_agent.sac_utils.replay_buffer import ReplayBuffer
 from vapo.sac_agent.sac_utils.utils import tt, soft_update, get_nets
 
@@ -93,8 +91,14 @@ class SAC():
 
         self.learning_starts = learning_starts
 
+        actor_net, critic_net = None, None
+        # net_cfg = OmegaConf.to_container(net_cfg)
+        if("actor_net" in net_cfg):
+            actor_net = net_cfg.actor_net
+            critic_net = net_cfg.critic_net
         policy_net, critic_net, obs_space, action_dim = \
-            get_nets(_img_obs, obs_space, env.action_space, self.log)
+            get_nets(_img_obs, obs_space, env.action_space,
+                     self.log, actor_net, critic_net)
         self._pi = policy_net(obs_space, action_dim,
                               action_space=env.action_space,
                               **net_cfg).cuda()

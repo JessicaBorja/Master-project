@@ -25,27 +25,27 @@ class CriticNetwork(nn.Module):
 
 class CNNCritic(nn.Module):
     def __init__(self, obs_space, action_dim, affordance=None,
-                 hidden_dim=256, activation="relu", **kwargs):
+                 hidden_dim=256, activation="relu", latent_dim=16, **kwargs):
         super(CNNCritic, self).__init__()
         _tcp_pos_shape = get_pos_shape(obs_space, "robot_obs")
         _target_pos_shape = get_pos_shape(obs_space, "detected_target_pos")
         _distance_shape = get_pos_shape(obs_space, "target_distance")
         self.cnn_img = get_img_network(
                             obs_space,
-                            out_feat=16,
+                            out_feat=latent_dim,
                             activation=activation,
                             affordance_cfg=affordance.static_cam,
                             cam_type="static")
         self.cnn_gripper = get_img_network(
                             obs_space,
-                            out_feat=16,
+                            out_feat=latent_dim,
                             activation=activation,
                             affordance_cfg=affordance.gripper_cam,
                             cam_type="gripper")
         out_feat = 0
         for net in [self.cnn_img, self.cnn_gripper]:
             if(net is not None):
-                out_feat += 16
+                out_feat += latent_dim
         out_feat += _tcp_pos_shape + _target_pos_shape + _distance_shape
         self.out_feat = out_feat
         self.hidden_dim = hidden_dim

@@ -1,6 +1,6 @@
 #Environment
 project_path: /mnt/ssd_shared/Users/Jessica/Documents/Thesis_ssd/
-data_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
+data_path: ${project_path}/VREnv/data/
 
 output_size:
   static: 200
@@ -15,8 +15,8 @@ play_data_dir: ${project_path}/datasets/rendered_data/${folder_name}
 
 #Output directory where dataset will be stored
 output_dir: ${project_path}/datasets/${folder_name}/
-viz: True
-
+viz: False
+split_dataset: True
 hydra:
   run:
     dir: ../tmp/datacollection/${now:%Y-%m-%d}_${now:%H-%M-%S}

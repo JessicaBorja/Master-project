@@ -10,7 +10,7 @@ import vapo.utils.flowlib as flowlib
 from vapo.utils.img_utils import overlay_mask, tresh_np, overlay_flow
 from vapo.utils.label_segmentation import get_static_mask, get_gripper_mask
 from vapo.utils.file_manipulation import get_files, save_data, check_file,\
-                                    create_data_ep_split
+                                    create_data_ep_split, create_json_file
 from dataset_creation.cameras.real_cameras import CamProjections
 
 
@@ -20,9 +20,7 @@ def update_fixed_points(fixed_points, new_point,
                         current_frame_idx, radius=0.08):
     x = []
     for frame_idx, p in fixed_points:
-        # Point not in air
         if (np.linalg.norm(new_point - p) > radius):
-            # and current_frame_idx - frame_idx < 1500:
             x.append((frame_idx, p))
     # x = [ p for (frame_idx, p) in fixed_points if
     # ( np.linalg.norm(new_point - p) > radius)]
@@ -31,7 +29,6 @@ def update_fixed_points(fixed_points, new_point,
 
 
 def label_directions(center, object_mask, direction_labels, camtype):
-    # Get directions
     # Shape: [H x W x 2]
     indices = pixel_indices[camtype]
     object_mask = tresh_np(object_mask, 100)
@@ -216,23 +213,26 @@ def instantiate_cameras(cfg, teleop_data):
         teleop_cfg = OmegaConf.load(os.path.join(
                                     cfg.play_data_dir,
                                     ".hydra/merged_config.yaml"))
-        for c_k, c_v in teleop_cfg.cameras.items():
-            teleop_cfg.cameras[c_k]['_target_'] = \
-                teleop_cfg.cameras[c_k]['_target_'].replace('calvin_env', 'vr_env')
-        # Instantiate camera to get projection and view matrices
         new = True
+        if(new):
+            for c_k, c_v in teleop_cfg.cameras.items():
+                teleop_cfg.cameras[c_k]['_target_'] = \
+                    teleop_cfg.cameras[c_k]['_target_'].replace('calvin_env', 'vr_env')
+            cfg.robot = teleop_cfg.robot
+            cfg.robot['_target_'] = \
+                cfg.robot['_target_'].replace('calvin_env', 'vr_env')
+        # else: change in panda.urdf 	<joint name="tcp_joint" type='fixed'>
+            #   <parent link="panda_hand"/>
+            #   <child link="tcp"/>
+            #   <origin xyz="0 0 0.1" rpy="0 0 3.1416"/>
+            # </joint>
+
+        # Instantiate camera to get projection and view matrices
         key_s = "static" if new else 0
         key_g = "gripper" if new else 1
         static_cam = hydra.utils.instantiate(
             teleop_cfg.env.cameras[key_s],
             cid=0, robot_id=0, objects=None)
-
-        # Set properties needed to compute proj. matrix
-        # fov=self.fov, aspect=self.aspect,
-        # nearVal=self.nearval, farVal=self.farval
-        cfg.robot = teleop_cfg.robot
-        cfg.robot['_target_'] = \
-            cfg.robot['_target_'].replace('calvin_env', 'vr_env')
         env = hydra.utils.instantiate(cfg.env)
         gripper_cam = hydra.utils.instantiate(
             teleop_cfg.env.cameras[key_g],
@@ -467,7 +467,11 @@ def collect_dataset_close_open(cfg):
               cfg.output_dir + "episode_%02d" % episode,
               sub_dir="gripper_cam",
               save_viz=save_viz)
-    create_data_ep_split(cfg.output_dir, cfg.labeling.split_by_episodes)
+    if(cfg.split_dataset):
+        create_data_ep_split(cfg.output_dir,
+                             cfg.labeling.split_by_episodes)
+    else:
+        create_json_file(cfg.output_dir)
 
 
 @hydra.main(config_path="../config", config_name="cfg_datacollection")

@@ -72,7 +72,7 @@ def select_files(episode_files, remove_blank_masks):
     return data
 
 
-def split_by_ep(root_dir, remove_blank_mask_instances=False):
+def split_by_ep(root_dir, remove_blank_mask_instances=True):
     data = {"train": [], "validation": []}
     # Episodes are subdirectories
     n_episodes = 0
@@ -104,7 +104,7 @@ def split_by_ep(root_dir, remove_blank_mask_instances=False):
     return data
 
 
-def split_by_ts(root_dir, remove_blank_mask_instances=False):
+def split_by_ts(root_dir, remove_blank_mask_instances=True):
     data = {"train": [], "validation": []}
 
     # Count episodes
@@ -140,6 +140,35 @@ def split_by_ts(root_dir, remove_blank_mask_instances=False):
             data[split][ep_str].extend(static_cam_files)
 
     return data
+
+
+def create_json_file(root_dir, remove_blank_mask_instances=True):
+    # Write everything on train split
+    data = {"train": []}
+    # Episodes are subdirectories
+    n_episodes = 0
+    if(isinstance(root_dir, list)):
+        for dir_i in root_dir:
+            n_episodes += len(glob.glob(dir_i + "/*/"))
+    n_episodes = len(glob.glob(root_dir + "/*/"))
+    train_ep = [ep for ep in range(n_episodes)]
+    data["train"] = {"episode_%02d" % e: [] for e in train_ep}
+
+    for ep in tqdm.tqdm(range(n_episodes)):
+        ep_dir = os.path.join(root_dir, "episode_%02d" % ep)
+        ep_str = 'episode_%02d' % ep
+
+        gripper_cam_files = glob.glob("%s/data/*/*gripper*" % ep_dir)
+        selected_gripper_files = select_files(gripper_cam_files,
+                                              remove_blank_mask_instances)
+
+        static_cam_files = glob.glob("%s/data/*/*static*" % ep_dir)
+        selected_static_files = select_files(static_cam_files,
+                                             remove_blank_mask_instances)
+        data["train"].update({ep_str: selected_gripper_files})
+        data["train"][ep_str].extend(selected_static_files)
+    with open(root_dir+'/episodes_split.json', 'w') as outfile:
+        json.dump(data, outfile, indent=2)
 
 
 # Split episodes into train and validation

@@ -15,6 +15,7 @@ hyperparameters:
 
 net_cfg:
     hidden_dim: 256
+    latent_dim: 16
     activation: relu
     affordance: ${affordance}
     actor_net: "CNNPolicyRes"

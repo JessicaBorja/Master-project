@@ -1,6 +1,7 @@
 from robot_io.cams.camera import Camera
 import numpy as np
 
+
 class CamProjections(Camera):
     def __init__(self,
                  intrinsics,

@@ -1,9 +1,8 @@
-from os import stat
 import cv2
 import numpy as np
-from utils.img_utils import overlay_mask
+from vapo.utils.img_utils import overlay_mask
 import pybullet as p
-from vr_env.camera.gripper_camera import GripperCamera
+
 
 # Masks generation #
 def get_elipse_angle(cam_name):
@@ -135,8 +134,9 @@ def get_gripper_mask(img, robot_obs, point,
         tcp_x, tcp_y = get_px_after_crop_resize(cam, (tcp_x, tcp_y))
     else:
         orn = p.getQuaternionFromEuler(orn)
-        cam2tcp_pos = [0.1, 0, -0.1]
-        cam2tcp_orn = [0.430235, 0.4256151, 0.559869, 0.5659467]
+        cam2tcp_pos, cam2tcp_orn = cam.cam2tcp_T
+        # cam2tcp_pos = [0.1, 0, -0.1]
+        # cam2tcp_orn = [0.430235, 0.4256151, 0.559869, 0.5659467]
         cam_pos, cam_orn = p.multiplyTransforms(
                                     pt, orn,
                                     cam2tcp_pos, cam2tcp_orn)

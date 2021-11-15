@@ -4,6 +4,7 @@ import numpy as np
 import tqdm
 import os
 from omegaconf import OmegaConf
+from omegaconf.dictconfig import DictConfig
 import glob
 import vapo.utils.flowlib as flowlib
 from vapo.utils.img_utils import overlay_mask, tresh_np, overlay_flow
@@ -212,17 +213,30 @@ def label_static(static_cam, static_hist, back_min, back_max,
 
 def instantiate_cameras(cfg, teleop_data):
     if(not teleop_data):
+        teleop_cfg = OmegaConf.load(os.path.join(
+                                    cfg.play_data_dir,
+                                    ".hydra/merged_config.yaml"))
+        for c_k, c_v in teleop_cfg.cameras.items():
+            teleop_cfg.cameras[c_k]['_target_'] = \
+                teleop_cfg.cameras[c_k]['_target_'].replace('calvin_env', 'vr_env')
         # Instantiate camera to get projection and view matrices
+        new = True
+        key_s = "static" if new else 0
+        key_g = "gripper" if new else 1
         static_cam = hydra.utils.instantiate(
-            cfg.env.cameras[0],
-            cid=0, robot_id=None, objects=None)
+            teleop_cfg.env.cameras[key_s],
+            cid=0, robot_id=0, objects=None)
 
         # Set properties needed to compute proj. matrix
         # fov=self.fov, aspect=self.aspect,
         # nearVal=self.nearval, farVal=self.farval
+        cfg.robot = teleop_cfg.robot
+        cfg.robot['_target_'] = \
+            cfg.robot['_target_'].replace('calvin_env', 'vr_env')
+        env = hydra.utils.instantiate(cfg.env)
         gripper_cam = hydra.utils.instantiate(
-            cfg.env.cameras[1],
-            cid=1, robot_id=None, objects=None)
+            teleop_cfg.env.cameras[key_g],
+            cid=env.cid, robot_id=env.robot.cid, objects=None)
     else:
         cam_params_path = cfg.play_data_dir
         dir_content = glob.glob(cfg.play_data_dir)
@@ -263,8 +277,8 @@ def instantiate_cameras(cfg, teleop_data):
 def collect_dataset_close_open(cfg):
     global pixel_indices
     save_viz = cfg.save_viz
-    gripper_out_size = (cfg.img_size.gripper, cfg.img_size.gripper)
-    static_out_size = (cfg.img_size.static, cfg.img_size.static)
+    gripper_out_size = (cfg.output_size.gripper, cfg.output_size.gripper)
+    static_out_size = (cfg.output_size.static, cfg.output_size.static)
     pixel_indices = {"gripper": np.indices(gripper_out_size,
                                            dtype=np.float32).transpose(1, 2, 0),
                      "static": np.indices(static_out_size,
@@ -295,12 +309,13 @@ def collect_dataset_close_open(cfg):
         # With different data collection runs
         episodes = glob.glob(cfg.play_data_dir + '/*/')
         episodes = {ep_path: len(glob.glob(ep_path + '*.npz')) - 2
-                for  ep_path in episodes}
+            for ep_path in episodes}
         end_ids = list(episodes.values())
         for ep_path in episodes.keys():
             f = get_files(ep_path, "npz")
             f.remove(os.path.join(ep_path, "camera_info.npz"))
             files.extend(f)
+    end_ids.sort()
     save_static, save_gripper = {}, {}
     static_cam, gripper_cam = instantiate_cameras(cfg, teleop_data)
 
@@ -312,12 +327,15 @@ def collect_dataset_close_open(cfg):
 
     # Iterate rendered_data
     head, tail = os.path.split(files[0])
+    ep_id = int(tail[:-4].split('_')[-1])
+    # Multiple folders in real-robot data
     _,  curr_folder = os.path.split(head)
+
     for idx, filename in enumerate(tqdm.tqdm(files)):
         data = check_file(filename)
         if(data is None):
             continue  # Skip file
-        if('robot_state' not in data):
+        if('robot_state' not in data and teleop_data):
             continue
 
         if(idx < len(files) - 1):
@@ -407,8 +425,7 @@ def collect_dataset_close_open(cfg):
         else:
             # Closed -> open transition
             # and point not in air..
-            if(past_action <= 0 and
-               point[-1] <= 0.21):
+            if(past_action <= 0):  # and point[-1] <= 0.21):
                 curr_point = point
                 fixed_points.append((frame_idx, curr_point))
                 last_pt = curr_point

@@ -5,4 +5,4 @@ back_frames_min: 5
 fixed_pt_radius: 0.08  # Meters
 label_size:
   static_cam: 10
-  gripper_cam: 25
+  gripper_cam: 10

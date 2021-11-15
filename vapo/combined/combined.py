@@ -24,14 +24,15 @@ class Combined(SAC):
         _initial_obs = self.env.get_obs()["robot_obs"]
         self._initial_pos = _initial_obs[:3]
         _initial_orn = _initial_obs[3:6]
-        if(self.env.task == "pickup"):
-            self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
-        # elif(self.env.task == "slide"):
-        #     self.target_orn = np.array([-math.pi / 2, -math.pi / 2, 0])
-        # elif(self.env.task == "drawer"):
-        #     self.target_orn = np.array([- math.pi, math.pi/8, - math.pi / 2])
-        else:
-            self.target_orn = _initial_orn
+        self.target_orn = _initial_orn
+        # if(self.env.task == "pickup"):
+        #     self.target_orn = np.array([- math.pi, 0, - math.pi / 2])
+        # # elif(self.env.task == "slide"):
+        # #     self.target_orn = np.array([-math.pi / 2, -math.pi / 2, 0])
+        # # elif(self.env.task == "drawer"):
+        # #     self.target_orn = np.array([- math.pi, math.pi/8, - math.pi / 2])
+        # else:
+        #     self.target_orn = _initial_orn
 
         # to save images
         self.im_lst = []

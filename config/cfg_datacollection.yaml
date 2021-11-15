@@ -1,104 +1,32 @@
 #Environment
-project_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/ # "C:/Users/Jessica/Documents/Proyecto_ssd" #
-img_size:
-  static: 300
-  gripper: 200
+project_path: /mnt/ssd_shared/Users/Jessica/Documents/Thesis_ssd/
+data_path: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/VREnv/data/
+
+output_size:
+  static: 200
+  gripper: 84
 mask_on_close: True
 save_viz: True
+euler_obs: True
+
 # For collecting dataset with playdata
-folder_name: showcase_1
+folder_name: Calvin_A_A/training
 play_data_dir: ${project_path}/datasets/rendered_data/${folder_name}
 
 #Output directory where dataset will be stored
 output_dir: ${project_path}/datasets/${folder_name}/
 viz: True
 
-# save_dir: ../tmp/
-all_cameras:
-  play_data_tabletop:
-    _target_: vr_env.camera.static_camera.StaticCamera
-    name: tabletop_topview
-    fov: 45
-    aspect: 1
-    nearval: 0.01
-    farval: 2
-    width: 200
-    height: 200
-    look_at: [0.2753056585788727, 0.4048122465610504, 0.04299933835864067]
-    look_from: [0.2753049433231638, 1.551965045589526, 1.681303648001446]
-  tabletop_multiscene:
-    _target_: vr_env.camera.static_camera.StaticCamera
-    name: tabletop_topview
-    fov: 45
-    aspect: 1
-    nearval: 0.01
-    farval: 2
-    width: 200
-    height: 200
-    look_at: [0.22791078686714172, 0.008461681194603443, -0.24000032246112823]
-    look_from: [0.22790421545536008, 1.570319612342189, 1.5822541675395883]
-  tabletop_sideview:
-    _target_: vr_env.camera.static_camera.StaticCamera
-    name: tabletop_sideview
-    fov: 45
-    aspect: 1
-    nearval: 0.01
-    farval: 2
-    width: 200
-    height: 200
-    look_at: [0.15026406943798065, 0.6811332106590271, 0.46438753604888916]
-    look_from: [-0.32631213472589593, 0.6811343431473001, 1.5656936606290373]
-  empty_playtable_left:
-    _target_: vr_env.camera.static_camera.StaticCamera
-    name: static
-    fov: 45
-    aspect: 1
-    nearval: 0.01
-    farval: 2
-    width: 200
-    height: 200
-    look_from: [0.1489590099081397, -0.5244077444076538, 1.483006775379181]
-    look_at: [0.16050678491592407, 0.3025922179222107, 0.9209232330322266]
-  empty_playtable_center:
-    _target_: vr_env.camera.static_camera.StaticCamera
-    name: static
-    fov: 45
-    aspect: 1
-    nearval: 0.01
-    farval: 2
-    width: 200
-    height: 200
-    look_from: [0.1489590099081397, -0.5244077444076538, 1.483006775379181]
-    look_at: [0.16050678491592407, 0.3025922179222107, 0.9209232330322266]
-  play_data_large_handles:
-    _target_: vr_env.camera.static_camera.StaticCamera
-    name: static
-    fov: 75
-    aspect: 1
-    nearval: 0.01
-    farval: 2
-    width: 200
-    height: 200
-    look_from: [0.11068351051600134, 0.04272614309766709, 1.2610172765078076]
-    look_at: [0.15724238753318787, 0.875490665435791, 0.55617755651474]
-  gripper:
-    _target_: vr_env.camera.gripper_camera.GripperCamera
-    name: gripper
-    fov: 75
-    aspect: 1
-    nearval: 0.01
-    farval: 2
-    width: 200
-    height: 200
-
 hydra:
   run:
     dir: ../tmp/datacollection/${now:%Y-%m-%d}_${now:%H-%M-%S}
 
+use_vr: false
 defaults:
   - labeling: simulation
-  - env: env
-  - scene@env.scene: empty_playtable_center
-  - camera_conf@env: playtable
+  - env: env_labeling
+  - robot: panda
+  - scene: tabletop_1
+  - camera_conf@cameras: no_cameras
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog

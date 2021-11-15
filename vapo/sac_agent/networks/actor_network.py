@@ -175,10 +175,11 @@ class CNNPolicyRes(CNNPolicy):
         self.fc0 = nn.Linear(self.out_feat, self.hidden_dim)
         self.fc1 = nn.Linear(out_size, self.hidden_dim)
         self.fc2 = nn.Linear(out_size, self.hidden_dim)
+        self.fc3 = nn.Linear(out_size, self.hidden_dim)
         # Last dimension of action_dim is gripper_action
-        self.mu = nn.Linear(out_size, self.action_dim - 1)
-        self.sigma = nn.Linear(out_size, self.action_dim - 1)
-        self.gripper_action = nn.Linear(out_size, 2)  # open / close
+        self.mu = nn.Linear(self.hidden_dim, self.action_dim - 1)
+        self.sigma = nn.Linear(self.hidden_dim, self.action_dim - 1)
+        self.gripper_action = nn.Linear(self.hidden_dim, 2)  # open / close
 
     def forward(self, obs):
         features = get_concat_features(self.aff_cfg,
@@ -191,6 +192,7 @@ class CNNPolicyRes(CNNPolicy):
         x = torch.cat([x, features], -1)
         x = F.elu(self.fc2(x))
         x = torch.cat([x, features], -1)
+        x = F.elu(self.fc3(x))
         mu = self.mu(x)
         log_sigma = self.sigma(x)
         gripper_action_logits = self.gripper_action(x)

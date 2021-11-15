@@ -8,8 +8,6 @@ robot_base_orientation: [0, 0, 1.5707963]
 robot_initial_joint_positions: [-0.30160073570554463, 0.13374573554005056, 0.3231198467624246, -3.0717998184517663, 0.06974993185871471, 3.7525010281742, 0.73030163704711]
 surfaces: []
 objects:
-surfaces: []
-objects:
   fixed_objects:
     table:
       file: own_objects/modified_table_new_handles/playtable_modified.urdf

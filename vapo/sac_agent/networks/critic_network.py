@@ -77,7 +77,8 @@ class CNNCriticRes(CNNCritic):
         self.fc0 = nn.Linear(self.out_feat + self.action_dim, self.hidden_dim)
         self.fc1 = nn.Linear(out_size, self.hidden_dim)
         self.fc2 = nn.Linear(out_size, self.hidden_dim)
-        self.q = nn.Linear(out_size, 1)
+        self.fc3 = nn.Linear(out_size, self.hidden_dim)
+        self.q = nn.Linear(self.hidden_dim, 1)
 
     def forward(self, states, actions):
         features = get_concat_features(self.aff_cfg,
@@ -91,5 +92,6 @@ class CNNCriticRes(CNNCritic):
         x = torch.cat([x, features], -1)
         x = F.elu(self.fc2(x))
         x = torch.cat([x, features], -1)
+        x = F.elu(self.fc3(x))
         x = self.q(x).squeeze()
         return x

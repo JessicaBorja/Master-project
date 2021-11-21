@@ -47,7 +47,7 @@ def merge_datasets(directory_list, output_dir):
 
 
 # Select files that have a segmentation mask
-def select_files(episode_files, remove_blank_masks):
+def select_files(episode_files, remove_blank_masks, min_labels=3):
     # Skip first n files for static cams since
     # affordances are incomplete at the beginning of episodes
     data = []
@@ -63,13 +63,14 @@ def select_files(episode_files, remove_blank_masks):
             mask = np_file["mask"]  # (H, W)
             gripper_label = "gripper_cam" in file_name and mask.max() > 0
             enough_labels = "static_cam" in file_name \
-                and len(np_file['centers']) > 5
+                and len(np_file['centers']) > min_labels
             # Only add imgs where gripper is almost completely closed
             # at least one pixel is not background
             if(gripper_label or enough_labels):
                 data.append(file_name)
         else:
             data.append(file_name)
+    data.sort()
     return data
 
 

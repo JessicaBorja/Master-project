@@ -127,23 +127,36 @@ def get_static_mask(static_cam, static_im, point, r=10, teleop_data=False):
     return static_mask, (tcp_y, tcp_x)  # matrix coord
 
 
-def get_gripper_mask(img, robot_obs, point,
+def tcp_to_global(pos, orn, offset, homogeneous=False):
+    transform_matrix = np.reshape(p.getMatrixFromQuaternion(orn), (3, 3))
+    transform_matrix = np.vstack([transform_matrix, np.zeros(3)])
+    transform_matrix = np.hstack([transform_matrix,
+                                  np.expand_dims(np.array([*pos, 1]), 0).T])
+    glob_offset = transform_matrix @ np.array([*offset, 1])
+    if(not homogeneous):
+        glob_offset = glob_offset[:3]
+    return glob_offset
+
+
+def get_gripper_mask(img, robot_obs, point, offset=[0, 0, 0],
                      cam=None, radius=25, teleop_data=False):
     pt, orn = robot_obs[:3], robot_obs[3:]
     if(teleop_data):
         transform_matrix = np.reshape(p.getMatrixFromQuaternion(orn), (3, 3))
         transform_matrix = np.vstack([transform_matrix, np.zeros(3)])
-        transform_matrix = np.hstack([transform_matrix,
-                                      np.expand_dims(np.array([*pt, 1]), 0).T])
-        transform_matrix = np.linalg.inv(transform_matrix)
-        point = transform_matrix @ np.array([*point, 1])
-        point = point[:3]
+        tcp2global = np.hstack([transform_matrix,
+                                np.expand_dims(np.array([*pt, 1]), 0).T])
+        global2tcp = np.linalg.inv(tcp2global)
+        point = global2tcp @ np.array([*point, 1])
+        tcp_pt = point[:3] + offset
 
         # Transform pt to homogeneus cords and project
-        tcp_x, tcp_y = cam.project(point)
+        tcp_x, tcp_y = cam.project(tcp_pt)
 
         # Get img coords after resize
         tcp_x, tcp_y = get_px_after_crop_resize(cam, (tcp_x, tcp_y))
+
+
     else:
         orn = p.getQuaternionFromEuler(orn)
         tcp2cam_pos, tcp2cam_orn = cam.tcp2cam_T

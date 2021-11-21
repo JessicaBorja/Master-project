@@ -17,3 +17,4 @@ dataset_creation/__init__.py
 dataset_creation/motion_vectors.json
 workspace.code-workspace
 project.egg-info
+vapo.egg-info/

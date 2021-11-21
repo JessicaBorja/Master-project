@@ -1,4 +1,4 @@
-split_by_episodes: False
+split_by_episodes: True
 teleop_data: True
 back_frames_max: 60
 back_frames_min: 0

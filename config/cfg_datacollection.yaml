@@ -3,12 +3,12 @@ project_path: /mnt/ssd_shared/Users/Jessica/Documents/Thesis_ssd/
 data_path: ${project_path}/VREnv/data/
 
 output_size:
-  static: 200
-  gripper: 84
+  static: 300
+  gripper: 96
 mask_on_close: True
 save_viz: True
 euler_obs: True
-
+frames_before_saving: 300
 # For collecting dataset with playdata
 folder_name: task_A_A/validation
 play_data_dir: ${project_path}/datasets/rendered_data/${folder_name}

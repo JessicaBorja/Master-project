@@ -8,7 +8,7 @@ from omegaconf.dictconfig import DictConfig
 import glob
 import vapo.utils.flowlib as flowlib
 from vapo.utils.img_utils import overlay_mask, tresh_np, overlay_flow
-from vapo.utils.label_segmentation import get_static_mask, get_gripper_mask, resize_mask_and_center
+from vapo.utils.label_segmentation import get_static_mask, get_gripper_mask, resize_mask_and_center, tcp_to_global
 from vapo.utils.file_manipulation import get_files, save_data, check_file,\
                                     create_data_ep_split, create_json_file, merge_datasets
 from dataset_creation.cameras.real_cameras import CamProjections
@@ -82,9 +82,10 @@ def label_gripper(cam, img_hist, back_frames_max, curr_pt,
                         new_mask, center_px = get_gripper_mask(img,
                                                                robot_obs[:-1],
                                                                point,
-                                                               cam,
+                                                               cam=cam,
                                                                radius=radius,
-                                                               teleop_data=teleop_data)
+                                                               teleop_data=teleop_data,
+                                                               offset=offset)
                         new_mask, center_px = resize_mask_and_center(new_mask,
                                                                      center_px,
                                                                      out_img_size)
@@ -268,6 +269,12 @@ def instantiate_cameras(cfg, teleop_data):
 
 def collect_dataset_close_open(cfg):
     global pixel_indices
+
+    # Some data has calibration mistakes
+    # offset in tcp frame
+    global offset
+    offset = [0, 0, 0.04]
+
     save_viz = cfg.save_viz
     gripper_out_size = (cfg.output_size.gripper, cfg.output_size.gripper)
     static_out_size = (cfg.output_size.static, cfg.output_size.static)
@@ -343,7 +350,10 @@ def collect_dataset_close_open(cfg):
             proprio = data["robot_state"].item()
             # orn = p.getEulerFromQuaternion(proprio["tcp_orn"])
             orn = proprio["tcp_orn"]
-            robot_obs = np.array([*proprio["tcp_pos"],
+            tcp_pos = proprio["tcp_pos"]
+            tcp_pos = tcp_to_global(tcp_pos, orn,
+                                    offset=offset)
+            robot_obs = np.array([*tcp_pos,
                                   *orn,
                                   proprio["gripper_opening_width"]])
         else:
@@ -439,7 +449,8 @@ def collect_dataset_close_open(cfg):
             save_static, save_gripper = {}, {}
             episode += 1
 
-        if (len(save_gripper.keys()) + len(save_static.keys()) > 150):
+        if (len(save_gripper.keys()) + len(save_static.keys())
+           > cfg.frames_before_saving):
             save_data(save_static,
                       cfg.output_dir + "episode_%02d" % episode,
                       sub_dir="static_cam",

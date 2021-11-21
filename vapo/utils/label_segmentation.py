@@ -14,6 +14,18 @@ def get_elipse_angle(cam_name):
         return 0
 
 
+def resize_center(center, old_shape, new_shape):
+    center = np.array(center) * new_shape[0] // old_shape
+    return center
+
+
+def resize_mask_and_center(mask, center, new_size):
+    orig_H, orig_W = mask.shape[:2]
+    mask = cv2.resize(mask, new_size)
+    center = np.array(center) * new_size[0] // orig_H
+    return mask, center
+
+
 def delete_oclussion(mask, robot_pose):
     robot_mask = np.zeros((mask.shape[0], mask.shape[1], 1))
     robot_mask = cv2.circle(robot_mask, robot_pose, 10, [255, 255, 255], -1)

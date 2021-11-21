@@ -8,7 +8,7 @@ from omegaconf.dictconfig import DictConfig
 import glob
 import vapo.utils.flowlib as flowlib
 from vapo.utils.img_utils import overlay_mask, tresh_np, overlay_flow
-from vapo.utils.label_segmentation import get_static_mask, get_gripper_mask
+from vapo.utils.label_segmentation import get_static_mask, get_gripper_mask, resize_mask_and_center
 from vapo.utils.file_manipulation import get_files, save_data, check_file,\
                                     create_data_ep_split, create_json_file, merge_datasets
 from dataset_creation.cameras.real_cameras import CamProjections
@@ -125,14 +125,6 @@ def label_gripper(cam, img_hist, back_frames_max, curr_pt,
                 "viz_dir": flow_over_img,
                 "gripper_width": robot_obs[-1]}
     return save_dict
-
-
-def resize_mask_and_center(mask, center, new_size):
-    orig_H, orig_W = mask.shape[:2]
-    mask = cv2.resize(mask, new_size)
-    center = np.array(center) * new_size[0] // orig_H
-    return mask, center
-
 
 def label_static(static_cam, static_hist, back_min, back_max,
                  fixed_points, pt, viz, save_dict, out_img_size,

@@ -2,8 +2,8 @@ import datetime
 import logging
 import hydra
 from omegaconf import OmegaConf
-from affordance_model.segmentator_centers import Segmentator
-from affordance_model.datasets import get_loaders
+from vapo.affordance_model.segmentator_centers import Segmentator
+from vapo.affordance_model.datasets import get_loaders
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
@@ -25,11 +25,9 @@ def train(cfg):
                 OmegaConf.to_yaml(print_cfg(cfg)))
 
     # Data split
-    img_size = cfg.img_size[cfg.dataset.cam]
     train_loader, val_loader = get_loaders(logger,
                                            cfg.dataset,
                                            cfg.dataloader,
-                                           img_size,
                                            cfg.model_cfg.n_classes)
 
     # 24hr format

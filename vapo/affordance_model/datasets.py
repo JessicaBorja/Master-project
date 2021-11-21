@@ -1,3 +1,4 @@
+from PIL.Image import new
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -8,8 +9,7 @@ import hydra
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.transforms.functional import rotate
-from sklearn.cluster import DBSCAN
-
+from vapo.utils.label_segmentation import resize_center, create_circle_mask, overlay_mask
 import vapo.utils.flowlib as flowlib
 from vapo.utils.img_utils import overlay_flow, tresh_np
 
@@ -18,7 +18,8 @@ def get_transforms(transforms_cfg, img_size=None):
     transforms_lst = []
     transforms_config = transforms_cfg.copy()
     for cfg in transforms_config:
-        if(cfg._target_ == "torchvision.transforms.Resize"
+        if((cfg._target_ == "torchvision.transforms.Resize"
+            or "RandomCrop" in cfg._target_)
            and img_size is not None):
             cfg.size = img_size
         transforms_lst.append(hydra.utils.instantiate(cfg))
@@ -50,25 +51,24 @@ def get_loaders(logger, dataset_cfg, dataloader_cfg, img_size, n_classes):
 class VREnvData(Dataset):
     # split = "train" or "validation"
     def __init__(self, img_size, root_dir, transforms_cfg, n_train_ep=-1,
-                 split="train", cam="static", log=None, n_classes=2):
+                 split="train", cam="static", log=None, n_classes=2,
+                 radius=None):
         self.cam = cam
         self.split = split
         self.log = log
         self.root_dir = root_dir
         _ids = self.read_json(os.path.join(root_dir, "episodes_split.json"))
         self.data = self._get_split_data(_ids, split, cam, n_train_ep)
-        self.add_rotation = False  # split == "train" and cam == "gripper"
-        self.transforms = get_transforms(transforms_cfg[split], img_size)
+        self.add_rotation = False
+        self.img_size = img_size
+        self.transforms = get_transforms(transforms_cfg[split],
+                                         img_size[cam])
         _masks_t = "masks" if n_classes <= 2 else "masks_multitask"
         self.mask_transforms = get_transforms(transforms_cfg[_masks_t],
-                                              img_size)
-        self.pixel_indices = {"gripper":
-                              np.indices((64, 64),
-                                         dtype=np.float32).transpose(1, 2, 0),
-                              "static":
-                              np.indices((200, 200),
-                                         dtype=np.float32).transpose(1, 2, 0)}
-        self.img_size = img_size
+                                              img_size[cam])
+        self.pixel_indices = np.indices((img_size[cam], img_size[cam]),
+                                        dtype=np.float32).transpose(1, 2, 0)
+        self.radius = radius[cam]
 
     def _overfit_split_data(self, data, split, cam, n_train_ep):
         split_data = []
@@ -103,45 +103,6 @@ class VREnvData(Dataset):
         print("%s images: %d" % (split, len(split_data)))
         return split_data
 
-    def get_directions(self, mask):
-        # Mask.shape = img_size, img_size between 0-1
-        dbscan = DBSCAN(eps=3, min_samples=3)
-        mask = mask.detach().cpu().numpy()
-        positives = np.argwhere(mask > 0.5)
-        directions = np.stack([np.ones((self.img_size, self.img_size)),
-                              np.zeros((self.img_size, self.img_size))],
-                              axis=-1).astype(np.float32)
-        centers = []
-        if(positives.shape[0] > 0):
-            labels = dbscan.fit_predict(positives)
-        else:
-            return centers, directions
-
-        for idx, c in enumerate(np.unique(labels)):
-            cluster = positives[np.argwhere(labels == c).squeeze()]  # N, 3
-            if(len(cluster.shape) == 1):
-                cluster = np.expand_dims(cluster, 0)
-            mid_point = np.mean(cluster, 0)[:2]
-            mid_point = mid_point.astype('uint8')  # px coords
-            center = np.array([mid_point[1], mid_point[0]])  # matrix coords
-            centers.append(center)
-
-            # Object mask
-            object_mask = np.zeros_like(mask)
-            object_mask[cluster[:, 0], cluster[:, 1]] = 1
-            object_center_directions = \
-                (mid_point - self.pixel_indices).astype(np.float32)
-            object_center_directions = object_center_directions\
-                / np.maximum(np.linalg.norm(object_center_directions,
-                                            axis=2, keepdims=True), 1e-10)
-
-            # Add it to the labels
-            directions[object_mask == 1] = \
-                object_center_directions[object_mask == 1]
-
-        directions = np.transpose(directions, (2, 0, 1))
-        return centers, directions  # 2, H, W
-
     def __len__(self):
         return len(self.data)
 
@@ -159,14 +120,15 @@ class VREnvData(Dataset):
         frame = self.transforms(frame)
 
         # Segmentation mask (H, W)
-        mask = data["mask"]
+        # mask = data["mask"]
+
+        # centers, center_dirs = self.get_directions(mask)
+        center_dirs, mask = self.label_directions(data['centers'], data['mask'])
+        # center_dirs = torch.tensor(data["directions"]).permute(2, 0, 1)
 
         # Resize from torchvision requires mask to have channel dim
         mask = np.expand_dims(mask, 0)
         mask = self.mask_transforms(torch.from_numpy(mask)).long()
-
-        # centers, center_dirs = self.get_directions(mask)
-        center_dirs = torch.tensor(data["directions"]).permute(2, 0, 1)
 
         # Rotation transform
         if(self.add_rotation):
@@ -209,30 +171,50 @@ class VREnvData(Dataset):
                 # gripper always have just one center
                 mask = rotate(mask, rand_angle)
                 np_mask = mask.squeeze().numpy() * 255
-                directions = self.label_directions(center[0].transpose(),
-                                                   np_mask,
-                                                   directions,
-                                                   "gripper")
+                directions, mask = self.label_directions(center[0].transpose(),
+                                                         np_mask,
+                                                         directions,
+                                                         "gripper")
                 # Rotate
                 frame = rotate(frame, rand_angle)
                 directions = torch.tensor(directions).permute(2, 0, 1)
                 # center_dirs = rotate(center_dirs, rand_angle)
         return (frame, mask, directions)
 
-    def label_directions(self, center, object_mask, direction_labels, camtype):
-        # Get directions
-        # Shape: [H x W x 2]
-        indices = self.pixel_indices[camtype]
-        object_mask = tresh_np(object_mask, 100)
-        object_center_directions = (center - indices).astype(np.float32)
-        object_center_directions = object_center_directions\
-            / np.maximum(np.linalg.norm(object_center_directions,
-                                        axis=2, keepdims=True), 1e-10)
+    def label_directions(self, centers, object_mask):
+        '''
+            centers: np.array(shape=(1, 2), dtype='int64') pixel indices in orig. shape
+            object_mask: np.array(shape=(2, 2), dtype='uint8') binary 0-255
+        '''
+        old_shape = object_mask.shape
+        new_shape = self.pixel_indices.shape
+        direction_labels = np.stack(
+                            [np.ones(new_shape[:-1]),
+                             np.zeros(new_shape[:-1])],
+                            axis=-1).astype(np.float32)
+        obj_mask = np.zeros((new_shape[:-1]))
+        indices = self.pixel_indices
+        for center in centers:
+            c = resize_center(center, old_shape, new_shape[:2])
+            object_center_directions = (c - indices).astype(np.float32)
+            object_center_directions = object_center_directions\
+                / np.maximum(np.linalg.norm(object_center_directions,
+                                            axis=2, keepdims=True), 1e-10)
 
-        # Add it to the labels
-        direction_labels[object_mask == 1] = \
-            object_center_directions[object_mask == 1]
-        return direction_labels
+            # Add it to the labels
+            new_mask = create_circle_mask(obj_mask,
+                                          c[::-1],
+                                          r=self.radius)
+            new_mask = tresh_np(new_mask, 100).squeeze()
+            direction_labels[new_mask == 1] = \
+                object_center_directions[new_mask == 1]
+            obj_mask = overlay_mask(new_mask, obj_mask, (255, 255, 255))
+        flow_img = flowlib.flow_to_image(object_center_directions)
+        # cv2.imshow("directions_l", flow_img)
+        # cv2.imshow("masks", obj_mask*255)
+        # cv2.waitKey(0)
+        direction_labels = torch.tensor(direction_labels).permute(2, 0, 1)
+        return direction_labels.float(), obj_mask * 255
 
     def read_json(self, json_file):
         with open(json_file) as f:
@@ -245,9 +227,6 @@ def test_dir_labels(hv, frame, aff_mask, center_dir):
     #                          dim=1,
     #                          keepdim=True
     #                          ).clamp(min=1e-10)
-    flow_img = center_dir[0].permute((1, 2, 0)).cpu().detach().numpy()
-    flow_img = flowlib.flow_to_image(flow_img)  # RGB
-    flow_img = flow_img[:, :, ::-1]  # BGR
     bool_mask = (aff_mask == 1).int().cuda()
     center_dir = center_dir.cuda()  # 1, 2, H, W
     initial_masks, num_objects, object_centers_padded = \
@@ -263,20 +242,18 @@ def test_dir_labels(hv, frame, aff_mask, center_dir):
                                markerType=cv2.MARKER_CROSS,
                                markerSize=5,
                                line_type=cv2.LINE_AA)
-    cv2.imshow("directions_l", flow_img)
     cv2.imshow("hv_center", frame)
     cv2.waitKey(1)
     return frame
 
 
-@hydra.main(config_path="../config", config_name="cfg_affordance")
+@hydra.main(config_path="../../config", config_name="cfg_affordance")
 def main(cfg):
-    img_size = cfg.img_size[cfg.dataset.cam]
-    val = VREnvData(img_size, split="validation", log=None,
+    val = VREnvData(cfg.img_size, split="train", log=None,
                     **cfg.dataset)
     val_loader = DataLoader(val, num_workers=1, batch_size=1, pin_memory=True)
     print('val minibatches {}'.format(len(val_loader)))
-    from affordance_model.hough_voting import hough_voting as hv
+    from vapo.affordance_model.hough_voting import hough_voting as hv
     hv = hv.HoughVoting(**cfg.model_cfg.hough_voting)
 
     for b_idx, b in enumerate(val_loader):
@@ -287,7 +264,8 @@ def main(cfg):
         frame = frame[0].detach().cpu().numpy()
         frame = ((frame + 1)*255/2).astype('uint8')
         frame = np.transpose(frame, (1, 2, 0))
-        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+        if(frame.shape[-1] == 1):
+            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
 
         directions = np.transpose(directions, (1, 2, 0))
         flow_img = flowlib.flow_to_image(directions)  # RGB
@@ -299,20 +277,10 @@ def main(cfg):
                                   out_img,
                                   labels["affordance"],
                                   labels["center_dirs"])
-
-        # centers = labels["centers"][0]
-        # for c in centers:
-        #     c = c.squeeze().detach().cpu().numpy()
-        #     u, v = c[1], c[0]  # center stored in matrix convention
-        #     out_img = cv2.drawMarker(out_img, (u, v),
-        #                              (0, 0, 0),
-        #                              markerType=cv2.MARKER_CROSS,
-        #                              markerSize=5,
-        #                              line_type=cv2.LINE_AA)
         out_img = cv2.resize(out_img, (200, 200),
                              interpolation=cv2.INTER_CUBIC)
         cv2.imshow("img", out_img)
-        cv2.waitKey(1)
+        cv2.waitKey(0)
 
 
 if __name__ == "__main__":

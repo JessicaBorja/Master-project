@@ -1,6 +1,7 @@
 import torch
 import cv2
 import numpy as np
+import torchvision
 import torchvision.transforms as T
 
 
@@ -17,13 +18,17 @@ class ScaleImageTensor(object):
 
 
 class AddGaussianNoise(object):
-    def __init__(self, mean=0.0, std=1.0):
+    def __init__(self, mean=0.0, std=1.0, clip=None):
         self.std = torch.Tensor(std)
         self.mean = torch.Tensor(mean)
+        self.clip = clip
 
     def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         assert isinstance(tensor, torch.Tensor)
-        return tensor + torch.randn(tensor.size()) * self.std + self.mean
+        t = tensor + torch.randn(tensor.size()) * self.std + self.mean
+        if(self.clip):
+            t.clamp(self.clip[0], self.clip[1])
+        return t
 
     def __repr__(self):
         return self.__class__.__name__ + "(mean={0}, std={1})".\
@@ -57,16 +62,33 @@ class NormalizeVector(object):
 
 
 class ColorTransform(object):
-    def __init__(self) -> None:
+    def __init__(self, contrast=.3, brightness=.3, hue=.3, prob=0.3) -> None:
         super().__init__()
-        self.jitter = T.ColorJitter(contrast=.3, brightness=.3, hue=.3)
+        self.prob = prob
+        self.jitter = T.ColorJitter(contrast=contrast,
+                                    brightness=brightness,
+                                    hue=hue)
 
     # Change image color
     def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
         assert isinstance(tensor, torch.Tensor)
-        apply = np.random.rand() < 0.30  # 30% chance
+        apply = np.random.rand() < self.prob
+        tensor = self.jitter(tensor)
         if(apply):
             tensor = self.jitter(tensor)
+        return tensor
+
+
+class RandomCrop(object):
+    def __init__(self, size, rand_crop) -> None:
+        super().__init__()
+        _size = int(size * rand_crop)
+        self.orig_size = size
+        self.crop = torchvision.transforms.RandomCrop(_size)
+
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+        assert isinstance(tensor, torch.Tensor)
+        tensor = self.crop(tensor)
         return tensor
 
 

@@ -28,6 +28,7 @@ def train(cfg):
     train_loader, val_loader = get_loaders(logger,
                                            cfg.dataset,
                                            cfg.dataloader,
+                                           cfg.img_size,
                                            cfg.model_cfg.n_classes)
 
     # 24hr format

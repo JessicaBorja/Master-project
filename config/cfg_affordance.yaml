@@ -1,11 +1,11 @@
 project_path: /mnt/ssd_shared/Users/Jessica/Documents/Thesis_ssd
-data_dir: ${project_path}/datasets/teleop_real/
+data_dir: ${project_path}/datasets/task_A_A/
 save_dir: ./affordance_model/hydra_outputs/
 
 model_name: test
 n_epochs: 20
 img_size:
-  static: 300
+  static: 200
   gripper: 84
 
 rand_crop: 0.8
@@ -15,8 +15,8 @@ dataset:
   cam: static
   n_train_ep: -1  # Train using all episodes
   radius:
-    gripper: 20
-    static: 15
+    static: 14
+    gripper: 13
 
 dataloader:
   num_workers: 4

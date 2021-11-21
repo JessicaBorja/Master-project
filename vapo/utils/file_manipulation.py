@@ -143,7 +143,8 @@ def split_by_ts(root_dir, remove_blank_mask_instances=True):
     return data
 
 
-def create_json_file(root_dir, remove_blank_mask_instances=True,
+def create_json_file(root_dir,
+                     remove_blank_mask_instances=True,
                      split="train"):
     # Write everything on train split
     data = {"train": [], "validation": []}

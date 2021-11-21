@@ -97,6 +97,7 @@ class VREnvData(Dataset):
 
         print("%s episodes: %s" % (split, str(split_episodes)))
         for ep in split_episodes:
+            data[split][ep].sort()
             for file in data[split][ep]:
                 if(cam in file or cam == "full"):
                     split_data.append("%s/%s" % (ep, file))

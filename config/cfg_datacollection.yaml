@@ -10,12 +10,12 @@ save_viz: True
 euler_obs: True
 
 # For collecting dataset with playdata
-folder_name: task_A_A
+folder_name: task_A_A/validation
 play_data_dir: ${project_path}/datasets/rendered_data/${folder_name}
 
 #Output directory where dataset will be stored
 output_dir: ${project_path}/datasets/${folder_name}/
-viz: False
+viz: True
 split_dataset: True
 data_split: "train"  # Where to write the data if previous is false
 hydra:

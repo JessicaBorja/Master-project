@@ -473,7 +473,9 @@ def main(cfg):
     # data_lst = ["%s/datasets/task_A_A/training" % cfg.project_path,
     #             "%s/datasets/task_A_A/validation" % cfg.project_path]
     # merge_datasets(data_lst, cfg.output_dir)
-    # create_data_ep_split(cfg.output_dir, cfg.labeling.split_by_episodes)
+    # create_data_ep_split(cfg.output_dir,
+    #                      cfg.split_dataset,
+    #                      cfg.labeling.split_by_episodes)
 
 
 if __name__ == "__main__":

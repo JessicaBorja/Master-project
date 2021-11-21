@@ -10,7 +10,7 @@ import vapo.utils.flowlib as flowlib
 from vapo.utils.img_utils import overlay_mask, tresh_np, overlay_flow
 from vapo.utils.label_segmentation import get_static_mask, get_gripper_mask
 from vapo.utils.file_manipulation import get_files, save_data, check_file,\
-                                    create_data_ep_split, create_json_file
+                                    create_data_ep_split, create_json_file, merge_datasets
 from dataset_creation.cameras.real_cameras import CamProjections
 
 
@@ -471,17 +471,18 @@ def collect_dataset_close_open(cfg):
         create_data_ep_split(cfg.output_dir,
                              cfg.labeling.split_by_episodes)
     else:
-        create_json_file(cfg.output_dir)
+        create_json_file(cfg.output_dir, cfg.data_split)
 
 
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
     collect_dataset_close_open(cfg)
     # data_lst = ["%s/datasets/real_world/ep_%d"%(cfg.project_path, i) for i in range(1, 8)]
-    # data_lst = ["%s/datasets/teleop_real/teleop_real_08_09/" % cfg.project_path,
-    #             "%s/datasets/teleop_real/teleop_real_01_09/" % cfg.project_path]
+    # data_lst = ["%s/datasets/task_A_A/training" % cfg.project_path,
+    #             "%s/datasets/task_A_A/validation" % cfg.project_path]
     # merge_datasets(data_lst, cfg.output_dir)
     # create_data_ep_split(cfg.output_dir, cfg.labeling.split_by_episodes)
+
 
 if __name__ == "__main__":
     main()

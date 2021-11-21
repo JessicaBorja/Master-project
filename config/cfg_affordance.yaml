@@ -5,8 +5,8 @@ save_dir: ./affordance_model/hydra_outputs/
 model_name: gripper_test
 n_epochs: 20
 img_size:
-  static: 200
-  gripper: 64
+  static: 300
+  gripper: 84
 
 dataset:
   root_dir: ${data_dir}

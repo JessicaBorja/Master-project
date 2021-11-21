@@ -23,7 +23,6 @@ def check_file(filename, allow_pickle=True):
 # Merge datasets using json files
 def merge_datasets(directory_list, output_dir):
     new_data = {"train": {}, "validation": {}}
-    episode_it = [0, 0]
     for dir in directory_list:
         json_path = os.path.join(dir, "episodes_split.json")
         with open(json_path) as f:
@@ -31,8 +30,10 @@ def merge_datasets(directory_list, output_dir):
 
         # TRAINING EPISODES
         # Rename episode numbers if repeated
-        data_split = ["train", "validation"]
-        for split, episode in zip(data_split, episode_it):
+        # data_split = ["train", "validation"]
+        data_split = list(data.keys())
+        episode = 0
+        for split in data_split:
             dataset_name = os.path.basename(os.path.normpath(dir))
             for key in data[split].keys():
                 new_data[split]["/%s/%s" % (dataset_name, key)] = \
@@ -142,9 +143,10 @@ def split_by_ts(root_dir, remove_blank_mask_instances=True):
     return data
 
 
-def create_json_file(root_dir, remove_blank_mask_instances=True):
+def create_json_file(root_dir, remove_blank_mask_instances=True,
+                     split="train"):
     # Write everything on train split
-    data = {"train": []}
+    data = {"train": [], "validation": []}
     # Episodes are subdirectories
     n_episodes = 0
     if(isinstance(root_dir, list)):
@@ -152,7 +154,7 @@ def create_json_file(root_dir, remove_blank_mask_instances=True):
             n_episodes += len(glob.glob(dir_i + "/*/"))
     n_episodes = len(glob.glob(root_dir + "/*/"))
     train_ep = [ep for ep in range(n_episodes)]
-    data["train"] = {"episode_%02d" % e: [] for e in train_ep}
+    data[split] = {"episode_%02d" % e: [] for e in train_ep}
 
     for ep in tqdm.tqdm(range(n_episodes)):
         ep_dir = os.path.join(root_dir, "episode_%02d" % ep)
@@ -165,8 +167,8 @@ def create_json_file(root_dir, remove_blank_mask_instances=True):
         static_cam_files = glob.glob("%s/data/*/*static*" % ep_dir)
         selected_static_files = select_files(static_cam_files,
                                              remove_blank_mask_instances)
-        data["train"].update({ep_str: selected_gripper_files})
-        data["train"][ep_str].extend(selected_static_files)
+        data[split].update({ep_str: selected_gripper_files})
+        data[split][ep_str].extend(selected_static_files)
     with open(root_dir+'/episodes_split.json', 'w') as outfile:
         json.dump(data, outfile, indent=2)
 
@@ -218,7 +220,7 @@ def save_data(data_dict, directory, sub_dir, save_viz=False):
 
             affordance = cv2.resize(affordance, (300, 300))
             directions = cv2.resize(directions, (300, 300))
-            orig_frame = cv2.resize(affordance, (300, 300))
+            orig_frame = cv2.resize(orig_frame, (300, 300))
             cv2.imwrite(aff_viz_filname, affordance)
             cv2.imwrite(dir_viz_filname, directions)
             cv2.imwrite(frame_viz_filname, orig_frame)

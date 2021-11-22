@@ -75,6 +75,7 @@ def label_gripper(cam, img_hist, back_frames_max, curr_pt,
                             [np.ones((H, W)),
                              np.zeros((H, W))], axis=-1).astype(np.float32)
             mask = np.zeros(out_img_size)
+            centers = []
             if(robot_obs[-1] > 0.015):
                 for point in [curr_pt, last_pt]:
                     if point is not None:
@@ -91,7 +92,8 @@ def label_gripper(cam, img_hist, back_frames_max, curr_pt,
                                                                      out_img_size)
                         if(np.any(center_px < 0) or np.any(center_px >= H)):
                             new_mask = np.zeros(out_img_size)
-                            center_px = np.array([1, 0])
+                        else:
+                            centers.append(center_px)
                             # continue  # Outside of image FOV
                         directions = label_directions(center_px,
                                                       new_mask,
@@ -100,7 +102,7 @@ def label_gripper(cam, img_hist, back_frames_max, curr_pt,
                         mask = overlay_mask(new_mask, mask, (255, 255, 255))
             else:
                 mask = np.zeros(out_img_size)
-                center_px = np.array([1, 0])
+                centers = []
 
             # Visualize results
             img = cv2.resize(img, out_img_size)
@@ -117,10 +119,11 @@ def label_gripper(cam, img_hist, back_frames_max, curr_pt,
                 cv2.imshow('Gripper real flow', viz_flow)
                 cv2.waitKey(1)
 
+            centers = [] if len(centers) < 1 else np.stack(centers)
             save_dict[im_id] = {
                 "frame": img,
                 "mask": mask,
-                "centers": np.stack([center_px]),
+                "centers": centers,
                 "directions": directions,
                 "viz_out": out_img,
                 "viz_dir": flow_over_img,

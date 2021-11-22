@@ -210,7 +210,8 @@ class VREnvData(Dataset):
             direction_labels[new_mask == 1] = \
                 object_center_directions[new_mask == 1]
             obj_mask = overlay_mask(new_mask, obj_mask, (255, 255, 255))
-        flow_img = flowlib.flow_to_image(object_center_directions)
+
+        # flow_img = flowlib.flow_to_image(object_center_directions)
         # cv2.imshow("directions_l", flow_img)
         # cv2.imshow("masks", obj_mask*255)
         # cv2.waitKey(0)

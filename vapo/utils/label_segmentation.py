@@ -22,8 +22,8 @@ def resize_center(center, old_shape, new_shape):
 def resize_mask_and_center(mask, center, new_size):
     orig_H, orig_W = mask.shape[:2]
     mask = cv2.resize(mask, new_size)
-    center = np.array(center) * new_size[0] // orig_H
-    return mask, center
+    new_center = np.array(center) * new_size[0] // orig_H
+    return mask, new_center
 
 
 def delete_oclussion(mask, robot_pose):
@@ -155,7 +155,6 @@ def get_gripper_mask(img, robot_obs, point, offset=[0, 0, 0],
 
         # Get img coords after resize
         tcp_x, tcp_y = get_px_after_crop_resize(cam, (tcp_x, tcp_y))
-
 
     else:
         orn = p.getQuaternionFromEuler(orn)

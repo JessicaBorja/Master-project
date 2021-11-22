@@ -40,6 +40,7 @@ class Segmentator(pl.LightningModule):
             self.act_fnc = torch.nn.Softmax(1)
         else:
             self.act_fnc = torch.nn.Sigmoid()
+        self.save_hyperparameters()
 
     def init_model(self, decoder_channels=None, n_classes=2):
         if(decoder_channels is None):

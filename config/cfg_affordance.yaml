@@ -1,9 +1,9 @@
 project_path: /mnt/ssd_shared/Users/Jessica/Documents/Thesis_ssd
-data_dir: ${project_path}/datasets/task_A_A/
-save_dir: ./affordance_model/hydra_outputs/
+data_dir: ${project_path}/datasets/teleop_real/drawer/2021-11-18
+save_dir: ./hydra_outputs/affordance_model/
 
 model_name: test
-n_epochs: 20
+n_epochs: 100
 img_size:
   static: 200
   gripper: 84

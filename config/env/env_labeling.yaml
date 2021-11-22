@@ -8,5 +8,5 @@ show_gui: false
 robot_cfg: ${robot}
 scene_cfg: ${scene}
 use_scene_info: false
-use_egl: true
+use_egl: false
 control_freq: 30

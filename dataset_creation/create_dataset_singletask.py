@@ -483,7 +483,7 @@ def main(cfg):
     # data_lst = ["%s/datasets/real_world/ep_%d"%(cfg.project_path, i) for i in range(1, 8)]
     # data_lst = ["%s/datasets/task_A_A/training" % cfg.project_path,
     #             "%s/datasets/task_A_A/validation" % cfg.project_path]
-    # merge_datasets(data_lst, cfg.output_dir)
+    # # merge_datasets(data_lst, cfg.output_dir)
     # create_data_ep_split(cfg.output_dir,
     #                      cfg.split_dataset,
     #                      cfg.labeling.split_by_episodes)

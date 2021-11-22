@@ -59,7 +59,7 @@ def select_files(episode_files, remove_blank_masks, min_labels=3):
         file_relative_path = os.path.basename(os.path.normpath(head))
         file_name = os.path.join(file_relative_path, file_name)
         if(remove_blank_masks):
-            np_file = np.load(file)
+            np_file = np.load(file, allow_pickle=True)
             mask = np_file["mask"]  # (H, W)
             gripper_label = "gripper_cam" in file_name and mask.max() > 0
             enough_labels = "static_cam" in file_name \

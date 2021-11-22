@@ -1,6 +1,6 @@
 project_path:  /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/
 data_path: ${project_path}/VREnv/data/
-save_dir: ./combined/hydra_outputs/${task}
+save_dir: ./hydra_outputs/${task}
 model_name: "full"
 task: slide
 img_size: 64

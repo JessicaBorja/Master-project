@@ -20,7 +20,7 @@ split_dataset: True
 data_split: "train"  # Where to write the data if previous is false
 hydra:
   run:
-    dir: ../tmp/datacollection/${now:%Y-%m-%d}_${now:%H-%M-%S}
+    dir: ./hydra_outputs/datacollection/${now:%Y-%m-%d}_${now:%H-%M-%S}
 
 use_vr: false
 defaults:

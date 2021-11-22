@@ -1,8 +1,11 @@
-
 train:
   - _target_: torchvision.transforms.Resize
     size: ${img_size}
   - _target_: vapo.affordance_model.utils.transforms.ColorTransform
+    contrast: 0.05
+    brightness: 0.05
+    hue: 0.02
+    prob: 1
   - _target_: torchvision.transforms.Grayscale
     num_output_channels: 1
   - _target_: vapo.affordance_model.utils.transforms.ScaleImageTensor  # Scale 0-255 to 0-1
@@ -12,6 +15,7 @@ train:
   - _target_: vapo.affordance_model.utils.transforms.AddGaussianNoise
     mean: [0.0]
     std: [0.01]
+    clip: [-1, 1]
     
 validation:
   - _target_: torchvision.transforms.Resize

@@ -11,12 +11,13 @@ from vapo.affordance_model.hough_voting import hough_voting as hv
 
 
 class Segmentator(pl.LightningModule):
-    def __init__(self, cfg, cmd_log=None):
+    def __init__(self, cfg, input_channels=1, cmd_log=None):
         super().__init__()
         self.n_classes = cfg.n_classes
         # https://github.com/qubvel/segmentation_models.pytorch
         self.unet, self.center_direction_net = \
             self.init_model(decoder_channels=cfg.unet_cfg.decoder_channels,
+                            in_channels=input_channels,
                             n_classes=cfg.n_classes)
         self.optimizer_cfg = cfg.optimizer
         # Loss function
@@ -42,14 +43,14 @@ class Segmentator(pl.LightningModule):
             self.act_fnc = torch.nn.Sigmoid()
         self.save_hyperparameters()
 
-    def init_model(self, decoder_channels=None, n_classes=2):
+    def init_model(self, decoder_channels=None, n_classes=2, in_channels=1):
         if(decoder_channels is None):
             decoder_channels = [128, 64, 32]
         # encoder_depth Should be equal to number of layers in decoder
         unet = smp.Unet(
             encoder_name="resnet18",
             encoder_weights="imagenet",
-            in_channels=1,  # Grayscale
+            in_channels=in_channels,  # Grayscale
             classes=n_classes,
             encoder_depth=len(decoder_channels),
             decoder_channels=tuple(decoder_channels),

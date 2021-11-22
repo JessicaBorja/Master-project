@@ -16,7 +16,7 @@ dataset:
   n_train_ep: -1  # Train using all episodes
   radius:
     static: 14
-    gripper: 13
+    gripper: 10
 
 dataloader:
   num_workers: 4

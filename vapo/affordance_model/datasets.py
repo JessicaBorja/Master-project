@@ -45,7 +45,7 @@ def get_loaders(logger, dataset_cfg, dataloader_cfg, img_size, n_classes):
     val_loader = DataLoader(val, **dataloader_cfg)
     logger.info('train minibatches {}'.format(len(train_loader)))
     logger.info('val minibatches {}'.format(len(val_loader)))
-    return train_loader, val_loader
+    return train_loader, val_loader, val.out_shape
 
 
 class VREnvData(Dataset):
@@ -69,6 +69,7 @@ class VREnvData(Dataset):
         self.pixel_indices = np.indices((img_size[cam], img_size[cam]),
                                         dtype=np.float32).transpose(1, 2, 0)
         self.radius = radius[cam]
+        self.out_shape = self.get_channels(img_size[cam])
 
     def _overfit_split_data(self, data, split, cam, n_train_ep):
         split_data = []
@@ -81,6 +82,11 @@ class VREnvData(Dataset):
                     split_data.append("%s/%s" % (ep, file))
         print("%s images: %d" % (split, len(split_data)))
         return split_data
+
+    def get_channels(self, in_size):
+        test_tensor = torch.zeros((3, in_size, in_size))
+        test_tensor = self.transforms(test_tensor)
+        return test_tensor.shape  # C, H, W
 
     def _get_split_data(self, data, split, cam, n_train_ep):
         split_data = []

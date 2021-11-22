@@ -25,11 +25,12 @@ def train(cfg):
                 OmegaConf.to_yaml(print_cfg(cfg)))
 
     # Data split
-    train_loader, val_loader = get_loaders(logger,
-                                           cfg.dataset,
-                                           cfg.dataloader,
-                                           cfg.img_size,
-                                           cfg.model_cfg.n_classes)
+    train_loader, val_loader, im_shape = \
+        get_loaders(logger,
+                    cfg.dataset,
+                    cfg.dataloader,
+                    cfg.img_size,
+                    cfg.model_cfg.n_classes)
 
     # 24hr format
     model_name = cfg.model_name
@@ -59,7 +60,9 @@ def train(cfg):
                         datetime.datetime.now().strftime('%d-%m_%H-%M'))
     wandb_logger = WandbLogger(name=model_name,
                                project="affordance_model")
-    aff_model = Segmentator(cfg.model_cfg, cmd_log=logger)
+    aff_model = Segmentator(cfg.model_cfg,
+                            input_channels=im_shape[0],
+                            cmd_log=logger)
     trainer = pl.Trainer(
         callbacks=[checkpoint_miou_callback, checkpoint_loss_callback],
         logger=wandb_logger,

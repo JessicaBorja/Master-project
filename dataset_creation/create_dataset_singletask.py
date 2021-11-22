@@ -4,15 +4,17 @@ import numpy as np
 import tqdm
 import os
 from omegaconf import OmegaConf
-from omegaconf.dictconfig import DictConfig
 import glob
 import vapo.utils.flowlib as flowlib
 from vapo.utils.img_utils import overlay_mask, tresh_np, overlay_flow
-from vapo.utils.label_segmentation import get_static_mask, get_gripper_mask, resize_mask_and_center, tcp_to_global
+from vapo.utils.label_segmentation import get_static_mask, get_gripper_mask, \
+                                          resize_mask_and_center, tcp_to_global
 from vapo.utils.file_manipulation import get_files, save_data, check_file,\
                                     create_data_ep_split, create_json_file, merge_datasets
 from dataset_creation.cameras.real_cameras import CamProjections
+import logging
 
+log = logging.getLogger(__name__)
 
 # Keep points in a distance larger than radius from new_point
 # Do not keep fixed points more than 100 frames
@@ -318,6 +320,9 @@ def collect_dataset_close_open(cfg):
             f.remove(os.path.join(ep_path, "camera_info.npz"))
             files.extend(f)
     end_ids.sort()
+    log.info("End ids")
+    for id in end_ids:
+        log.info(id)
     save_static, save_gripper = {}, {}
     static_cam, gripper_cam = instantiate_cameras(cfg, teleop_data)
 

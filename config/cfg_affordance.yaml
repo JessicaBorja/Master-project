@@ -1,12 +1,12 @@
 project_path: /mnt/ssd_shared/Users/Jessica/Documents/Thesis_ssd
-data_dir: ${project_path}/datasets/teleop_real/drawer/2021-11-18
+data_dir: ${project_path}/datasets/drawer_affordance
 save_dir: ./hydra_outputs/affordance_model/
 
 model_name: test
-n_epochs: 100
+n_epochs: 50
 img_size:
   static: 200
-  gripper: 84
+  gripper: 64
 
 rand_crop: 0.8
 
@@ -50,9 +50,10 @@ model_cfg:
     decoder_channels: [128, 64, 32]
 
 trainer:
-  gpus: 1
+  gpus: -1
   max_epochs: ${n_epochs}
   num_sanity_val_steps: 1
+  strategy: ddp
 
 #-- Hydra config --#
 hydra:

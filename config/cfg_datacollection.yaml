@@ -10,7 +10,7 @@ save_viz: True
 euler_obs: True
 frames_before_saving: 300
 # For collecting dataset with playdata
-folder_name: task_A_A/validation
+folder_name: drawer_affordance
 play_data_dir: ${project_path}/datasets/rendered_data/${folder_name}
 
 #Output directory where dataset will be stored

@@ -75,7 +75,7 @@ def select_files(episode_files, remove_blank_masks, min_labels=3):
 
 
 def split_by_ep(root_dir, remove_blank_mask_instances=True):
-    data = {"train": [], "validation": []}
+    data = {"train": {}, "validation": {}}
     # Episodes are subdirectories
     n_episodes = 0
     if(isinstance(root_dir, list)):
@@ -107,7 +107,7 @@ def split_by_ep(root_dir, remove_blank_mask_instances=True):
 
 
 def split_by_ts(root_dir, remove_blank_mask_instances=True):
-    data = {"train": [], "validation": []}
+    data = {"train": {}, "validation": {}}
 
     # Count episodes
     n_episodes = 0
@@ -148,7 +148,7 @@ def create_json_file(root_dir,
                      remove_blank_mask_instances=True,
                      split="train"):
     # Write everything on train split
-    data = {"train": [], "validation": []}
+    data = {"train": {}, "validation": {}}
     # Episodes are subdirectories
     n_episodes = 0
     if(isinstance(root_dir, list)):

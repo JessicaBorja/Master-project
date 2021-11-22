@@ -57,7 +57,8 @@ def train(cfg):
     model_name = "{}_{}".format(
                         model_name,
                         datetime.datetime.now().strftime('%d-%m_%H-%M'))
-    wandb_logger = WandbLogger(name=model_name, project="affordance_model")
+    wandb_logger = WandbLogger(name=model_name,
+                               project="affordance_model")
     aff_model = Segmentator(cfg.model_cfg, cmd_log=logger)
     trainer = pl.Trainer(
         callbacks=[checkpoint_miou_callback, checkpoint_loss_callback],

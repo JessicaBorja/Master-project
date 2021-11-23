@@ -1,5 +1,5 @@
 project_path: /mnt/ssd_shared/Users/Jessica/Documents/Thesis_ssd
-data_dir: ${project_path}/datasets/drawer_affordance
+data_dir: ${project_path}/datasets/task_A_A/validation
 save_dir: ./hydra_outputs/affordance_model/
 
 model_name: test
@@ -7,12 +7,13 @@ n_epochs: 50
 img_size:
   static: 200
   gripper: 64
+  all: 100  # Resize to this if using all images
 
 rand_crop: 0.8
 
 dataset:
   root_dir: ${data_dir}
-  cam: static
+  cam: full
   n_train_ep: -1  # Train using all episodes
   radius:
     static: 14
@@ -45,7 +46,7 @@ model_cfg:
       class_weights: [0.2, 0.8]
   optimizer:
     lr: 1e-5
-    weight_decay: 1e-4
+    # weight_decay: 1e-4
   unet_cfg:
     decoder_channels: [128, 64, 32]
 

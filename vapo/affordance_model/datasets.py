@@ -68,7 +68,10 @@ class VREnvData(Dataset):
                                               img_size[cam])
         self.pixel_indices = np.indices((img_size[cam], img_size[cam]),
                                         dtype=np.float32).transpose(1, 2, 0)
-        self.radius = radius[cam]
+        self.radius = radius[cam] if cam != "all" else radius
+        for cam_type in self.radius.keys():
+            self.radius[cam_type] = radius[cam_type] * img_size[cam] // img_size[cam_type]
+
         self.out_shape = self.get_channels(img_size[cam])
 
     def _overfit_split_data(self, data, split, cam, n_train_ep):
@@ -78,7 +81,7 @@ class VREnvData(Dataset):
         print("%s episodes: %s" % (split, str(split_episodes)))
         for ep in split_episodes:
             for file in data[split][ep]:
-                if(cam in file or cam == "full"):
+                if(cam in file or cam == "all"):
                     split_data.append("%s/%s" % (ep, file))
         print("%s images: %d" % (split, len(split_data)))
         return split_data
@@ -105,7 +108,7 @@ class VREnvData(Dataset):
         for ep in split_episodes:
             data[split][ep].sort()
             for file in data[split][ep]:
-                if(cam in file or cam == "full"):
+                if(cam in file or cam == "all"):
                     split_data.append("%s/%s" % (ep, file))
         print("%s images: %d" % (split, len(split_data)))
         return split_data
@@ -130,7 +133,9 @@ class VREnvData(Dataset):
         # mask = data["mask"]
 
         # centers, center_dirs = self.get_directions(mask)
-        center_dirs, mask = self.label_directions(data['centers'], data['mask'])
+        center_dirs, mask = self.label_directions(data['centers'],
+                                                  data['mask'],
+                                                  cam_folder[:-4])
         # center_dirs = torch.tensor(data["directions"]).permute(2, 0, 1)
 
         # Resize from torchvision requires mask to have channel dim
@@ -188,7 +193,7 @@ class VREnvData(Dataset):
                 # center_dirs = rotate(center_dirs, rand_angle)
         return (frame, mask, directions)
 
-    def label_directions(self, centers, object_mask):
+    def label_directions(self, centers, object_mask, curr_cam):
         '''
             centers: np.array(shape=(1, 2), dtype='int64') pixel indices in orig. shape
             object_mask: np.array(shape=(2, 2), dtype='uint8') binary 0-255
@@ -201,6 +206,7 @@ class VREnvData(Dataset):
                             axis=-1).astype(np.float32)
         obj_mask = np.zeros((new_shape[:-1]))
         indices = self.pixel_indices
+        r = self.radius[curr_cam]
         for center in centers:
             c = resize_center(center, old_shape, new_shape[:2])
             object_center_directions = (c - indices).astype(np.float32)
@@ -211,7 +217,7 @@ class VREnvData(Dataset):
             # Add it to the labels
             new_mask = create_circle_mask(obj_mask,
                                           c[::-1],
-                                          r=self.radius)
+                                          r=r)
             new_mask = tresh_np(new_mask, 100).squeeze()
             direction_labels[new_mask == 1] = \
                 object_center_directions[new_mask == 1]

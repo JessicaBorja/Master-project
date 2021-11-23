@@ -68,9 +68,12 @@ class VREnvData(Dataset):
                                               img_size[cam])
         self.pixel_indices = np.indices((img_size[cam], img_size[cam]),
                                         dtype=np.float32).transpose(1, 2, 0)
-        self.radius = radius[cam] if cam != "all" else radius
-        for cam_type in self.radius.keys():
-            self.radius[cam_type] = radius[cam_type] * img_size[cam] // img_size[cam_type]
+        if(cam == "all"):
+            self.radius = radius
+            for cam_type in self.radius.keys():
+                self.radius[cam_type] = radius[cam_type] * img_size[cam] // img_size[cam_type]
+        else:
+            self.radius = radius[cam]
 
         self.out_shape = self.get_channels(img_size[cam])
 

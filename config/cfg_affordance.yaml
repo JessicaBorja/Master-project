@@ -13,7 +13,7 @@ rand_crop: 0.8
 
 dataset:
   root_dir: ${data_dir}
-  cam: full
+  cam: static
   n_train_ep: -1  # Train using all episodes
   radius:
     static: 14

@@ -87,8 +87,7 @@ def label_gripper(cam, img_hist, back_frames_max, curr_pt,
                                                                point,
                                                                cam=cam,
                                                                radius=radius,
-                                                               teleop_data=teleop_data,
-                                                               offset=offset)
+                                                               teleop_data=teleop_data)
                         new_mask, center_px = resize_mask_and_center(new_mask,
                                                                      center_px,
                                                                      out_img_size)
@@ -275,11 +274,6 @@ def instantiate_cameras(cfg, teleop_data):
 def collect_dataset_close_open(cfg):
     global pixel_indices
 
-    # Some data has calibration mistakes
-    # offset in tcp frame
-    global offset
-    offset = [0, 0, 0.04]
-
     save_viz = cfg.save_viz
     gripper_out_size = (cfg.output_size.gripper, cfg.output_size.gripper)
     static_out_size = (cfg.output_size.static, cfg.output_size.static)
@@ -359,8 +353,8 @@ def collect_dataset_close_open(cfg):
             # orn = p.getEulerFromQuaternion(proprio["tcp_orn"])
             orn = proprio["tcp_orn"]
             tcp_pos = proprio["tcp_pos"]
-            tcp_pos = tcp_to_global(tcp_pos, orn,
-                                    offset=offset)
+            # tcp_pos = tcp_to_global(tcp_pos, orn,
+            #                         offset=offset)
             robot_obs = np.array([*tcp_pos,
                                   *orn,
                                   proprio["gripper_opening_width"]])
@@ -489,9 +483,9 @@ def collect_dataset_close_open(cfg):
 def main(cfg):
     collect_dataset_close_open(cfg)
     # data_lst = ["%s/datasets/real_world/ep_%d"%(cfg.project_path, i) for i in range(1, 8)]
-    # data_lst = ["%s/datasets/task_A_A/training" % cfg.project_path,
-    #             "%s/datasets/task_A_A/validation" % cfg.project_path]
-    # # merge_datasets(data_lst, cfg.output_dir)
+    # data_lst = ["%s/datasets/drawer_affordance/training" % cfg.project_path,
+    #             "%s/datasets/drawer_affordance/validation" % cfg.project_path]
+    # merge_datasets(data_lst, cfg.output_dir)
     # create_data_ep_split(cfg.output_dir,
     #                      cfg.split_dataset,
     #                      cfg.labeling.split_by_episodes)

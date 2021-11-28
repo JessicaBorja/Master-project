@@ -1,5 +1,4 @@
-project_path:  /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/
-data_path: ${project_path}/VREnv/data/
+data_path: ${paths.vr_data}
 save_dir: ./hydra_outputs/${task}
 model_name: "full"
 task: slide
@@ -8,13 +7,10 @@ repeat_training: 1
 
 viz_obs: False
 init_angle: False
-# path to load affordance models either gripper_cam 
-# or static_cam
-models_path: "${project_path}/vapo/trained_models/"
 
 # Static cam affordance model to detect the targets
 target_search_aff:
-  model_path: ${models_path}/static_playtable.ckpt
+  model_path: ${paths.trained_models}/static_playtable.ckpt
   img_size: 200
   hyperparameters:
     n_classes: 4
@@ -60,7 +56,7 @@ env_wrapper:
 affordance:
     static_cam:
       use: False
-      model_path: ${models_path}/static_playtable.ckpt
+      model_path: ${paths.trained_models}/static_playtable.ckpt
       img_size: 200
       hough_voting:
         skip_pixels: 2
@@ -91,7 +87,7 @@ affordance:
       use_distance: False
       densify_reward: False  # Use affordance to shape the reward function
       target_in_obs: False  # Add target detected by affordance into observation
-      model_path: ${models_path}/hinge_left_gripper.ckpt  # gripper_playtable_64px.ckpt
+      model_path: ${paths.trained_models}/hinge_left_gripper.ckpt  # gripper_playtable_64px.ckpt
       hough_voting:
         skip_pixels: 2
         inlier_threshold: 0.7
@@ -129,6 +125,7 @@ defaults:
   - camera_conf: playtable
   - agent: default_playtable
   - test: test_playtable
+  - paths: general_paths
   - transforms@affordance.transforms: aff_transforms
   - transforms@env_wrapper.transforms: rl_transforms
   - override hydra/hydra_logging: colorlog

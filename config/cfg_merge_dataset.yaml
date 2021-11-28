@@ -1,0 +1,8 @@
+parent_folder: ${paths.parent_folder}
+data_lst: [${parent_folder}/datasets/drawer_affordance/training",
+           ${parent_folder}/datasets/drawer_affordance/validation"]
+
+defaults:
+  - paths: general_paths
+  - override hydra/hydra_logging: colorlog
+  - override hydra/job_logging: colorlog

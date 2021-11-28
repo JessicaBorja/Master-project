@@ -3,6 +3,7 @@ teleop_data: False
 back_frames_max: 50
 back_frames_min: 5
 fixed_pt_radius: 0.09  # Meters
+min_labels: 4
 label_size:
   static_cam: 14
   gripper_cam: 13

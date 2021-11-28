@@ -1,5 +1,4 @@
-project_path: /mnt/ssd_shared/Users/Jessica/Documents/Thesis_ssd
-data_dir: ${project_path}/datasets/task_A_A/validation
+data_dir: ${paths.dataset}
 save_dir: ./hydra_outputs/affordance_model/
 
 model_name: test
@@ -63,6 +62,7 @@ hydra:
 
 defaults:
   - optim: aff_optim
+  - paths: general_paths
   - transforms@dataset.transforms_cfg: aff_transforms
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog

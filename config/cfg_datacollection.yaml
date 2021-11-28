@@ -1,7 +1,4 @@
 #Environment
-project_path: /mnt/ssd_shared/Users/Jessica/Documents/Thesis_ssd/
-data_path: ${project_path}/VREnv/data/
-
 output_size:
   static: 300
   gripper: 96
@@ -10,11 +7,11 @@ save_viz: True
 euler_obs: True
 frames_before_saving: 300
 # For collecting dataset with playdata
-folder_name: drawer_affordance
-play_data_dir: ${project_path}/datasets/rendered_data/${folder_name}
+folder_name: task_A_A
+play_data_dir: ${path.datasets}/unprocessed/${folder_name}
 
 #Output directory where dataset will be stored
-output_dir: ${project_path}/datasets/${folder_name}/
+output_dir: ${path.datasets}/${folder_name}/
 viz: True
 split_dataset: True
 data_split: "train"  # Where to write the data if previous is false
@@ -28,6 +25,7 @@ defaults:
   - env: env_labeling
   - robot: panda
   - scene: tabletop_1
+  - paths: general_paths
   - camera_conf@cameras: no_cameras
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog

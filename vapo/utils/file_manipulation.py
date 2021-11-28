@@ -20,32 +20,6 @@ def check_file(filename, allow_pickle=True):
     return data
 
 
-# Merge datasets using json files
-def merge_datasets(directory_list, output_dir):
-    new_data = {"train": {}, "validation": {}}
-    for dir in directory_list:
-        json_path = os.path.join(dir, "episodes_split.json")
-        with open(json_path) as f:
-            data = json.load(f)
-
-        # TRAINING EPISODES
-        # Rename episode numbers if repeated
-        # data_split = ["train", "validation"]
-        data_split = list(data.keys())
-        episode = 0
-        for split in data_split:
-            dataset_name = os.path.basename(os.path.normpath(dir))
-            for key in data[split].keys():
-                new_data[split]["/%s/%s" % (dataset_name, key)] = \
-                    data[split][key]
-                episode += 1
-    # Write output
-    if(not os.path.exists(output_dir)):
-        os.makedirs(output_dir)
-    with open(output_dir + '/episodes_split.json', 'w') as outfile:
-        json.dump(new_data, outfile, indent=2)
-
-
 # Select files that have a segmentation mask
 def select_files(episode_files, remove_blank_masks, min_labels=3):
     # Skip first n files for static cams since
@@ -74,7 +48,7 @@ def select_files(episode_files, remove_blank_masks, min_labels=3):
     return data
 
 
-def split_by_ep(root_dir, remove_blank_mask_instances=True):
+def split_by_ep(root_dir, remove_blank_mask_instances=True, min_labels=3):
     data = {"train": {}, "validation": {}}
     # Episodes are subdirectories
     n_episodes = 0
@@ -100,13 +74,14 @@ def split_by_ep(root_dir, remove_blank_mask_instances=True):
 
         static_cam_files = glob.glob("%s/data/*/*static*" % ep_dir)
         selected_static_files = select_files(static_cam_files,
-                                             remove_blank_mask_instances)
+                                             remove_blank_mask_instances,
+                                             min_labels=min_labels)
         data[split].update({ep_str: selected_gripper_files})
         data[split][ep_str].extend(selected_static_files)
     return data
 
 
-def split_by_ts(root_dir, remove_blank_mask_instances=True):
+def split_by_ts(root_dir, remove_blank_mask_instances=True, min_labels=min_labels):
     data = {"train": {}, "validation": {}}
 
     # Count episodes
@@ -127,7 +102,8 @@ def split_by_ts(root_dir, remove_blank_mask_instances=True):
                                     remove_blank_mask_instances)
 
         static_data = select_files(full_static_cam_files,
-                                   remove_blank_mask_instances)
+                                   remove_blank_mask_instances,
+                                   min_labels=min_labels)
 
         for split in ["validation", "train"]:
             ep_str = 'episode_%02d' % ep
@@ -146,7 +122,7 @@ def split_by_ts(root_dir, remove_blank_mask_instances=True):
 
 def create_json_file(root_dir,
                      remove_blank_mask_instances=True,
-                     split="train"):
+                     split="train", min_labels=3):
     # Write everything on train split
     data = {"train": {}, "validation": {}}
     # Episodes are subdirectories
@@ -168,7 +144,8 @@ def create_json_file(root_dir,
 
         static_cam_files = glob.glob("%s/data/*/*static*" % ep_dir)
         selected_static_files = select_files(static_cam_files,
-                                             remove_blank_mask_instances)
+                                             remove_blank_mask_instances,
+                                             min_labels=min_labels)
         data[split].update({ep_str: selected_gripper_files})
         data[split][ep_str].extend(selected_static_files)
     with open(root_dir+'/episodes_split.json', 'w') as outfile:
@@ -177,11 +154,12 @@ def create_json_file(root_dir,
 
 # Split episodes into train and validation
 def create_data_ep_split(root_dir, label_by_ep,
-                         remove_blank_mask_instances=True):
+                         remove_blank_mask_instances=True,
+                         min_labels=3):
     if(label_by_ep):
-        data = split_by_ep(root_dir, remove_blank_mask_instances)
+        data = split_by_ep(root_dir, remove_blank_mask_instances, min_labels)
     else:
-        data = split_by_ts(root_dir, remove_blank_mask_instances)
+        data = split_by_ts(root_dir, remove_blank_mask_instances, min_labels)
     with open(root_dir+'/episodes_split.json', 'w') as outfile:
         json.dump(data, outfile, indent=2)
 

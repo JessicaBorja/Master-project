@@ -1,5 +1,4 @@
-project_path:  /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/
-data_path: ${project_path}/VREnv/data/
+data_path: ${paths.vr_data}
 save_dir: ./hydra_outputs/${task}
 model_name: full
 task: pickup
@@ -11,7 +10,6 @@ viz_obs: False
 # path to load affordance models either gripper_cam 
 # or static_cam
 save_replay_buffer: False
-models_path: "${project_path}/vapo/trained_models/"
 save_images: False
 
 # Resume training
@@ -21,7 +19,7 @@ resume_model_path: ${test_cfg.folder_name}
 # tabletop_multiscene_static_sideview.ckpt 
 # Static cam affordance model to detect the targets
 target_search_aff:
-  model_path: ${models_path}/tabletop_multiscene_static_sideview.ckpt  # static_centers_2-5_1_5_1_200px_epoch_13.ckpt
+  model_path: ${paths.trained_models}/tabletop_multiscene_static_sideview.ckpt  # static_centers_2-5_1_5_1_200px_epoch_13.ckpt
   img_size: 200
   hyperparameters:
     n_classes: 2
@@ -69,7 +67,7 @@ env_wrapper:
 affordance:
     static_cam:
       use: False
-      model_path: ${models_path}/tabletop_multiscene_static_sideview.ckpt
+      model_path: ${paths.trained_models}/tabletop_multiscene_static_sideview.ckpt
       img_size: 200
       hough_voting:
         skip_pixels: 2
@@ -100,7 +98,7 @@ affordance:
       use_distance: False
       densify_reward: False  # Use affordance to shape the reward function
       target_in_obs: False  # Add target detected by affordance into observation
-      model_path: ${models_path}/tabletop_multiscene_gripper_labels.ckpt # tabletop_multiscene_gripper_sideview_2.ckpt  # gripper_centers_2-5_1_5_1_64px_epoch_40.ckpt
+      model_path: ${paths.trained_models}/tabletop_multiscene_gripper_labels.ckpt # tabletop_multiscene_gripper_sideview_2.ckpt  # gripper_centers_2-5_1_5_1_64px_epoch_40.ckpt
       hough_voting:
         skip_pixels: 2
         inlier_threshold: 0.7
@@ -139,6 +137,7 @@ defaults:
   - agent: default
   - test: test_tabletop
   - wandb_login: vapo_jess
+  - paths: general_paths
   - transforms@affordance.transforms: aff_transforms
   - transforms@env_wrapper.transforms: rl_transforms
   - override hydra/hydra_logging: colorlog

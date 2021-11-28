@@ -2,7 +2,7 @@
 optim_res: False
 
 # Absolute path where models are stored
-models_dir: ${project_path}/vapo/combined/hydra_outputs
+models_dir: ${paths.vapo_path}/combined/hydra_outputs
 
 # Baseline
 # model_name: rgb_img_depth_sparse_29-06_19-23_most_tasks

@@ -89,20 +89,20 @@ def viz(cfg):
     print("model loaded")
 
     # Transforms
+    cam_type = cfg.dataset.cam
     n_classes = model_cfg.n_classes
     cm = plt.get_cmap('tab10')
     transforms_cfg = run_cfg.dataset.transforms_cfg
-    img_size = run_cfg.img_size[cfg.cam_type]
-    # _masks_t = "masks" if model_cfg.n_classes <= 2 else "masks_multitask"
+    img_size = run_cfg.img_size[cam_type]
     img_transform = get_transforms(transforms_cfg.validation, img_size)
     # mask_transforms = get_transforms(transforms_cfg[_masks_t], img_size)
 
     # Iterate images
     files, np_comprez = get_filenames(cfg.data_dir,
                                       get_eval_files=cfg.get_eval_files,
-                                      cam_type=cfg.cam_type)
+                                      cam_type=cam_type)
     out_shape = (cfg.out_size, cfg.out_size)
-    im_size = (200, 200) if cfg.cam_type == "static" else (64, 64)
+    im_size = (run_cfg.img_size[cam_type], run_cfg.img_size[cam_type])
     for filename in tqdm.tqdm(files):
         if(np_comprez):
             data = np.load(filename)
@@ -227,7 +227,7 @@ def viz(cfg):
                 cv2.imshow("gt", gt_res)
                 cv2.imshow("gt_flow", gt_flow)
             cv2.imshow("output", res)
-            cv2.waitKey(1)
+            cv2.waitKey(0)
 
 
 if __name__ == "__main__":

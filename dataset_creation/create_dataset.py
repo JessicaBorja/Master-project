@@ -8,9 +8,9 @@ import glob
 import vapo.utils.flowlib as flowlib
 from vapo.utils.img_utils import overlay_mask, tresh_np, overlay_flow
 from vapo.utils.label_segmentation import get_static_mask, get_gripper_mask, \
-                                          resize_mask_and_center, tcp_to_global
+                                          resize_mask_and_center
 from vapo.utils.file_manipulation import get_files, save_data, check_file,\
-                                    create_data_ep_split, create_json_file, merge_datasets
+                                    create_data_ep_split, create_json_file
 from dataset_creation.cameras.real_cameras import CamProjections
 import logging
 
@@ -336,6 +336,8 @@ def collect_dataset_close_open(cfg):
         data = check_file(filename)
         if(data is None):
             continue  # Skip file
+        elif(data['action'].item() is None):
+            continue
         if('robot_state' not in data and teleop_data):
             continue
 
@@ -474,18 +476,16 @@ def collect_dataset_close_open(cfg):
               save_viz=save_viz)
     if(cfg.split_dataset):
         create_data_ep_split(cfg.output_dir,
-                             cfg.labeling.split_by_episodes)
+                             cfg.labeling.split_by_episodes,
+                             cfg.labeling.min_labels)
     else:
-        create_json_file(cfg.output_dir, cfg.data_split)
+        create_json_file(cfg.output_dir, cfg.data_split,
+                         cfg.labeling.min_labels)
 
 
 @hydra.main(config_path="../config", config_name="cfg_datacollection")
 def main(cfg):
     collect_dataset_close_open(cfg)
-    # data_lst = ["%s/datasets/real_world/ep_%d"%(cfg.project_path, i) for i in range(1, 8)]
-    # data_lst = ["%s/datasets/drawer_affordance/training" % cfg.project_path,
-    #             "%s/datasets/drawer_affordance/validation" % cfg.project_path]
-    # merge_datasets(data_lst, cfg.output_dir)
     # create_data_ep_split(cfg.output_dir,
     #                      cfg.split_dataset,
     #                      cfg.labeling.split_by_episodes)

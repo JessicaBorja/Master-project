@@ -2,7 +2,7 @@
 optim_res: False
 
 # Absolute path where models are stored
-models_dir: ${project_path}/vapo/combined/hydra_outputs
+models_dir: ${paths.vapo_path}/combined/hydra_outputs
 
 # model_name: drawer_relative_img_depth_dist_affMask_dense_18-09_14-20_most_tasks_from_5
 # folder_name: ${test.models_dir}/drawer/2021-09-18/14-20-17_aff_rl

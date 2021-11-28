@@ -1,52 +1,18 @@
-project_folder: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/vapo/
-
-# Load data relative to root directory
-# Validation episodes
-# data_dir: [../datasets/tabletop_multiscene_MoC-True/tabletop_kitchen_MoC-True/episode_10/data/gripper_cam/,
-#            ../datasets/tabletop_multiscene_MoC-True/tabletop_tools_MoC-True/episode_10/data/gripper_cam/,
-#            ../datasets/tabletop_multiscene_MoC-True/tabletop_misc_MoC-True/episode_10/data/gripper_cam/]
-
-get_eval_files: False
-data_dir: /mnt/ssd_shared/Users/Jessica/Documents/Proyecto_ssd/datasets/showcase_1/episode_00/data/static_cam/
-# # Gripper camera
-# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-05-30/00-41-40
-# model_name: last.ckpt
-
-# Static camera
-# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-05-30/01-57-19
-# model_name: static_centers_2-5_1_5_1_200px_epoch=13-val_miou=0.362.ckpt
-
-# folder_name: ${project_folder}
-# model_name: static_cam_center_preds_1.ckpt
-
-# Multitask static
-# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-19/01-19-28_aff_rl
-# model_name: multitask_hinge_left_static_epoch=10-val_miou=0.360.ckpt
-
-# Playtable Gripper
-# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-19/01-14-58_aff_rl
-# model_name: last.ckpt
-
-# Tabletop multiscene Gripper
-# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-23/15-19-34_aff_rl
-# model_name: last.ckpt
-
-# Tabletop multiscene Static cam
-# folder_name: ${project_folder}/affordance_model/hydra_outputs/2021-07-25/03-03-40_aff_rl
-# model_name: tabletop_multiscene_gripper_epoch=98-val_miou=0.577.ckpt
+project_folder: ${paths.project_folder}
+get_eval_files: True
 
 # Tabletop real-world Static cam
-folder_name: ${project_folder}/
-model_name: static_real_world.ckpt
+folder_name: ${project_folder}/hydra_outputs/affordance_model/2021-11-23/20-13-17_aff_rl
+model_name: last.ckpt
 cam_type: static
 
-save_images: True
-imshow: False
-out_size: 300
-output_dir: ${project_folder}/affordance_model/predictions/static_real_world
+save_images: False
+imshow: True
+out_size: 200
+output_dir: ${project_folder}/outputs/affordance_model/predictions/static_real_world
 
 dataset:
-  root_dir: ${data_dir}
+  root_dir: ${paths.dataset}
   cam: ${cam_type}
   n_train_ep: -1  # Train using all episodes
   transforms_cfg: ${transforms}

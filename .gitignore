@@ -18,3 +18,5 @@ dataset_creation/motion_vectors.json
 workspace.code-workspace
 project.egg-info
 vapo.egg-info/
+hough_voting.egg-info/
+build/

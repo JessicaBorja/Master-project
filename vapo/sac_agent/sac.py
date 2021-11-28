@@ -310,17 +310,6 @@ class SAC():
         # Log plot_data to writer
         write_dict = {"eval_timestep": t,
                       "eval_episode": episode}
-        # for key, value in plot_data.items():
-        #     if value:  # not empty
-        #         if(key == "critic_loss"):
-        #             data = np.mean(value[-1])
-        #         else:
-        #             data = value[-1]  # np.mean(value)
-        #         write_dict.update({"train/%s" % key: data})
-        # # Reset plot_data
-        # plot_data = {"actor_loss": [],
-        #              "critic_loss": [],
-        #              "ent_coef_loss": [], "ent_coef": []}
 
         # Evaluate agent for n_eval_ep with max_ep_length
         if(self.eval_env.task == "pickup"):
@@ -332,6 +321,8 @@ class SAC():
                 self.eval_all_objs(self.eval_env, max_ep_length)
             self.log.info("End full objs validation...")
         else:
+            if(self.eval_env.scene.load_only_one):
+                self.eval_env.load_rand_scene(eval=True)
             mean_return, mean_length, success_lst, success_objs = \
                 self.evaluate(self.eval_env, max_ep_length,
                               n_episodes=n_eval_ep)
@@ -362,11 +353,12 @@ class SAC():
         if(self.eval_env.task == "pickup"
            and self.eval_env.rand_positions
            and not eval_all_objs
-           and n_success >= 2):
+           and not self.eval_env.scene.load_only_one
+           and n_success >= len(self.eval_env.scene.rand_positions)//2):
             for obj in success_objs:
                 obj_class = self.eval_env.scene.class_per_obj[obj]
                 self.p_dist[obj_class] += 1
-            self.eval_env.load_rand_scene(success_objs)
+            self.eval_env.load_rand_scene(success_objs, eval=True)
         return best_eval_return, most_tasks
 
     def eval_all_objs(self):

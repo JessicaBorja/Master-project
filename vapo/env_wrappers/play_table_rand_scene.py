@@ -19,6 +19,7 @@ class PlayTableRandScene(PlayTableScene):
         else:
             self.rand_positions = None
 
+        self.load_only_one = args["load_only_one"]
         # Load Environment
         self.target = "banana"
         if(self.rand_positions):
@@ -60,7 +61,10 @@ class PlayTableRandScene(PlayTableScene):
         '''
             p_dist = {class: counts}
         '''
-        if(p_dist):
+        if(self.load_only_one):
+            self.target = self.table_objs[0]
+            return
+        elif(p_dist):
             labels = list(p_dist.keys())
             counts = list(p_dist.values())
             weights = np.array(counts)
@@ -81,13 +85,17 @@ class PlayTableRandScene(PlayTableScene):
         else:
             self.target = self.np_random.choice(self.table_objs)
 
-    def load_scene_with_objects(self, obj_lst, load_scene=False):
+    def load_scene_with_objects(self, obj_lst, load_scene=False, positions=None):
         '''
             obj_lst: list of strings containing names of objs
             load_scene: Only true in initialization of environment
         '''
-        assert len(obj_lst) <= len(self.rand_positions)
-        rand_pos = self.rand_positions[:len(obj_lst)]
+        if positions:
+            assert len(obj_lst) <= len(positions)
+            rand_pos = positions[:len(obj_lst)]
+        else:
+            assert len(obj_lst) <= len(self.rand_positions)
+            rand_pos = self.rand_positions[:len(obj_lst)]
         shuffle(obj_lst)
         # movable_objs is a reference to self.object_cfg
         if(load_scene):
@@ -123,7 +131,7 @@ class PlayTableRandScene(PlayTableScene):
         self.reset()
         self.pick_rand_obj()
 
-    def load_rand_scene(self, replace_objs=None, load_scene=False):
+    def load_multiple_objs(self, replace_objs=None, load_scene=False):
         n_objs = len(self.rand_positions)
         if(replace_objs):
             # Replace some objs
@@ -168,3 +176,18 @@ class PlayTableRandScene(PlayTableScene):
                                                    n_objs,
                                                    replace=False))
         self.load_scene_with_objects(rand_objs, load_scene=load_scene)
+
+    def load_one_rand_obj(self, load_scene):
+        rand_pos = self.object_cfg["fixed_objects"]["table"]["initial_pos"]
+        rand_pos = self.np_random.uniform(rand_pos - np.ones(3)*0.05,
+                                          rand_pos + np.ones(3)*0.05)[:2]
+        obj = self.np_random.choice(self.obj_names)
+        self.load_scene_with_objects([obj],
+                                     positions=[rand_pos],
+                                     load_scene=load_scene)
+
+    def load_rand_scene(self, replace_objs=None, load_scene=False, eval=False):
+        if(self.load_only_one and not eval):
+            self.load_one_rand_obj(load_scene)
+        else:
+            self.load_multiple_objs(replace_objs, load_scene)

@@ -53,8 +53,13 @@ class PlayTableRL(PlayTableSimEnv):
         self.sparse_reward = sparse_reward
 
         if(task == "pickup"):
+            if("rand_scene" in args):
+                load_only_one = args["rand_scene"]["load_only_one"]
+            else:
+                load_only_one = False
             self.scene = PlayTableRandScene(p=self.p, cid=self.cid,
                                             np_random=self.np_random,
+                                            load_only_one=load_only_one,
                                             **args['scene_cfg'])
             self.rand_positions = self.scene.rand_positions
             self.load()
@@ -69,11 +74,13 @@ class PlayTableRL(PlayTableSimEnv):
         self.scene.load_scene_with_objects(obj_lst, load_scene)
         self.target = self.scene.target
 
-    def load_rand_scene(self, replace_objs=None, load_scene=False):
-        self.scene.load_rand_scene(replace_objs, load_scene)
+    def load_rand_scene(self, replace_objs=None, load_scene=False, eval=False):
+        self.scene.load_rand_scene(replace_objs, load_scene, eval)
         self.target = self.scene.target
 
-    def reset(self):
+    def reset(self, eval=False):
+        if(self.scene.load_only_one and not eval):
+            self.load_rand_scene()
         res = super(PlayTableRL, self).reset()
         if(self.task == "pickup"):
             self.target = self.scene.target
@@ -132,9 +139,6 @@ class PlayTableRL(PlayTableSimEnv):
 
         # Compute reward
         reward_state = targetState - 1  # 0 or 1
-
-        # Normalize dist
-        # dist = 1 if dist > 1 else dist
         info = {"reward_state": reward_state}
         if(self.sparse_reward):
             # 1 if lifted, else 0

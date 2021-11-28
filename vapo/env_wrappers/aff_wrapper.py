@@ -19,10 +19,10 @@ class AffordanceWrapper(gym.Wrapper):
     def __init__(self, EnvClass, env_cfg, max_ts, img_size,
                  gripper_cam, static_cam, transforms=None,
                  use_pos=False, use_aff_termination=False,
-                 affordance_cfg=None, target_search="env",
-                 max_target_dist=0.15, use_env_state=False,
-                 train=False, save_images=False, viz=False,
-                 history_length=None, skip_frames=None):
+                 affordance_cfg=None, max_target_dist=0.15,
+                 use_env_state=False, train=False,
+                 save_images=False, viz=False,
+                 **args):
         env_cfg.seed = None
         self.env = EnvClass(**env_cfg)
         self.env.termination_radius = max_target_dist
@@ -32,7 +32,6 @@ class AffordanceWrapper(gym.Wrapper):
         self.termination_radius = max_target_dist
 
         # TERMINATION
-        # or target_search == "affordance"
         self.use_aff_termination = use_aff_termination
 
         # REWARD FUNCTION
@@ -177,14 +176,6 @@ class AffordanceWrapper(gym.Wrapper):
                 obs_dict = self.get_obs()
             tcp_pos = obs_dict["robot_obs"][:3]
 
-            # Create positive reward relative to the distance
-            # between the closest point detected by the affordances
-            # and the end effector position
-            # p.removeAllUserDebugItems()
-            # p.addUserDebugText("aff_target",
-            #                    textPosition=self.env.unwrapped.current_target,
-            #                    textColorRGB=[0, 1, 0])
-
             # If episode is not done because of moving to far away
             if(not self.termination(self.env._termination(), obs_dict)
                and self.ts_counter < self.max_ts - 1):
@@ -196,19 +187,9 @@ class AffordanceWrapper(gym.Wrapper):
                 if(self.task == "pickup"):
                     rew += (1 - scale_dist)**0.4
                 elif(self.task == "slide"):
-                    # goal_pose = np.array([0.25, 0.75, 0.74])
-                    # dist_to_goal = np.linalg.norm(
-                    #   self.env.unwrapped.current_target - goal_pose)
-                    # # max posible distance clip
-                    # dist_to_goal = 1 - min(dist_to_goal/0.6, 1)
                     scale_dist = 1 - scale_dist
                     rew += scale_dist
                 elif(self.task == "drawer"):
-                    # goal_pose = np.array([-0.05, 0.30, 0.42])
-                    # dist_to_goal = np.linalg.norm(
-                    #   self.env.unwrapped.current_target - goal_pose)
-                    # # max posible distance clip
-                    # dist_to_goal = 1 - min(dist_to_goal/0.25, 1)
                     scale_dist = 1 - scale_dist
                     rew += scale_dist
                 else:
@@ -223,12 +204,6 @@ class AffordanceWrapper(gym.Wrapper):
         return rew
 
     def termination(self, done, obs):
-        # If distance between detected target and robot pos
-        #  deviates more than termination_radius
-        # p.removeAllUserDebugItems()
-        # p.addUserDebugText("i",
-        #                    textPosition=self.current_target,
-        #                    textColorRGB=[0, 0, 1])
         done = self.env._termination()
         if(self.use_aff_termination):
             distance = np.linalg.norm(self.env.unwrapped.current_target
@@ -236,9 +211,6 @@ class AffordanceWrapper(gym.Wrapper):
         else:
             # Real distance
             target_pos, _ = self.env.get_target_pos()
-            # p.addUserDebugText("t",
-            #         textPosition=target_pos,
-            #         textColorRGB=[0, 1, 0])
             distance = np.linalg.norm(target_pos
                                       - obs["robot_obs"][:3])
         return done or distance > self.termination_radius
@@ -408,15 +380,7 @@ class AffordanceWrapper(gym.Wrapper):
                      "pixel_count": pixel_count,
                      "robustness": robustness}
             cluster_outputs.append(c_out)
-            # if(robustness > max_robustness):
-            #     max_robustness = robustness
-            #     target_px = o
-            #     target_world = world_pt
 
-        # p.removeAllUserDebugItems()
-
-        # self.env.unwrapped.current_target = target_world
-        # Maximum distance given the task
         most_robust = 0
         for out_dict in cluster_outputs:
             c = out_dict["center"]
@@ -427,9 +391,4 @@ class AffordanceWrapper(gym.Wrapper):
                 if(out_dict["robustness"] > most_robust):
                     self.env.unwrapped.current_target = c
                     most_robust = out_dict["robustness"]
-
-        # See selected point
-        # p.addUserDebugText("target",
-        #                    textPosition=self.env.unwrapped.current_target,
-        #                    textColorRGB=[1, 0, 0])
         return im_dict

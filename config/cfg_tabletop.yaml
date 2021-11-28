@@ -57,8 +57,6 @@ env_wrapper:
     use_img: False
     use_depth: False
   use_pos: True
-  history_length: 1
-  skip_frames: 0
   img_size: ${img_size}
   use_aff_termination: False
   max_target_dist: 0.15

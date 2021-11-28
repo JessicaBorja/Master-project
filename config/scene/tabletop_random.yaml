@@ -3,9 +3,9 @@ _recursive_: false
 data_path: ${data_path}
 global_scaling: 0.8
 euler_obs: ${robot.euler_obs}
-robot_base_position: [0.3, 0.15, 0.6]
+robot_base_position: [0.3, 0.15, 0.45]
 robot_base_orientation: [0, 0, 1.5707963]
-robot_initial_joint_positions: [-2.5002145553876627, 1.7627999200228481, 1.652800380838146, -2.3687918139337434, -1.6485854929634876, 1.376110780799737, 0.6374133718338002]
+robot_initial_joint_positions: [-0.3457686708019129, -0.15454379621111053, -0.6607497652179231, -2.431721569843283, -0.12811896258574057, 2.3050911768605884, -0.128854091294185]
 surfaces: []
 
 # x,y pos to randomly place objects

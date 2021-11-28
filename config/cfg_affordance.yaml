@@ -1,4 +1,3 @@
-data_dir: ${paths.dataset}
 save_dir: ./hydra_outputs/affordance_model/
 
 model_name: test
@@ -10,8 +9,9 @@ img_size:
 
 rand_crop: 0.8
 
+dataset_name: task_A_A
 dataset:
-  root_dir: ${data_dir}
+  root_dir: ${paths.datasets}/${dataset_name}
   cam: static
   n_train_ep: -1  # Train using all episodes
   radius:

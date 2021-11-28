@@ -48,7 +48,7 @@ def select_files(episode_files, remove_blank_masks, min_labels=3):
     return data
 
 
-def split_by_ep(root_dir, remove_blank_mask_instances=True, min_labels=3):
+def split_by_ep(root_dir, min_labels, remove_blank_mask_instances=True):
     data = {"train": {}, "validation": {}}
     # Episodes are subdirectories
     n_episodes = 0
@@ -81,7 +81,7 @@ def split_by_ep(root_dir, remove_blank_mask_instances=True, min_labels=3):
     return data
 
 
-def split_by_ts(root_dir, remove_blank_mask_instances=True, min_labels=min_labels):
+def split_by_ts(root_dir, min_labels, remove_blank_mask_instances=True):
     data = {"train": {}, "validation": {}}
 
     # Count episodes

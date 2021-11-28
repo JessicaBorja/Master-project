@@ -7,14 +7,14 @@ save_viz: True
 euler_obs: True
 frames_before_saving: 300
 # For collecting dataset with playdata
-folder_name: task_A_A
-play_data_dir: ${path.datasets}/unprocessed/${folder_name}
+dataset: task_A_A
+play_data_dir: ${paths.datasets}/unprocessed/${dataset}
 
 #Output directory where dataset will be stored
-output_dir: ${path.datasets}/${folder_name}/
+output_dir: ${paths.datasets}/${dataset}/
 viz: True
 split_dataset: True
-data_split: "train"  # Where to write the data if previous is false
+save_split: "train"  # Where to write the data if previous is false
 hydra:
   run:
     dir: ./hydra_outputs/datacollection/${now:%Y-%m-%d}_${now:%H-%M-%S}

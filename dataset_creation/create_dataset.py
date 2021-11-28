@@ -313,7 +313,6 @@ def collect_dataset_close_open(cfg):
             f = get_files(ep_path, "npz")
             f.remove(os.path.join(ep_path, "camera_info.npz"))
             files.extend(f)
-    end_ids.sort()
     log.info("End ids")
     for id in end_ids:
         log.info(id)
@@ -336,7 +335,7 @@ def collect_dataset_close_open(cfg):
         data = check_file(filename)
         if(data is None):
             continue  # Skip file
-        elif(data['action'].item() is None):
+        elif('action' in data and data['action'].item() is None):
             continue
         if('robot_state' not in data and teleop_data):
             continue
@@ -380,7 +379,7 @@ def collect_dataset_close_open(cfg):
             gripper_action = data['actions'][-1]  # -1 -> closed, 1 -> open
         else:
             ep_id = int(tail[:-4].split('_')[-1])
-            end_of_ep = (ep_id >= end_ids[0] and len(end_ids) > 1)\
+            end_of_ep = (len(end_ids) > 1 and ep_id >= end_ids[0])\
                 or curr_folder != next_folder
             gripper_action = robot_obs[-1] > 0.077  # Open
             gripper_action = (data['action'].item()['motion'][-1] + 1)/2
@@ -479,7 +478,7 @@ def collect_dataset_close_open(cfg):
                              cfg.labeling.split_by_episodes,
                              cfg.labeling.min_labels)
     else:
-        create_json_file(cfg.output_dir, cfg.data_split,
+        create_json_file(cfg.output_dir, cfg.save_split,
                          cfg.labeling.min_labels)
 
 

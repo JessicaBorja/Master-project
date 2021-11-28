@@ -11,8 +11,9 @@ imshow: True
 out_size: 200
 output_dir: ${project_folder}/outputs/affordance_model/predictions/static_real_world
 
+dataset_name: task_A_A
 dataset:
-  root_dir: ${paths.dataset}
+  root_dir: ${paths.datasets}/${dataset_name}
   cam: ${cam_type}
   n_train_ep: -1  # Train using all episodes
   transforms_cfg: ${transforms}

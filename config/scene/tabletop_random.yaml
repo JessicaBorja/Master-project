@@ -1,4 +1,4 @@
-_target_: vapo.env_wrappers.play_table_rand_scene.PlayTableRandScene
+_target_: vr_env.scene.play_table_scene.PlayTableScene
 _recursive_: false
 data_path: ${data_path}
 global_scaling: 0.8

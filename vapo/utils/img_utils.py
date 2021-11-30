@@ -13,7 +13,8 @@ def torch_to_numpy(x):
 
 def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
                           object_centers, object_masks,
-                          cam_type="", obs_it=0, save_images=False,
+                          cam_type="", obs_it=0, episode=None,
+                          save_images=False,
                           resize=None):
     ''' C = n_classes
         img_obs: numpy array, int64
@@ -116,16 +117,22 @@ def viz_aff_centers_preds(img_obs, mask, aff_probs, directions,
         mask = cv2.resize(mask, resize)
         out_img = cv2.resize(out_img, resize)
         flow_over_img = cv2.resize(flow_over_img, resize)
-
     cv2.imshow("flow_over_img-%s" % cam_type, flow_over_img)
-    # cv2.imshow("preds-%s" % cam_type, out_img)
     cv2.waitKey(1)
 
     if(save_images):
-        return {"./images/%s_orig/img_%04d.png" % (cam_type, obs_it): orig_img,
-                "./images/%s_masks/img_%04d.png" % (cam_type, obs_it): mask,
-                "./images/%s_aff/img_%04d.png" % (cam_type, obs_it): out_img,
-                "./images/%s_dirs/img_%04d.png" % (cam_type, obs_it): flow_over_img}
+        save_dict = {}
+        dct = {"%s_orig/img_%04d.png" % (cam_type, obs_it): orig_img,
+               "%s_masks/img_%04d.png" % (cam_type, obs_it): mask,
+               "%s_aff/img_%04d.png" % (cam_type, obs_it): out_img,
+               "%s_dirs/img_%04d.png" % (cam_type, obs_it): flow_over_img}
+        if(episode is not None):
+            for k, v in dct.items():
+                save_dict["./images/ep_%04d/%s" % k] = v
+        else:
+            for k, v in dct.items():
+                save_dict["./images/%s" % k] = v
+        return save_dict
     else:
         return {}
 

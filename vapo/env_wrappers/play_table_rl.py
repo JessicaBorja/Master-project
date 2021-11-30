@@ -10,6 +10,7 @@ from gym import spaces
 from vr_env.envs.play_table_env import PlayTableSimEnv
 from vr_env.utils.utils import EglDeviceNotFoundError, get_egl_device_id
 from vapo.env_wrappers.play_table_rand_scene import PlayTableRandScene
+from vapo.utils.utils import get_3D_end_points
 logger = logging.getLogger(__name__)
 
 
@@ -64,7 +65,10 @@ class PlayTableRL(PlayTableSimEnv):
             self.rand_positions = self.scene.rand_positions
             self.load()
             self.target = self.scene.target
+            # x1,y1,z1, width, height, depth (x,y,z) in meters]
             self.box_pos = self.scene.object_cfg['fixed_objects']['bin']["initial_pos"]
+            w, h, d = 0.24, 0.4, 0.08
+            self.box_3D_end_points = get_3D_end_points(*self.box_pos, w, h, d)
 
     def pick_rand_obj(self, p_dist=None):
         self.scene.pick_rand_obj(p_dist=p_dist)
@@ -101,7 +105,7 @@ class PlayTableRL(PlayTableSimEnv):
         os.environ["EGL_VISIBLE_DEVICES"] = str(egl_id)
         logger.info(f"EGL_DEVICE_ID {egl_id} <==> CUDA_DEVICE_ID {cuda_id}")
 
-    def step(self, action):
+    def step(self, action, *args):
         # Action space that SAC sees is between -1,1 for all elements in vector
         if(len(action) == 5):
             a = action.copy()
@@ -126,6 +130,57 @@ class PlayTableRL(PlayTableSimEnv):
         info.update(r_info)
         # obs, reward, done, info
         return obs, reward, done, info
+
+    def move_to_target(self, curr_pos, action):
+        # action = [pos, orn, gripper_action]
+        target = action[0]
+        # env.robot.apply_action(a)
+        last_pos = target
+        # When robot is moving and far from target
+        while(np.linalg.norm(curr_pos - target) > 0.01
+              and np.linalg.norm(last_pos - curr_pos) > 0.001):
+            last_pos = curr_pos
+            ns, _, _, _ = self.step(action)
+            curr_pos = ns["robot_obs"][:3]
+        return curr_pos
+
+    def move_to_box(self, sample=False):
+        # Box does not move
+        r_obs = self.get_obs()["robot_obs"]
+        tcp_pos, _ = r_obs[:3], r_obs[3:6]
+        top_left, bott_right = self.box_3D_end_points
+        w, h = (top_left - bott_right)//2
+        if(sample):
+            x_pos = np.random.uniform(top_left[0] + w, bott_right[0] - w)
+            y_pos = np.random.uniform(top_left[1] - h, bott_right[1] + h)
+        else:
+            center_x, center_y, z = self.box_pos[:3]
+            x_pos = center_x
+            y_pos = center_y
+        box_pos = [x_pos, y_pos, 0.65]
+
+        # Move up
+        up_target = [*tcp_pos[:2], box_pos[2] + 0.2]
+        a = [up_target, self.target_orn, -1]  # -1 means closed
+        tcp_pos = self.move_to_target(tcp_pos, a, dict_obs=True)
+
+        # Move to obj up
+        up_target = [*box_pos[:2], tcp_pos[-1]]
+        a = [up_target, self.target_orn, -1]  # -1 means closed
+        tcp_pos = self.move_to_target(tcp_pos, a, dict_obs=True)
+
+        # Move down
+        box_pos = [*box_pos[:2], tcp_pos[-1] - 0.12]
+        a = [box_pos, self.target_orn, -1]  # -1 means closed
+        tcp_pos = self.get_obs()["robot_obs"][:3]
+        self.move_to_target(tcp_pos, a, dict_obs=True)
+
+        # Get new position and orientation
+        # pos, z angle, action = open gripper
+        tcp_pos = self.get_obs()["robot_obs"][:3]
+        a = [tcp_pos, self.target_orn, 1]  # drop object
+        for i in range(8):
+            self.step(a)
 
     def _normalize(self, val, min_val, max_val):
         return (val - min_val) / (max_val - min_val)
@@ -231,7 +286,7 @@ class PlayTableRL(PlayTableSimEnv):
                 # self.p.addUserDebugText("O", textPosition=pos,
                 #                         textColorRGB=[0, 0, 1])
                 # 2.5cm above initial position and object not already in box
-                if(base_pos[-1] >= target_obj["initial_pos"][-1] + 0.025
+                if(base_pos[-1] >= target_obj["initial_pos"][-1] + 0.020
                    and not self.obj_in_box(self.target)):
                     lifted = True
             targetState = 2 if lifted else 1

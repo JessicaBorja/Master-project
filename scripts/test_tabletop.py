@@ -24,9 +24,10 @@ def main(cfg):
     run_cfg.target_search_aff = cfg.target_search_aff
 
     max_ts = cfg.agent.learn_config.max_episode_length
-
+    
     save_images = cfg.test.eval_cfg.save_images
-    env = AffordanceWrapper(PlayTableRL, run_cfg.eval_env, max_ts,
+    env = PlayTableRL(**run_cfg.eval_env)
+    env = AffordanceWrapper(env, max_ts,
                             affordance_cfg=run_cfg.affordance,
                             viz=cfg.viz_obs,
                             save_images=save_images,

@@ -20,14 +20,14 @@ def main(cfg):
     log = logging.getLogger(__name__)
     cfg.model_name = get_name(cfg, cfg.model_name)
     max_ts = cfg.agent.learn_config.max_episode_length
+    env = PlayTableRL(**cfg.env)
     for i in range(cfg.repeat_training):
-        training_env = AffordanceWrapper(
-                                PlayTableRL,
-                                cfg.env, max_ts,
-                                train=True,
-                                affordance_cfg=cfg.affordance,
-                                viz=cfg.viz_obs,
-                                **cfg.env_wrapper)
+        training_env = AffordanceWrapper(env, max_ts,
+                                         train=True,
+                                         affordance_cfg=cfg.affordance,
+                                         viz=cfg.viz_obs,
+                                         save_images=cfg.save_images,
+                                         **cfg.env_wrapper)
 
         sac_cfg = {"env": training_env,
                    "eval_env": None,

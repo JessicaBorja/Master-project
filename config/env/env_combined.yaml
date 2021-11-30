@@ -1,5 +1,5 @@
 #_target_: VREnv.vr_env.envs.play_table_env.PlayTableEnv
-seed: 0
+seed: Null
 bullet_time_step: 240.0
 cameras: ${camera_conf}
 robot_cfg: ${robot}

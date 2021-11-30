@@ -3,7 +3,7 @@ import logging
 import os
 
 from vapo.env_wrappers.play_table_rl import PlayTableRL
-from vapo.env_wrappers.aff_wrapper import AffordanceWrapper
+from vapo.env_wrappers.affordance.aff_wrapper_sim import AffordanceWrapperSim
 from vapo.env_wrappers.utils import get_name
 from vapo.combined.combined import Combined
 
@@ -14,14 +14,14 @@ def main(cfg):
     log = logging.getLogger(__name__)
     cfg.model_name = get_name(cfg, cfg.model_name)
     max_ts = cfg.agent.learn_config.max_episode_length
+    env = PlayTableRL(**cfg.env)
     for i in range(cfg.repeat_training):
-        training_env = AffordanceWrapper(
-                                 PlayTableRL, cfg.env, max_ts,
-                                 train=True,
-                                 affordance_cfg=cfg.affordance,
-                                 viz=cfg.viz_obs,
-                                 save_images=cfg.save_images,
-                                 **cfg.env_wrapper)
+        training_env = AffordanceWrapperSim(env, max_ts,
+                                            train=True,
+                                            affordance_cfg=cfg.affordance,
+                                            viz=cfg.viz_obs,
+                                            save_images=cfg.save_images,
+                                            **cfg.env_wrapper)
         sac_cfg = {"env": training_env,
                    "eval_env": None,
                    "model_name": cfg.model_name,

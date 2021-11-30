@@ -4,19 +4,19 @@ import os
 import cv2
 import torch
 import pybullet as p
-
+import hydra
 from vapo.utils.img_utils import torch_to_numpy, viz_aff_centers_preds
 from vapo.affordance_model.segmentator_centers import Segmentator
 
 
 class TargetSearch():
-    def __init__(self, env, mode,
-                 aff_transforms=None, aff_cfg=None, class_label=None,
-                 cam_id=0, initial_pos=None, rand_target=False) -> None:
+    def __init__(self, env, mode, main_cfg,
+                 aff_transforms=None, aff_cfg=None,
+                 class_label=None, initial_pos=None,
+                 rand_target=False, *args, **kwargs) -> None:
         self.env = env
         self.mode = mode
         self.uniform_sample = False
-        self.cam_id = cam_id
         self.random_target = rand_target
         self.initial_pos = initial_pos
         self.aff_transforms = aff_transforms
@@ -24,8 +24,20 @@ class TargetSearch():
         self.global_obs_it = 0
         self.aff_net_static_cam = self._init_static_cam_aff_net(aff_cfg)
         self.class_label = class_label
+        self.box_mask = None
+        self.save_images = env.save_images
+
+        if(mode == "real_world"):
+            self.static_cam = hydra.utils.instantiate(main_cfg.static_cam)
+            self.T_world_cam = self.static_cam.get_extrinsic_calibration("panda")
+            self.orig_img, _ = self.static_cam.get_image()
+        else:
+            self.cam_id = kwargs["cam_id"]
+            self.static_cam = env.cameras[kwargs['cam_id']]
+            self.orig_img = self.env.get_obs()["rgb_obs"][self.cam_id]
+
         if(env.task == "pickup"):
-            self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(self.env)
+            self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(env)
 
     def compute(self, env=None,
                 return_all_centers=False,
@@ -34,8 +46,35 @@ class TargetSearch():
                 noisy=False):
         if(env is None):
             env = self.env
+        if(self.mode == "real_world"):
+            res = self._compute_real_world(env, return_all_centers)
+        else:
+            res = self._compute_sim(env, noisy, p_dist,
+                                    rand_sample,
+                                    return_all_centers)
+        return res
+
+    def _compute_real_world(self, env, global_it, return_all_centers):
+        orig_img, depth_img = self.static_cam.get_image()
+        self.orig_img = orig_img
+        res = self._compute_target_aff(env, self.static_cam,
+                                       depth_img,
+                                       orig_img,
+                                       global_it)
+        if(not return_all_centers):
+            res = res[:2]
+        return res
+
+    def _compute_sim(self, env, noisy, p_dist, rand_sample, return_all_centers):
         if(self.mode == "affordance"):
-            res = self._compute_target_aff(env)
+            env = self.env
+            # Get environment observation
+            obs = env.get_obs()
+            depth_obs = obs["depth_obs"][self.cam_id]
+            orig_img = obs["rgb_obs"][self.cam_id]
+            self.orig_img = orig_img
+            res = self._compute_target_aff(env, self.static_cam,
+                                           depth_obs, orig_img)
             target_pos, no_target, object_centers = res
             # if env.task == "slide" or env.task == "hinge":
             #     # Because it most likely will detect the door and not the handle
@@ -67,6 +106,26 @@ class TargetSearch():
             res = self._env_compute_target(env, noisy)
         return res
 
+    def get_world_pt(self, pixel, cam, depth, env):
+        x = pixel
+        v, u = pixel
+        if(self.mode == "real_world"):
+            pt_cam = cam.deproject([u, v], depth, homogeneous=True)
+            if(pt_cam is not None and len(pt_cam) > 0):
+                world_pt = self.T_world_cam @ pt_cam
+                world_pt = world_pt[:3]
+        else:
+            if(env.task == "drawer" or env.task == "slide"):
+                # As center might  not be exactly in handle
+                # look for max depth around neighborhood
+                n = 10
+                depth_window = depth[x[0] - n:x[0] + n, x[1] - n:x[1] + n]
+                proposal = np.argwhere(depth_window == np.min(depth_window))[0]
+                v = x[0] - n + proposal[0]
+                u = x[1] - n + proposal[1]
+            world_pt = np.array(cam.deproject([u, v], depth))
+        return world_pt
+
     # Env real target pos
     def _env_compute_target(self, env=None, noisy=False):
         if(not env):
@@ -84,14 +143,8 @@ class TargetSearch():
         return target_pos, no_target
 
     # Aff-center model
-    def _compute_target_aff(self, env=None):
-        if(not env):
-            env = self.env
-        # Get environment observation
-        cam = env.cameras[self.cam_id]
-        obs = env.get_obs()
-        depth_obs = obs["depth_obs"][self.cam_id]
-        orig_img = obs["rgb_obs"][self.cam_id]
+    def _compute_target_aff(self, env, cam, depth_obs, orig_img,
+                            global_obs_it=0):
 
         # Apply validation transforms
         img_obs = torch.tensor(orig_img).permute(2, 0, 1).unsqueeze(0).cuda()
@@ -100,7 +153,7 @@ class TargetSearch():
         # Predict affordances and centers
         _, aff_probs, aff_mask, center_dir = \
             self.aff_net_static_cam.forward(img_obs)
-        if(env.task == "pickup"):
+        if(self.box_mask is not None):
             aff_mask = aff_mask - self.box_mask
 
         # Filter by class
@@ -114,29 +167,26 @@ class TargetSearch():
             self.aff_net_static_cam.predict(class_mask, center_dir)
 
         # Visualize predictions
-        if(env.viz or env.save_images):
+        if(env.viz or self.save_images):
             img_dict = viz_aff_centers_preds(orig_img, aff_mask, aff_probs,
                                              center_dir, object_centers,
                                              object_masks, "static",
                                              self.global_obs_it,
-                                             self.env.save_images,
-                                             resize=(300, 300))
+                                             self.save_images)
             for img_path, img in img_dict.items():
                 folder = os.path.dirname(img_path)
                 os.makedirs(folder, exist_ok=True)
                 cv2.imwrite(img_path, img)
-            self.global_obs_it += 1
+        self.global_obs_it += 1
 
         # To numpy
         aff_probs = torch_to_numpy(aff_probs[0].permute(1, 2, 0))  # H, W, 2
         object_masks = torch_to_numpy(object_masks[0])  # H, W
 
-        # Plot different objects
-        no_target = False
-        if(len(object_centers) <= 0):
-            # No center detected
+        # No center detected
+        no_target = len(object_centers) <= 0
+        if(no_target):
             default = self.initial_pos
-            no_target = True
             return np.array(default), no_target, []
 
         max_robustness = 0
@@ -164,38 +214,28 @@ class TargetSearch():
         for o in object_centers:
             x = o.detach().cpu().numpy()
             x = (x * orig_shape / pred_shape).astype("int64")
-            if(env.task == "drawer" or env.task == "slide"):
-                # As center might  not be exactly in handle
-                # look for max depth around neighborhood
-                n = 10
-                depth_window = depth_obs[x[0] - n:x[0] + n, x[1] - n:x[1] + n]
-                proposal = np.argwhere(depth_window == np.min(depth_window))[0]
-                v = x[0] - n + proposal[0]
-                u = x[1] - n + proposal[1]
-            else:
-                v, u = x
-            world_pt = np.array(cam.deproject([u, v], depth_obs))
+            world_pt = self.get_world_pt(x, cam, depth_obs, env)
             world_pts.append(world_pt)
 
         # Recover target
         v, u = object_centers[target_idx]
         target_pos = world_pts[target_idx]
-        if(self.env.save_images):
+        if(self.env.viz or self.save_images):
+            u, v = u.item(), v.item()
             out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
                                      (u, v),
-                                     (0, 255, 0),
+                                     (255, 0, 0),
                                      markerType=cv2.MARKER_CROSS,
-                                     markerSize=12,
+                                     markerSize=15,
+                                     thickness=3,
                                      line_type=cv2.LINE_AA)
-            # cv2.imshow("out_img", out_img)
-            # cv2.waitKey(1)
-            # os.makedirs("./static_centers/", exist_ok=True)
-            # cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
-            #             out_img)
+            cv2.imshow("TargetSearch: img", out_img)
+            cv2.waitKey(1)
+            if(self.save_images):
+                os.makedirs("./static_centers/", exist_ok=True)
+                cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
+                            out_img)
 
-        # p.addUserDebugText("t",
-        #                    textPosition=target_pos,
-        #                    textColorRGB=[0, 1, 0])
         return target_pos, no_target, world_pts
 
     def find_env_target(self, env, target_pos):
@@ -218,19 +258,11 @@ class TargetSearch():
     def get_box_pos_mask(self, env):
         if(not env):
             env = self.env
-        box_pos = env.box_pos
-        x, y, z = box_pos
-        # Homogeneous cords
-        box_top_left = [x - 0.12, y + 0.2, z, 1]
-        box_bott_right = [x + 0.12, y - 0.2, z + 0.08, 1]
-
-        # Static camera 
-        cam = env.cameras[self.cam_id]
-
-        u1, v1 = cam.project(np.array(box_top_left))
-        u2, v2 = cam.project(np.array(box_bott_right))
-
-        shape = (cam.width, cam.height)
+        box_top_left, box_bott_right = env.box_3D_end_points
+        # Static camera
+        u1, v1 = self.static_cam.project(np.array(box_top_left))
+        u2, v2 = self.static_cam.project(np.array(box_bott_right))
+        shape = (self.static_cam.width, self.static_cam.height)
         mask = np.zeros(shape, np.uint8)
         mask = cv2.rectangle(mask, (u1, v1), (u2, v2),
                              (1, 1, 1), thickness=-1)

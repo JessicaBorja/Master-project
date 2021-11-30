@@ -32,12 +32,12 @@ objects:
   movable_objects:
     hammer_1:
       file: tabletop/hammer/hammer.urdf
-      initial_pos: [0.18, 0.67, 0.6146252633582707]
+      initial_pos: [0.18, 0.67, 0.6144]
       initial_orn: [0, 0, -3]
       fixed: false
     hammer_2:
       file: tabletop/hammer_2/hammer.urdf
-      initial_pos: [0.4, 0.8, 0.6120640316496356]
+      initial_pos: [0.4, 0.8, 0.612]
       initial_orn: [0, 0, 0]
       fixed: false
     hammer_3:
@@ -52,7 +52,7 @@ objects:
       fixed: false
     drill_2:
       file: 035_power_drill/google_16k/textured.urdf
-      initial_pos: [0.13, 0.7, 0.6227179623018667]
+      initial_pos: [0.13, 0.7, 0.6227]
       initial_orn: [0, 0, 0]
       fixed: false
     frying_pan_1:
@@ -77,7 +77,7 @@ objects:
       fixed: false
     teapot_lid:
       file: tabletop/teapot_lid/teapot_lid.urdf
-      initial_pos: [0.4, 0.5, 0.6016315999956388]
+      initial_pos: [0.4, 0.5, 0.6018]
       initial_orn: [0, 0, 0]
       fixed: false
     spatula:
@@ -92,7 +92,7 @@ objects:
       fixed: false
     marker:
       file: tabletop/marker/textured.urdf
-      initial_pos: [0.35, 0.92, 0.65]
+      initial_pos: [0.35, 0.92, 0.603]
       initial_orn: [0, 0, 0]
       fixed: false
     small_tool_1:

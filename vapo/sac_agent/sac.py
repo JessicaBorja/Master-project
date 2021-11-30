@@ -66,6 +66,7 @@ class SAC():
         self.episode = 1
         self.curr_ts = 0
         self.most_tasks = 0
+        self.most_full_tasks = 0
         self.best_return = -np.inf
         self.best_eval_return = -np.inf
         self.train_mean_n_ep = train_mean_n_ep
@@ -274,6 +275,8 @@ class SAC():
                 else:
                     data = value  # np.mean(value)
                 write_dict.update({"train/%s" % key: data})
+
+        self.last_n_train_mean_success = last_n_train_mean_success
         wandb.log({
             "train/success": success,
             "train/episode_return": episode_return,
@@ -292,7 +295,6 @@ class SAC():
             self.log.info("[%d] New best train ep. success: %.3f over last %d ep !" %
                           (episode, last_n_train_mean_success, self.train_mean_n_ep))
             self.save(self.trained_path + "_best_train_success_%d_ep.pth" % self.train_mean_n_ep)
-            self.last_n_train_mean_success = last_n_train_mean_success
 
         # Always save last model(last training episode)
         self.save(self.trained_path + "_last.pth")

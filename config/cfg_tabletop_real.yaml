@@ -1,0 +1,153 @@
+data_path: ${paths.vr_data}
+save_dir: ./hydra_outputs/vapo/${task}/
+model_name: real_world
+task: pickup
+euler_obs: true
+img_size: 64
+viz_obs: False
+
+# path to load affordance models either gripper_cam 
+# or static_cam
+save_replay_buffer: False
+save_images: False
+resume_training: True
+
+models_path: ${paths.trained_models}
+resume_model_path: ${save_dir}
+
+# Wandb
+wandb_login:
+  entity: jessibd
+  project: vapo_real_world
+
+# Static cam affordance model to detect the targets
+n_objects: 4
+target_search: "real_world"
+target_search_aff:
+  model_path: ${models_path}/static_real_world.ckpt
+  img_size: 200
+  hyperparameters:
+    n_classes: 2
+    hough_voting:
+      skip_pixels: 2
+      inlier_threshold: 0.7
+      angle_discretization: 100
+      inlier_distance: 10
+      percentage_threshold: 0.3
+      object_center_kernel_radius: 15
+    centers_loss:
+      weight: 5
+    aff_loss:
+      weight: 2
+      dice_loss:
+        add: True
+        weight: 5
+      ce_loss:
+        weight: 1
+        class_weights: [0.2, 0.8]
+    optimizer:
+      lr: 1e-5
+      weight_decay: 1e-3
+    unet_cfg:
+      decoder_channels: [128, 64, 32]
+
+# Define types of observation input to the RL agent
+env_wrapper:
+  gripper_cam:
+    use_img: True
+    use_depth: True
+  static_cam:
+    use_img: False
+    use_depth: False
+  use_pos: True
+  img_size: ${img_size}
+  save_images: ${save_images}
+  viz: True
+
+panda_env_wrapper:
+  d_pos: 0.005
+  d_rot: 0.3
+  gripper_success_threshold: 0.01
+  reward_fail: -20
+  reward_success: 200
+  termination_radius: 0.08
+  box_pos: [0.24, 0.4, 0.08]
+  box_dims: [0.10, 0.20, 0.05]
+
+# Affordance configuration for RL agent observation inputs
+affordance:
+    static_cam:
+      use: False
+      model_path: ${models_path}/static_real_world.ckpt
+      img_size: 200
+      hough_voting:
+        skip_pixels: 2
+        inlier_threshold: 0.7
+        angle_discretization: 100
+        inlier_distance: 10
+        percentage_threshold: 0.3
+        object_center_kernel_radius: 10
+      hyperparameters:
+        n_classes: 2
+        centers_loss:
+          weight: 2.5
+        aff_loss:
+          weight: 1
+          dice_loss:
+            add: True
+            weight: 5
+          ce_loss:
+            weight: 1
+            class_weights: [0.2, 0.8]
+        optimizer:
+          lr: 1e-5
+          weight_decay: 1e-3
+        unet_cfg:
+          decoder_channels: [128, 64, 32]
+    gripper_cam:
+      use: True  # Use affordance in observation
+      use_distance: True
+      densify_reward: True
+      target_in_obs: False
+      model_path: ${models_path}/gripper_real_world.ckpt
+      hough_voting:
+        skip_pixels: 2
+        inlier_threshold: 0.7
+        angle_discretization: 100
+        inlier_distance: 10
+        percentage_threshold: 0.3
+        object_center_kernel_radius: 10
+      hyperparameters:
+        n_classes: 2
+        centers_loss:
+          weight: 2.5
+        aff_loss:
+          weight: 1
+          dice_loss:
+            add: True
+            weight: 5
+          ce_loss:
+            weight: 1
+            class_weights: [0.2, 0.8]
+        optimizer:
+          lr: 1e-5
+          weight_decay: 1e-3
+        unet_cfg:
+          decoder_channels: [128, 64, 32]
+
+hydra:
+  run:
+    dir: ${save_dir}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+defaults:
+  - robot_io/robot@robot: panda_frankx_interface
+  - robot_io/env@robot_env: env
+  - robot_io/cams@cams: camera_manager
+  - robot_io/cams/static_cam@static_cam: kinect4_oier
+  - agent: default
+  - test: test_real
+  - paths: general_paths
+  - transforms@affordance.transforms: aff_transforms_rgb
+  - transforms@env_wrapper.transforms: rl_transforms
+  - override hydra/hydra_logging: colorlog
+  - override hydra/job_logging: colorlog

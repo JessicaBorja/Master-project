@@ -59,6 +59,14 @@ def load_cfg(cfg_path, cfg, optim_res):
     return run_cfg, net_cfg, env_wrapper, agent_cfg
 
 
+def get_3D_end_points(x, y, z, w, h, d):
+    w = w//2
+    h = h//2
+    box_top_left = [x - w, y + h, z, 1]
+    box_bott_right = [x + w, y - h, z + d, 1]
+    return (box_top_left, box_bott_right)
+
+
 def register_env():
     gym.envs.register(
         id='VREnv-v0',

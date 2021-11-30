@@ -1,0 +1,11 @@
+# Absolute path where models are stored
+models_dir: ${paths.vapo_path}/combined/hydra_outputs
+model_name: tabletop_rand_relative_img_depth_dist_affMask_dense_19-09_01-12_most_tasks_from_20
+folder_name: ${test.models_dir}/pickup/2021-09-19/01-10-30_aff_rl
+
+eval_cfg:
+  n_episodes: 5
+  render: False
+  print_all_episodes: True
+  max_episode_length: 100
+  save_images: ${save_images}

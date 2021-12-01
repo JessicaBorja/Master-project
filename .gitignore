@@ -20,3 +20,5 @@ project.egg-info
 vapo.egg-info/
 hough_voting.egg-info/
 build/
+.idea/
+config/robot_io/cams/static_cam/kinect4_jessica_1.yaml

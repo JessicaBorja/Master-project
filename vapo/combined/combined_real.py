@@ -27,7 +27,6 @@ class Combined(SAC):
     def __init__(self, cfg, sac_cfg=None, wandb_login=None,
                  rand_target=False, *args, **kwargs):
         super(Combined, self).__init__(**sac_cfg, wandb_login=wandb_login)
-        self.writer = SummaryWriter(self.writer_name)
         _aff_transforms = get_transforms(
             cfg.affordance.transforms.validation,
             cfg.target_search_aff.img_size)

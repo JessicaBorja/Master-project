@@ -84,7 +84,7 @@ def get_obs_space(affordance_cfg, gripper_cam_cfg, static_cam_cfg,
     return gym.spaces.Dict(obs_space_dict)
 
 
-def init_aff_net(affordance_cfg, cam_str):
+def init_aff_net(affordance_cfg, cam_str, in_channels=1):
     aff_net = None
     if(affordance_cfg):
         if(affordance_cfg.static_cam.use
@@ -92,7 +92,8 @@ def init_aff_net(affordance_cfg, cam_str):
             path = affordance_cfg.static_cam.model_path
             # Configuration of the model
             hp = {**affordance_cfg.static_cam.hyperparameters,
-                  "hough_voting": affordance_cfg.static_cam.hough_voting}
+                  "hough_voting": affordance_cfg.static_cam.hough_voting,
+                  "in_channels": in_channels}
             hp = OmegaConf.create(hp)
 
             # Create model

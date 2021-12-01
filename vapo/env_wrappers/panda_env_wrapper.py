@@ -24,17 +24,20 @@ class PandaEnvWrapper(gym.Wrapper):
         self.reward_success = reward_success
         self.termination_radius = termination_radius
         self.target_pos = None
+        self.task = 'pickup'
         if("box_pos" in kwargs):
             self.box_pos = kwargs['box_pos']
             self.box_3D_end_points = get_3D_end_points(
                 *self.box_pos,
-                kwargs["box_dims"])
+                *kwargs["box_dims"])
 
     def reset(self, target_pos=None, target_orn=None, offset=[0, 0, 0]):
         self.env.robot.open_gripper()
         if target_pos is not None and target_orn is not None:
             self.target_pos = target_pos
-        move_to = target_pos + offset
+            move_to = target_pos + offset
+        else:
+            move_to = target_pos
         return self.transform_obs(
                     self.env.reset(move_to, target_orn))
 

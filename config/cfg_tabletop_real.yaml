@@ -1,10 +1,10 @@
 data_path: ${paths.vr_data}
-save_dir: ./hydra_outputs/vapo/${task}/
+save_dir: ./hydra_outputs/vapo_real_world/${task}/
 model_name: real_world
 task: pickup
 euler_obs: true
 img_size: 64
-viz_obs: False
+viz_obs: True
 
 # path to load affordance models either gripper_cam 
 # or static_cam
@@ -61,8 +61,7 @@ env_wrapper:
     use_depth: False
   use_pos: True
   img_size: ${img_size}
-  save_images: ${save_images}
-  viz: True
+  viz: ${viz_obs}
 
 panda_env_wrapper:
   d_pos: 0.005
@@ -78,7 +77,7 @@ panda_env_wrapper:
 affordance:
     static_cam:
       use: False
-      model_path: ${models_path}/static_real_world.ckpt
+      model_path: ${models_path}/rw_static_drawer.ckpt # static_real_world.ckpt
       img_size: 200
       hough_voting:
         skip_pixels: 2
@@ -109,7 +108,7 @@ affordance:
       use_distance: True
       densify_reward: True
       target_in_obs: False
-      model_path: ${models_path}/gripper_real_world.ckpt
+      model_path: ${models_path}/rw_gripper_all_rgb.ckpt # gripper_real_world.ckpt
       hough_voting:
         skip_pixels: 2
         inlier_threshold: 0.7
@@ -140,10 +139,10 @@ hydra:
     dir: ${save_dir}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 defaults:
+  - _self_
   - robot_io/robot@robot: panda_frankx_interface
   - robot_io/env@robot_env: env
   - robot_io/cams@cams: camera_manager
-  - robot_io/cams/static_cam@static_cam: kinect4_oier
   - agent: default
   - test: test_real
   - paths: general_paths

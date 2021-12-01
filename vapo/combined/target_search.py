@@ -28,7 +28,7 @@ class TargetSearch():
         self.save_images = env.save_images
 
         if(mode == "real_world"):
-            self.static_cam = hydra.utils.instantiate(main_cfg.static_cam)
+            self.static_cam = hydra.utils.instantiate(main_cfg.cams.static_cam)
             self.T_world_cam = self.static_cam.get_extrinsic_calibration("panda")
             self.orig_img, _ = self.static_cam.get_image()
         else:

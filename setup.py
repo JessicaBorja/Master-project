@@ -10,9 +10,11 @@ setup(name='vapo',
           'pybullet(==3.1.7)',
           'pytorch-lightning',
           'segmentation-models-pytorch',
+          'numpy-quaternion',
           'hydra-colorlog',
           'pypng',
           'tqdm',
+          'wandb',
           'omegaconf',
           'matplotlib']
      )

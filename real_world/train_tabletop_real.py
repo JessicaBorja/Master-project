@@ -1,13 +1,14 @@
 import hydra
 import logging
 import os
-from vapo.env_wrappers.panda_env_wrapper import PandaEnvWrapper
+from robot_io.cams.realsense.realsense import Realsense
 from vapo.env_wrappers.affordance.aff_wrapper_real_world import AffordanceWrapperRealWorld
 from vapo.env_wrappers.utils import get_name
-from vapo.combined.combined import Combined
+from vapo.combined.combined_real import Combined
+from vapo.env_wrappers.panda_env_wrapper import PandaEnvWrapper
 
 
-@hydra.main(config_path="./config", config_name="cfg_tabletop_real")
+@hydra.main(config_path="../config", config_name="cfg_tabletop_real")
 def main(cfg):
     # Auto generate names given dense, aff-mask, aff-target
     log = logging.getLogger(__name__)
@@ -19,7 +20,6 @@ def main(cfg):
                                      max_ts=cfg.agent.learn_config.max_episode_length,
                                      train=True,
                                      affordance_cfg=cfg.affordance,
-                                     viz=cfg.viz_obs,
                                      save_images=cfg.save_images,
                                      real_world=True,
                                      **cfg.env_wrapper)
@@ -44,7 +44,7 @@ def main(cfg):
         model_path = os.path.join(original_dir, cfg.resume_model_path)
         path = "%s/trained_models/%s.pth" % (model_path,
                                              cfg.model_name + "_last")
-        if(os.path.exists(path)):
+        if os.path.exists(path):
             model.load(path)
         else:
             print("Model path does not exist: %s \n Training from start"

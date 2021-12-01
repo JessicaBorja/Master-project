@@ -1,9 +1,9 @@
 get_eval_files: True
 
 # Tabletop real-world Static cam
-folder_name: ${paths.vapo_path}/hydra_outputs/affordance_model/2021-11-29/15-16-48_aff_rl
-model_name: rw_gripper_all_epoch=22-val_miou=0.528.ckpt
-cam_type: gripper
+folder_name: ${paths.vapo_path}/hydra_outputs/affordance_model/2021-11-26/17-47-08_aff_rl
+model_name: last.ckpt
+cam_type: static
 dataset_name: real_world/drawer_affordance
 data_dir: "${paths.datasets}/${dataset_name}"
 

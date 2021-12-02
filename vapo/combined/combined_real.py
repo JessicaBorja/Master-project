@@ -56,20 +56,18 @@ class Combined(SAC):
         self.env.curr_detected_obj = self.target_pos
         self.env.unwrapped.curr_detected_obj = self.target_pos
         self.eval_env = self.env
-        self.offset = [0, 0, cfg.move_above]
+        self.offset = cfg.env_wrapper.move_offset
+        self.sim = False ##Not simulation
 
-    def detect_and_correct(self, env, p_dist=None):
+    def detect_and_correct(self, env):
         env.reset()
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
-        target_pos, no_target = \
-            self.target_search.compute(env,
-                                       self.global_obs_it,
-                                       p_dist=p_dist)
+        target_pos, no_target = self.target_search.compute(env)
         if(no_target):
             self.no_detected_target += 1
             input("No object detected. Please rearrange table.")
-            return self.detect_and_correct(env, p_dist)
+            return self.detect_and_correct(env)
 
         robot_target_pos = target_pos.copy()
         target_orn = self.target_orn.copy()
@@ -152,7 +150,6 @@ class Combined(SAC):
             s = env.reset()
             target_pos, no_target, center_targets = \
                 self.target_search.compute(env,
-                                           self.global_obs_it,
                                            return_all_centers=True)
             if(no_target):
                 input("No object detected. Please rearrange table.")
@@ -207,7 +204,7 @@ class Combined(SAC):
         while(total_ts <= max_episode_length * n_objects):
             episode_length, episode_return = 0, 0
             done = False
-            env, s, no_target = self.detect_and_correct(env, self.env.get_obs())
+            env, s, no_target = self.detect_and_correct(env)
 
             # If it did not find a target again, terminate everything
             while(episode_length < max_episode_length

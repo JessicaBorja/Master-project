@@ -45,6 +45,7 @@ def main(cfg):
         path = "%s/trained_models/%s.pth" % (model_path,
                                              cfg.model_name + "_last")
         if os.path.exists(path):
+            print("loading model: %s" % path)
             model.load(path)
         else:
             print("Model path does not exist: %s \n Training from start"

@@ -24,7 +24,7 @@ wandb_login:
 n_objects: 4
 target_search: "real_world"
 target_search_aff:
-  model_path: ${models_path}/static_real_world.ckpt
+  model_path: ${models_path}/rw_static_drawer.ckpt
   img_size: 200
   hyperparameters:
     n_classes: 2
@@ -62,9 +62,10 @@ env_wrapper:
   use_pos: True
   img_size: ${img_size}
   viz: ${viz_obs}
+  move_offset: [0, 0, 0.05]
 
 panda_env_wrapper:
-  d_pos: 0.005
+  d_pos: 0.01
   d_rot: 0.3
   gripper_success_threshold: 0.01
   reward_fail: -20
@@ -143,7 +144,7 @@ defaults:
   - robot_io/robot@robot: panda_frankx_interface
   - robot_io/env@robot_env: env
   - robot_io/cams@cams: camera_manager
-  - agent: default
+  - agent: default_real_world
   - test: test_real
   - paths: general_paths
   - transforms@affordance.transforms: aff_transforms_rgb

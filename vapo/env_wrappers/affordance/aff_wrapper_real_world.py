@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 from gym import spaces
 from vapo.env_wrappers.affordance.aff_wrapper_base import AffordanceWrapperBase
-from vapo.utils.real_world import get_depth_around_point, get_px_after_crop_resize
+from vapo.utils.real_world import get_depth_around_point, get_px_after_crop_resize, pos_orn_to_matrix
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +36,7 @@ class AffordanceWrapperRealWorld(AffordanceWrapperBase):
         if depth_non_zero:
             cam_frame_pt = cam.deproject(o, depth)
             tcp_pos, tcp_orn = self.env.robot.get_tcp_pos_orn()
-            tcp_mat = self.pos_orn_to_matrix(tcp_pos, tcp_orn)
+            tcp_mat = pos_orn_to_matrix(tcp_pos, tcp_orn)
             world_pt = tcp_mat @ self.T_tcp_cam @ np.array([*cam_frame_pt, 1])
             world_pt = world_pt[:3]
         else:
@@ -45,8 +45,8 @@ class AffordanceWrapperRealWorld(AffordanceWrapperBase):
 
     def viz_curr_target(self):
         u, v = self.target_search.static_cam.project(self.curr_detected_obj)
-        u, v = self.get_px_after_crop_resize(self.target_search.static_cam,
-                                             (u, v))
+        u, v = get_px_after_crop_resize(self.target_search.static_cam,
+                                        (u, v))
         img = self.target_search.orig_img.copy()
         img = cv2.drawMarker(img, (int(u), int(v)),
                              (0, 0, 0),

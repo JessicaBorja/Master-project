@@ -294,10 +294,11 @@ class AffordanceWrapperBase(gym.Wrapper):
             # Convert back to observation size
             o = (o * orig_shape / pred_shape).astype("int64")
             world_pt = self.get_world_pt(cam, o, depth, orig_shape)
-            c_out = {"center": world_pt,
-                     "pixel_count": pixel_count,
-                     "robustness": robustness}
-            cluster_outputs.append(c_out)
+            if(world_pt is not None):
+                c_out = {"center": world_pt,
+                        "pixel_count": pixel_count,
+                        "robustness": robustness}
+                cluster_outputs.append(c_out)
 
         most_robust = 0
         if(self.curr_detected_obj is not None):

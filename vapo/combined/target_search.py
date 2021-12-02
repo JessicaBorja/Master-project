@@ -1,3 +1,4 @@
+from io import RawIOBase
 import numpy as np
 from omegaconf import OmegaConf
 import os
@@ -28,7 +29,7 @@ class TargetSearch():
         self.save_images = env.save_images
 
         if(mode == "real_world"):
-            self.static_cam = hydra.utils.instantiate(main_cfg.cams.static_cam)
+            self.static_cam = env.camera_manager.static_cam # hydra.utils.instantiate(main_cfg.cams.static_cam)
             self.T_world_cam = self.static_cam.get_extrinsic_calibration("panda")
             self.orig_img, _ = self.static_cam.get_image()
         else:
@@ -47,20 +48,20 @@ class TargetSearch():
         if(env is None):
             env = self.env
         if(self.mode == "real_world"):
-            res = self._compute_real_world(env, return_all_centers)
+            res = self._compute_real_world(env,
+                                           return_all_centers)
         else:
             res = self._compute_sim(env, noisy, p_dist,
                                     rand_sample,
                                     return_all_centers)
         return res
 
-    def _compute_real_world(self, env, global_it, return_all_centers):
+    def _compute_real_world(self, env, return_all_centers):
         orig_img, depth_img = self.static_cam.get_image()
         self.orig_img = orig_img
         res = self._compute_target_aff(env, self.static_cam,
                                        depth_img,
-                                       orig_img,
-                                       global_it)
+                                       orig_img)
         if(not return_all_centers):
             res = res[:2]
         return res
@@ -143,8 +144,7 @@ class TargetSearch():
         return target_pos, no_target
 
     # Aff-center model
-    def _compute_target_aff(self, env, cam, depth_obs, orig_img,
-                            global_obs_it=0):
+    def _compute_target_aff(self, env, cam, depth_obs, orig_img):
 
         # Apply validation transforms
         img_obs = torch.tensor(orig_img).permute(2, 0, 1).unsqueeze(0).cuda()
@@ -218,10 +218,10 @@ class TargetSearch():
             world_pts.append(world_pt)
 
         # Recover target
-        v, u = object_centers[target_idx]
-        target_pos = world_pts[target_idx]
         if(self.env.viz or self.save_images):
-            u, v = u.item(), v.item()
+            target_px = torch_to_numpy(object_centers[target_idx])
+            reshaped_center = (target_px * orig_shape // pred_shape).astype("int64")
+            v, u = reshaped_center
             out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
                                      (u, v),
                                      (255, 0, 0),
@@ -236,6 +236,7 @@ class TargetSearch():
                 cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
                             out_img)
 
+        target_pos = world_pts[target_idx]
         return target_pos, no_target, world_pts
 
     def find_env_target(self, env, target_pos):
@@ -262,7 +263,10 @@ class TargetSearch():
         # Static camera
         u1, v1 = self.static_cam.project(np.array(box_top_left))
         u2, v2 = self.static_cam.project(np.array(box_bott_right))
-        shape = (self.static_cam.width, self.static_cam.height)
+        if(self.mode == "real_world"):
+            shape = self.static_cam.resize_resolution
+        else:
+            shape = (self.static_cam.width, self.static_cam.height)
         mask = np.zeros(shape, np.uint8)
         mask = cv2.rectangle(mask, (u1, v1), (u2, v2),
                              (1, 1, 1), thickness=-1)

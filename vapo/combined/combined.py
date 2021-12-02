@@ -51,6 +51,7 @@ class Combined(SAC):
         self.eval_env = self.env
         self.radius = self.env.termination_radius  # Distance in meters
         self.move_above = 0.03
+        self.sim = True
 
     def get_task_label(self):
         task = self.env.task

@@ -200,6 +200,94 @@ class CNNPolicyRes(CNNPolicy):
         sigma = torch.clamp(log_sigma, -20, 2).exp()
         return mu, sigma, gripper_action_logits
 
+class CNNPolicyReal(nn.Module):
+    def __init__(self, obs_space, action_dim, action_space, affordance=None,
+                 activation="relu", hidden_dim=256, latent_dim=16, **kwargs):
+        super(CNNPolicyReal, self).__init__()
+        self.action_high = torch.tensor(action_space.high).cuda()
+        self.action_low = torch.tensor(action_space.low).cuda()
+        _robot_obs_shape = get_pos_shape(obs_space, "robot_obs")
+        _target_pos_shape = get_pos_shape(obs_space, "detected_target_pos")
+        _distance_shape = get_pos_shape(obs_space, "target_distance")
+        self.cnn_img = get_img_network(
+                            obs_space,
+                            out_feat=latent_dim,
+                            activation=activation,
+                            affordance_cfg=affordance.static_cam,
+                            cam_type="static")
+        self.cnn_gripper = get_img_network(
+                            obs_space,
+                            out_feat=latent_dim,
+                            activation=activation,
+                            affordance_cfg=affordance.gripper_cam,
+                            cam_type="gripper")
+        out_feat = 0
+        for net in [self.cnn_img, self.cnn_gripper]:
+            if(net is not None):
+                out_feat += latent_dim
+        out_feat += _robot_obs_shape + _target_pos_shape + _distance_shape
+        self.out_feat = out_feat
+        self.hidden_dim = hidden_dim
+        self.action_dim = action_dim
+
+        out_size = self.hidden_dim + self.out_feat
+        self.fc0 = nn.Linear(self.out_feat, self.hidden_dim)
+        self.fc1 = nn.Linear(out_size, self.hidden_dim)
+        self.fc2 = nn.Linear(out_size, self.hidden_dim)
+        self.fc3 = nn.Linear(out_size, self.hidden_dim)
+        self.mu = nn.Linear(hidden_dim, action_dim)
+        self.sigma = nn.Linear(hidden_dim, action_dim)
+        self.aff_cfg = affordance
+
+    def forward(self, obs):
+        features = get_concat_features(self.aff_cfg,
+                                       obs,
+                                       self.cnn_img,
+                                       self.cnn_gripper)
+        x = F.elu(self.fc0(features))
+        x = torch.cat([x, features], -1)
+        x = F.elu(self.fc1(x))
+        x = torch.cat([x, features], -1)
+        x = F.elu(self.fc2(x))
+        x = torch.cat([x, features], -1)
+        x = F.elu(self.fc3(x))
+        mu = self.mu(x)
+        log_sigma = self.sigma(x)
+        # avoid log_sigma to go to infinity
+        sigma = torch.clamp(log_sigma, -20, 2).exp()
+        return mu, sigma
+
+    def scale_action(self, action):
+        slope = (self.action_high - self.action_low) / 2
+        action = self.action_low + slope * (action + 1)
+        return action
+
+    # return action scaled to env
+    def act(self, curr_obs, deterministic=False, reparametrize=False):
+        mu, sigma = self.forward(curr_obs)
+        log_probs = None
+        if(deterministic):
+            action = torch.tanh(mu)
+        else:
+            dist = Normal(mu, sigma)
+            if(reparametrize):
+                sample = dist.rsample()
+            else:
+                sample = dist.sample()
+            action = torch.tanh(sample)
+
+            # For updating policy, Apendix of SAC paper
+            # unsqueeze because log_probs is of dim (batch_size, action_dim)
+            # but the torch.log... is (batch_size)
+            log_probs = dist.log_prob(sample) -\
+                torch.log((1 - action.square() + 1e-6))
+            log_probs = log_probs.sum(-1)  # , keepdim=True)
+
+        action = self.scale_action(action)
+
+        # add gripper action to log_probs
+        return action, log_probs
+
 
 # https://stackoverflow.com/questions/56226133/soft-actor-critic-with-discrete-action-space
 # https://github.com/kengz/SLM-Lab/blob/master/slm_lab/agent/algorithm/sac.py

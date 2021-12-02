@@ -7,7 +7,7 @@ def np_quat_to_scipy_quat(quat):
     return np.array([quat.x, quat.y, quat.z, quat.w])
 
 
-def pos_orn_to_matrix(self, pos, orn):
+def pos_orn_to_matrix(pos, orn):
     """
     :param pos: np.array of shape (3,)
     :param orn: np.array of shape (4,) -> quaternion xyzw

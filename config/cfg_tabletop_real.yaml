@@ -21,10 +21,12 @@ wandb_login:
   project: vapo_real_world
 
 # Static cam affordance model to detect the targets
+static_cam_aff__model: ${paths.vapo_path}/hydra_outputs/affordance_model/2021-11-26/18-46-22_aff_rl/trained_models/last.ckpt
+gripper_cam_aff_model: ${paths.vapo_path}/hydra_outputs/affordance_model/2021-11-26/18-46-38_aff_rl/trained_models/last.ckpt
 n_objects: 4
 target_search: "real_world"
 target_search_aff:
-  model_path: ${models_path}/rw_static_drawer.ckpt
+  model_path: ${static_cam_aff__model}
   img_size: 200
   hyperparameters:
     n_classes: 2
@@ -62,7 +64,6 @@ env_wrapper:
   use_pos: True
   img_size: ${img_size}
   viz: ${viz_obs}
-  move_offset: [0, 0, 0.05]
 
 panda_env_wrapper:
   d_pos: 0.01
@@ -73,12 +74,16 @@ panda_env_wrapper:
   termination_radius: 0.08
   box_pos: [0.24, 0.4, 0.08]
   box_dims: [0.10, 0.20, 0.05]
+  offset: 
+    pickup: [0, 0, 0.05]
+    drawer: [0, -0.125, 0.08]
+
 
 # Affordance configuration for RL agent observation inputs
 affordance:
     static_cam:
       use: False
-      model_path: ${models_path}/rw_static_drawer.ckpt # static_real_world.ckpt
+      model_path: ${static_cam_aff__model}
       img_size: 200
       hough_voting:
         skip_pixels: 2
@@ -109,7 +114,7 @@ affordance:
       use_distance: True
       densify_reward: True
       target_in_obs: False
-      model_path: ${models_path}/rw_gripper_all_rgb.ckpt # gripper_real_world.ckpt
+      model_path: ${gripper_cam_aff_model}
       hough_voting:
         skip_pixels: 2
         inlier_threshold: 0.7
@@ -147,7 +152,7 @@ defaults:
   - agent: default_real_world
   - test: test_real
   - paths: general_paths
-  - transforms@affordance.transforms: aff_transforms_rgb
+  - transforms@affordance.transforms: aff_transforms
   - transforms@env_wrapper.transforms: rl_transforms
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog

@@ -23,32 +23,6 @@ dataloader:
   batch_size : 128 #28
   pin_memory: True
 
-model_cfg:
-  model_name: ${model_name}
-  n_classes: 2
-  hough_voting:
-    skip_pixels: 5
-    inlier_threshold: 0.6
-    angle_discretization: 100
-    inlier_distance: 10
-    percentage_threshold: 0.3
-    object_center_kernel_radius: 10
-  centers_loss:
-    weight: 2.5
-  aff_loss:
-    weight: 1
-    dice_loss:
-      add: True
-      weight: 5
-    ce_loss:
-      weight: 1
-      class_weights: [0.2, 0.8]
-  optimizer:
-    lr: 1e-5
-    # weight_decay: 1e-4
-  unet_cfg:
-    decoder_channels: [128, 64, 32]
-
 trainer:
   gpus: -1
   max_epochs: ${n_epochs}
@@ -62,6 +36,7 @@ hydra:
 
 defaults:
   - paths: general_paths
+  - aff_model@model_cfg: aff_model
   - transforms@dataset.transforms_cfg: aff_transforms
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog

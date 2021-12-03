@@ -5,6 +5,8 @@ import numpy as np
 from vapo.utils.utils import get_3D_end_points
 from robot_io.utils.utils import quat_to_euler
 import logging
+import math
+
 log = logging.getLogger(__name__)
 
 WAIT_AFTER_GRIPPER_CLOSE = 1
@@ -15,7 +17,7 @@ GRIPPER_WIDTH_FAIL = 0.075
 
 
 class PandaEnvWrapper(gym.Wrapper):
-    def __init__(self, env, d_pos, d_rot, gripper_success_threshold, reward_fail, reward_success, termination_radius, *args, **kwargs):
+    def __init__(self, env, d_pos, d_rot, gripper_success_threshold, reward_fail, reward_success, termination_radius, offset, *args, **kwargs):
         super().__init__(env)
         self.d_pos = d_pos
         self.d_rot = d_rot
@@ -25,17 +27,27 @@ class PandaEnvWrapper(gym.Wrapper):
         self.termination_radius = termination_radius
         self.target_pos = None
         self.task = 'pickup'
+        self.offset = offset
         if("box_pos" in kwargs):
             self.box_pos = kwargs['box_pos']
             self.box_3D_end_points = get_3D_end_points(
                 *self.box_pos,
                 *kwargs["box_dims"])
 
-    def reset(self, target_pos=None, target_orn=None, offset=[0, 0, 0]):
+    def get_target_orn(self, task):
+        self.task = task
+        if(task == "drawer"):
+            target_orn = np.array([- math.pi *  3/4, 0, 0])
+        else:
+            # Pickup
+            target_orn = np.array([math.pi, 0, 0])
+        return target_orn
+
+    def reset(self, target_pos=None, target_orn=None):
         self.env.robot.open_gripper()
         if target_pos is not None and target_orn is not None:
             self.target_pos = target_pos
-            move_to = target_pos + offset
+            move_to = target_pos + self.offset[self.task]
         else:
             move_to = target_pos
         return self.transform_obs(

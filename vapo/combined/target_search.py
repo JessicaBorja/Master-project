@@ -237,6 +237,12 @@ class TargetSearch():
                             out_img)
 
         target_pos = world_pts[target_idx]
+        max_height = -1
+        #
+        for pt in world_pts:
+            if(pt[-1] > max_height):
+                target_pos = pt
+                max_height = pt[-1]
         return target_pos, no_target, world_pts
 
     def find_env_target(self, env, target_pos):

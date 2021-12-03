@@ -4,17 +4,16 @@ import os
 import cv2
 from hydra.utils import get_original_cwd, to_absolute_path
 import torch
-from omegaconf import OmegaConf
 from omegaconf.listconfig import ListConfig
 import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 import json
+from vapo.env_wrappers.utils import load_aff_from_hydra
 
 import vapo.utils.flowlib as flowlib
 from vapo.utils.img_utils import overlay_mask, overlay_flow
 from vapo.utils.file_manipulation import get_files
-from vapo.affordance_model.segmentator_centers import Segmentator
 from vapo.affordance_model.datasets import get_transforms
 
 
@@ -71,22 +70,8 @@ def viz(cfg):
     # Create output directory if save_images
     if(not os.path.exists(cfg.output_dir) and cfg.save_images):
         os.makedirs(cfg.output_dir)
-    # Initialize model
-    hydra_cfg_path = cfg.folder_name + "/.hydra/config.yaml"
-    if os.path.exists(hydra_cfg_path):
-        run_cfg = OmegaConf.load(hydra_cfg_path)
-    else:
-        run_cfg = cfg
+    model, run_cfg = load_aff_from_hydra(cfg)
     model_cfg = run_cfg.model_cfg
-    model_cfg.hough_voting = cfg.model_cfg.hough_voting
-
-    # Load model
-    checkpoint_path = os.path.join(cfg.folder_name, "trained_models")
-    checkpoint_path = os.path.join(checkpoint_path, cfg.model_name)
-    model = Segmentator.load_from_checkpoint(checkpoint_path,
-                                             cfg=model_cfg).cuda()
-    model.eval()
-    print("model loaded")
 
     # Transforms
     cam_type = cfg.dataset.cam

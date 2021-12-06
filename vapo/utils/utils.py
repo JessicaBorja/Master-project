@@ -2,6 +2,41 @@ import os
 import gym
 from omegaconf import OmegaConf
 from vapo.sac_agent.sac_utils.utils import set_init_pos
+from vapo.affordance_model.segmentator_centers import Segmentator
+from torchvision import transforms
+import hydra
+
+
+def torch_to_numpy(x):
+    return x.detach().cpu().numpy()
+
+
+def init_aff_net(affordance_cfg, cam_str=None, in_channels=1):
+    aff_net = None
+    if(affordance_cfg is not None):
+        if(cam_str is not None):
+            aff_cfg = affordance_cfg["%s_cam" % cam_str]
+        else:
+            aff_cfg = affordance_cfg
+        if("use" in aff_cfg and aff_cfg.use):
+            path = aff_cfg.model_path
+            # Configuration of the model
+            hp = {**aff_cfg.hyperparameters,
+                  "in_channels": in_channels}
+            hp = OmegaConf.create(hp)
+            # Create model
+            if(os.path.exists(path)):
+                aff_net = Segmentator.load_from_checkpoint(
+                                    path,
+                                    cfg=hp)
+                aff_net.cuda()
+                aff_net.eval()
+                print("obs_wrapper: %s cam affordance model loaded" % cam_str)
+            else:
+                affordance_cfg = None
+                path = os.path.abspath(path)
+                raise TypeError("Path does not exist: %s" % path)
+    return aff_net
 
 
 def change_project_path(cfg, run_cfg):
@@ -21,11 +56,11 @@ def change_project_path(cfg, run_cfg):
     net_cfg.affordance.gripper_cam.model_path = gripper_cam_aff_path
 
     # Static cam target_search
-    target_search_aff = run_cfg.target_search_aff.model_path
-    target_search_aff = target_search_aff.replace(
+    target_search = run_cfg.target_search.model_path
+    target_search = target_search.replace(
         run_cfg.models_path,
         cfg.models_path)
-    run_cfg.target_search_aff.model_path = target_search_aff
+    run_cfg.target_search.model_path = target_search
 
     # VREnv data path
     run_cfg.models_path = cfg.models_path
@@ -59,11 +94,24 @@ def load_cfg(cfg_path, cfg, optim_res):
     return run_cfg, net_cfg, env_wrapper, agent_cfg
 
 
+def get_transforms(transforms_cfg, img_size=None):
+    transforms_lst = []
+    transforms_config = transforms_cfg.copy()
+    for cfg in transforms_config:
+        if((cfg._target_ == "torchvision.transforms.Resize"
+            or "RandomCrop" in cfg._target_)
+           and img_size is not None):
+            cfg.size = img_size
+        transforms_lst.append(hydra.utils.instantiate(cfg))
+
+    return transforms.Compose(transforms_lst)
+
+
 def get_3D_end_points(x, y, z, w, h, d):
-    w = w//2
-    h = h//2
-    box_top_left = [x - w, y + h, z, 1]
-    box_bott_right = [x + w, y - h, z + d, 1]
+    w = w/2
+    h = h/2
+    box_top_left = [x - w, y + h, z]
+    box_bott_right = [x + w, y - h, z + d]
     return (box_top_left, box_bott_right)
 
 

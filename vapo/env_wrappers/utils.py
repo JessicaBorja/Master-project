@@ -4,14 +4,9 @@ import numpy as np
 from omegaconf.omegaconf import OmegaConf
 import torch
 import os
-import pybullet as p
-
 from vapo.affordance_model.segmentator_centers import Segmentator
 from vapo.affordance_model.datasets import get_transforms
-import vapo.utils.flowlib as flowlib
-from vapo.utils.img_utils import overlay_mask, overlay_flow
-import matplotlib.pyplot as plt
-from omegaconf.listconfig import ListConfig
+
 
 def get_name(cfg, model_name):
     if(cfg.env_wrapper.gripper_cam.use_img):
@@ -86,53 +81,6 @@ def get_obs_space(affordance_cfg, gripper_cam_cfg, static_cam_cfg,
     return gym.spaces.Dict(obs_space_dict)
 
 
-def init_aff_net(affordance_cfg, cam_str, in_channels=1):
-    aff_net = None
-    if(affordance_cfg):
-        if(affordance_cfg.static_cam.use
-           and cam_str == "static"):
-            path = affordance_cfg.static_cam.model_path
-            # Configuration of the model
-            hp = {**affordance_cfg.static_cam.hyperparameters,
-                  "hough_voting": affordance_cfg.static_cam.hough_voting,
-                  "in_channels": in_channels}
-            hp = OmegaConf.create(hp)
-
-            # Create model
-            if(os.path.exists(path)):
-                aff_net = Segmentator.load_from_checkpoint(
-                                    path,
-                                    cfg=hp)
-                aff_net.cuda()
-                aff_net.eval()
-                print("obs_wrapper: Static cam affordance model loaded")
-            else:
-                affordance_cfg = None
-                path = os.path.abspath(path)
-                raise TypeError("Path does not exist: %s" % path)
-        elif(cam_str == "gripper" and
-                (affordance_cfg.gripper_cam.use or
-                 affordance_cfg.gripper_cam.densify_reward)):
-            path = affordance_cfg.gripper_cam.model_path
-
-            # Configuration of the model
-            hp = {**affordance_cfg.gripper_cam.hyperparameters,
-                  "hough_voting": affordance_cfg.gripper_cam.hough_voting}
-            hp = OmegaConf.create(hp)
-
-            # Create model
-            if(os.path.exists(path)):
-                aff_net = Segmentator.load_from_checkpoint(path, cfg=hp)
-                aff_net.cuda()
-                aff_net.eval()
-                print("obs_wrapper: gripper affordance model loaded")
-            else:
-                affordance_cfg = None
-                path = os.path.abspath(path)
-                raise TypeError("Path does not exist: %s" % path)
-    return aff_net, affordance_cfg
-
-
 def depth_preprocessing(frame, img_size):
     # obs is from 0-255, (img_size, img_size, 1)
     new_frame = cv2.resize(
@@ -176,100 +124,7 @@ def load_aff_from_hydra(cfg):
 
 
 def img_preprocessing(frame, transforms):
-    # obs is from 0-255, (img_size, img_size, 3)
     frame = torch.from_numpy(frame).permute(2, 0, 1)
     frame = transforms(frame)
     frame = frame.cpu().detach().numpy()
-
-    # History length
-    # if(frame.shape == 2):
-    #     frame = np.expand_dims(frame, 0)  # (1, img_size, img_size)
-    # c, w, h = frame.shape
-    # self._total_frames = np.pad(self._total_frames, ((
-    #     c, 0), (0, 0), (0, 0)), mode='constant')[:-c, :, :]
-    # self._total_frames[0:c] = frame
-
-    # self._cur_img_obs = [self._total_frames[i * c:(i * c) + c]
-    #                      for i in self._indices]
-    # self._cur_img_obs = np.concatenate(self._cur_img_obs, 0)
     return frame
-
-def transform_and_predict(model, img_transforms, orig_img,
-                          img_resize, show=True, rgb=False,
-                          cam="gripper",
-                          out_shape=(200, 200)):
-    resize_shape = (img_resize, img_resize)
-    if(rgb):
-        orig_img = cv2.cvtColor(orig_img, cv2.COLOR_RGB2BGR)
-    orig_img_resize = cv2.resize(orig_img, resize_shape)
-    # Apply validation transforms
-    x = torch.from_numpy(orig_img_resize).permute(2, 0, 1).unsqueeze(0)
-    if isinstance(img_transforms, ListConfig):
-        img_transforms = get_transforms(img_transforms, img_resize)
-    x = img_transforms(x).cuda()
-
-    # Predict affordance, centers and directions
-    aff_logits, _, aff_mask, directions = model(x)
-    fg_mask, _, object_centers, object_masks = \
-        model.predict(aff_mask, directions)
-
-    # To numpy arrays
-    pred_shape = np.array(fg_mask[0].shape)
-    mask = fg_mask.detach().cpu().numpy()
-    object_masks = object_masks.permute((1, 2, 0)).detach().cpu().numpy()
-    directions = directions[0].detach().cpu().numpy()
-
-    # Plot different objects according to voting layer
-    obj_segmentation = orig_img_resize
-    centers = []
-    obj_class = np.unique(object_masks)[1:]
-    obj_class = obj_class[obj_class != 0]  # remove background class
-    cm = plt.get_cmap('tab10')
-    colors = cm(np.linspace(0, 1, len(obj_class)))[:, :3]
-    colors = (colors * 255).astype('uint8')
-    for i, o in enumerate(object_centers):
-        o = o.detach().cpu().numpy()
-        centers.append(o)
-
-    # Affordance segmentation
-    affordances = orig_img
-    bin_mask = (mask[0] * 255).astype('uint8')
-    bin_mask = cv2.resize(bin_mask, affordances.shape[:2])
-    affordances = overlay_mask(bin_mask, affordances, (255, 0, 0))
-
-    # To flow img
-    directions = np.transpose(directions, (1, 2, 0))
-    flow_img = flowlib.flow_to_image(directions)  # RGB
-    flow_img = flow_img[:, :, ::-1]  # BGR
-    mask = (np.transpose(mask, (1, 2, 0))*255).astype('uint8')
-    # mask[:, 100:] = 0
-
-    # Resize to out_shape
-    obj_segmentation = cv2.resize(obj_segmentation, out_shape)
-    orig_img = cv2.resize(orig_img, out_shape)
-    flow_img = cv2.resize(flow_img, out_shape)
-    mask = cv2.resize(mask, out_shape)
-    affordances = cv2.resize(affordances, out_shape)
-
-    # Resize centers
-    new_shape = np.array(out_shape)
-    for i in range(len(centers)):
-        centers[i] = (centers[i] * new_shape / pred_shape).astype("int32")
-
-    # Overlay directions and centers
-    res = overlay_flow(flow_img, orig_img, mask)
-
-    # Draw detected centers
-    for c in centers:
-        u, v = c[1], c[0]  # center stored in matrix convention
-        res = cv2.drawMarker(res, (u, v),
-                                (0, 0, 0),
-                                markerType=cv2.MARKER_CROSS,
-                                markerSize=10,
-                                line_type=cv2.LINE_AA)
-    if(show):
-        # cv2.imshow("Affordance masks", affordances)
-        cv2.imshow("object masks: % s" % cam, obj_segmentation)
-        cv2.imshow("%s output" % cam, res)
-        # cv2.imshow("flow", flow_img)
-        # cv2.waitKey(1)

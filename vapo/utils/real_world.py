@@ -17,7 +17,7 @@ def pos_orn_to_matrix(pos, orn):
     """
     mat = np.eye(4)
     if isinstance(orn, np.quaternion):
-        orn = self.np_quat_to_scipy_quat(orn)
+        orn = np_quat_to_scipy_quat(orn)
         mat[:3, :3] = R.from_quat(orn).as_matrix()
     elif len(orn) == 4:
         mat[:3, :3] = R.from_quat(orn).as_matrix()
@@ -25,19 +25,6 @@ def pos_orn_to_matrix(pos, orn):
         mat[:3, :3] = R.from_euler('xyz', orn).as_matrix()
     mat[:3, 3] = pos
     return mat
-
-
-def get_px_after_crop_resize(cam, px):
-    tcp_x, tcp_y = px
-    # Img coords after crop
-    tcp_x = tcp_x - cam.crop_coords[2]
-    tcp_y = tcp_y - cam.crop_coords[0]
-    # Get img coords after resize
-    old_w = cam.crop_coords[3] - cam.crop_coords[2]
-    old_h = cam.crop_coords[1] - cam.crop_coords[0]
-    tcp_x = int((tcp_x/old_w)*cam.resize_resolution[0])
-    tcp_y = int((tcp_y/old_h)*cam.resize_resolution[1])
-    return tcp_x, tcp_y
 
 
 def get_depth_around_point(point, depth):

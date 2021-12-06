@@ -21,7 +21,7 @@ def main(cfg):
 
     # new change
     run_cfg.robot.use_target_pose = False
-    run_cfg.target_search_aff = cfg.target_search_aff
+    run_cfg.target_search = cfg.target_search
 
     max_ts = cfg.agent.learn_config.max_episode_length
     

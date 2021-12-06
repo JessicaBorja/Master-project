@@ -6,8 +6,8 @@ import cv2
 import gym
 from vapo.utils.img_utils import torch_to_numpy, viz_aff_centers_preds
 from vapo.env_wrappers.utils import get_obs_space, get_transforms_and_shape, \
-                                    init_aff_net, depth_preprocessing, \
-                                    img_preprocessing
+                                    depth_preprocessing, img_preprocessing
+from vapo.utils.utils import init_aff_net
 logger = logging.getLogger(__name__)
 
 
@@ -65,11 +65,8 @@ class AffordanceWrapperBase(gym.Wrapper):
         # self._mask_transforms = DistanceTransform()
 
         # Parameters to store affordance
-        self.gripper_cam_aff_net, affordance_cfg = \
-            init_aff_net(affordance_cfg, 'gripper')
-        self.static_cam_aff_net, affordance_cfg = \
-            init_aff_net(affordance_cfg, 'static')
-
+        self.gripper_cam_aff_net = init_aff_net(affordance_cfg, 'gripper')
+        self.static_cam_aff_net = init_aff_net(affordance_cfg, 'static')
         self.observation_space = get_obs_space(affordance_cfg,
                                                self.gripper_cam_cfg,
                                                self.static_cam_cfg,
@@ -101,7 +98,7 @@ class AffordanceWrapperBase(gym.Wrapper):
             # a given timestep
             tcp_pos = obs["robot_obs"][:3]
 
-            # If episode is not done because of moving to far away
+            # If still inside area
             if(not done and self.ts_counter < self.max_ts - 1):
                 distance = np.linalg.norm(
                         tcp_pos - self.curr_detected_obj)
@@ -115,6 +112,8 @@ class AffordanceWrapperBase(gym.Wrapper):
                 if(rew > 0):
                     # Reward for remaining ts
                     rew += self.max_ts - 1 - self.ts_counter
+                else:
+                    rew = -1
                 self.ts_counter = 0
         return rew
 
@@ -162,7 +161,6 @@ class AffordanceWrapperBase(gym.Wrapper):
                                             self.img_size)
             obs["%s_depth_obs" % cam_type] = depth_obs
         if(rgb_img is not None):
-            # Transform rgb to grayscale
             img_obs = img_preprocessing(rgb_img,
                                         self.rl_transforms)
             # 1, W, H
@@ -183,9 +181,7 @@ class AffordanceWrapperBase(gym.Wrapper):
                 obs_t = obs_t.float().cuda()
 
                 # 1, H, W
-                # aff_logits, aff_probs, aff_mask, directions
                 _, aff_probs, aff_mask, directions = aff_net(obs_t)
-                # aff_mask = self._mask_transforms(aff_mask).cuda()
                 # foreground/affordance Mask
                 mask = torch_to_numpy(aff_mask)
                 if(obs_cfg.use_img and aff_mask.shape[1:] != img_obs.shape[1:]):
@@ -242,17 +238,15 @@ class AffordanceWrapperBase(gym.Wrapper):
         directions = obs["gripper_center_dir"]
         im_dict = {}
         # Predict affordances and centers
-        aff_mask, center_dir, object_centers, object_masks = \
-            self.gripper_cam_aff_net.predict(aff_mask, directions)
+        object_centers, center_dir, object_masks = \
+            self.gripper_cam_aff_net.get_centers(aff_mask, directions)
 
         # Visualize predictions
         if self.viz or self.save_images:
             depth_img = cv2.resize(depth, orig_img.shape[:2])
             cv2.imshow("gripper-depth", depth_img)
             im_dict = viz_aff_centers_preds(orig_img, aff_mask,
-                                            aff_probs,
                                             center_dir, object_centers,
-                                            object_masks,
                                             "gripper",
                                             self.obs_it,
                                             self.episode,

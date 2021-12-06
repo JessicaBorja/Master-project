@@ -4,7 +4,8 @@ import hydra
 from robot_io.cams.realsense.realsense import Realsense
 
 from robot_io.utils.utils import FpsController
-from vapo.env_wrappers.utils import load_aff_from_hydra, transform_and_predict
+from vapo.env_wrappers.utils import load_aff_from_hydra
+from vapo.utils.utils import transform_and_predict
 
 @hydra.main(config_path="../config", config_name="teleop_aff")
 def main(cfg):

@@ -13,6 +13,8 @@ use_vr: False
 control_freq: 30
 task: ${task} #slide, hinge, drawer
 sparse_reward: True
+reward_success: 200
+reward_fail: -10
 rand_scene:
   # Only load one random object on the table
   # and use uniform sampling over all objects

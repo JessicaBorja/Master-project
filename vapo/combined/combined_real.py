@@ -1,8 +1,6 @@
 import time
 import numpy as np
-from torch.utils.tensorboard import SummaryWriter
 import sys
-import math
 from vapo.sac_agent.sac import SAC
 from vapo.sac_agent.sac_utils.utils import tt
 
@@ -29,21 +27,20 @@ class Combined(SAC):
         super(Combined, self).__init__(**sac_cfg, wandb_login=wandb_login)
         _aff_transforms = get_transforms(
             cfg.affordance.transforms.validation,
-            cfg.target_search_aff.img_size)
+            cfg.target_search.aff_cfg.img_size)
 
         # initial angle
         _initial_obs = self.env.reset()["robot_obs"]
         self.origin = _initial_obs[:3]
-        self.target_orn = self.env.get_target_orn(self.env.task)
 
         # To enumerate static cam preds on target search
         self.global_obs_it = 0
         self.no_detected_target = 0
 
         args = {"initial_pos": self.origin,
-                "aff_cfg": cfg.target_search_aff,
                 "aff_transforms": _aff_transforms,
-                "rand_target": rand_target}
+                "rand_target": rand_target,
+                **cfg.target_search}
         self.target_search = TargetSearch(self.env,
                                           main_cfg=cfg,
                                           mode="real_world",
@@ -56,7 +53,7 @@ class Combined(SAC):
         self.env.curr_detected_obj = self.target_pos
         self.env.unwrapped.curr_detected_obj = self.target_pos
         self.eval_env = self.env
-        self.sim = False ##Not simulation
+        self.sim = False
 
     def get_detected_task(self, world_pt):
         if(world_pt[1] >= 0.2 and world_pt[-1] >= 0.06):
@@ -65,9 +62,13 @@ class Combined(SAC):
             task = "pickup"
         return task
 
+    def get_target_orn(self, env, target_pos):
+        task = self.get_detected_task(target_pos)
+        env.set_task(task)
+        target_orn = env.get_target_orn(task)
+        return target_orn
+
     def detect_and_correct(self, env):
-        # env.reset(target_pos = np.array([0.5, 0, 0.5]),
-        #           target_orn = np.array([- math.pi *  3/4, 0, 0]))
         env.reset()
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
@@ -78,11 +79,10 @@ class Combined(SAC):
             return self.detect_and_correct(env)
 
         robot_target_pos = target_pos.copy()
-        task = self.get_detected_task(target_pos)
-        self.target_orn = env.get_target_orn(task)
+        target_orn = self.get_target_orn(env, target_pos)
         # target_orn[2] += np.random.uniform(-1, 1) * np.radians(30)
         obs = env.reset(robot_target_pos,
-                        self.target_orn)
+                        target_orn)
         env.curr_detected_obj = target_pos
         return env, obs, no_target
 
@@ -105,7 +105,7 @@ class Combined(SAC):
 
         # Move to target position only one
         # Episode ends if outside of radius
-        self.env, s, _ = self.detect_and_correct(self.env)
+        s, _ = self.detect_and_correct(self.env)
 
         # fps = FpsController(20)
 
@@ -143,7 +143,7 @@ class Combined(SAC):
                 self.env.obs_it = 0
                 episode_return, episode_length = 0, 0
                 # Go to origin then look for obj
-                self.env, s, no_target = self.detect_and_correct(self.env)
+                s, no_target = self.detect_and_correct(self.env)
 
             # fps.step()
             # print(1 / (time.time() - t))
@@ -171,10 +171,9 @@ class Combined(SAC):
             env.curr_detected_obj = target_pos
             episode_length, episode_return = 0, 0
             done = False
-            self.set_detected_task(env, target_pos)
-            self.target_orn = self.env.get_target_orn()
+            target_orn = self.get_target_orn(env, target_pos)
             s = env.reset(target_pos,
-                          self.target_orn)
+                          target_orn)
             while(episode_length < max_episode_length and not done):
                 # sample action and scale it to action space
                 a, _ = self._pi.act(tt(s), deterministic=deterministic)
@@ -204,7 +203,6 @@ class Combined(SAC):
     # Only applies to tabletop
     def tidy_up(self, env, max_episode_length=100,
                 n_objects=4, deterministic=True):
-        self.target_search.random_target = False
         ep_success = []
         total_ts = 0
         s = env.reset()
@@ -213,7 +211,7 @@ class Combined(SAC):
         while(total_ts <= max_episode_length * n_objects):
             episode_length, episode_return = 0, 0
             done = False
-            env, s, no_target = self.detect_and_correct(env)
+            s, _ = self.detect_and_correct(env)
 
             # If it did not find a target again, terminate everything
             while(episode_length < max_episode_length

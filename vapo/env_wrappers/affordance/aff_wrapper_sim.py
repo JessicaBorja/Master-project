@@ -37,7 +37,7 @@ class AffordanceWrapperSim(AffordanceWrapperBase):
         u, v = self.target_search.static_cam.project(self.curr_detected_obj)
         img = self.target_search.orig_img.copy()
         img = cv2.drawMarker(img, (int(u), int(v)),
-                             (0, 0, 0),
+                             (255, 0, 0),
                              markerType=cv2.MARKER_CROSS,
                              markerSize=15,
                              thickness=3,

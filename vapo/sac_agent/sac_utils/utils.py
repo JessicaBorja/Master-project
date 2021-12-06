@@ -1,35 +1,9 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-import numpy as np
-from collections import namedtuple
 import os
 import pickle
 import importlib
-import cv2
-
-from vapo.utils.img_utils import overlay_mask
-
-EpisodeStats = namedtuple(
-                "Stats",
-                ["episode_lengths", "episode_rewards", "validation_reward"])
-
-
-# Both are numpy arrays
-def show_mask_np(x, mask):
-    # x.shape = [C, H, W]
-    # mask.shape = [B, 2, H, W]
-    show_mask = np.transpose(mask, (1, 2, 0))*255.0
-    show_mask = cv2.normalize(show_mask, None, 255, 0, cv2.NORM_MINMAX, cv2.CV_8UC1)
-
-    img = np.transpose(x, (1, 2, 0))*255.0
-    img = cv2.normalize(img, None, 255, 0,
-                        cv2.NORM_MINMAX, cv2.CV_8UC1)
-    img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    res = overlay_mask(show_mask, img, (0, 0, 255))
-    cv2.imshow("paste", res)
-    cv2.waitKey(1)
 
 
 def set_init_pos(task, init_pos):
@@ -98,14 +72,6 @@ def get_activation_fn(non_linearity):
         return F.leaky_relu
     else:  # relu
         return F.relu
-
-
-def fan_in_uniform_init(tensor, fan_in=None):
-    if fan_in is None:
-        fan_in = tensor.size(-1)
-
-    w = 1. / np.sqrt(fan_in)
-    nn.init.uniform_(tensor, -w, w)
 
 
 def read_results(file_name, folder_name="."):

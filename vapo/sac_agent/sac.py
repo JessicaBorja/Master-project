@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import torch
-from torch.jit import Error
 import torch.nn as nn
 import torch.optim as optim
 import itertools
@@ -9,7 +8,6 @@ import logging
 import gym
 import collections
 import wandb
-from omegaconf import OmegaConf
 from vapo.sac_agent.sac_utils.replay_buffer import ReplayBuffer
 from vapo.sac_agent.sac_utils.utils import tt, soft_update, get_nets
 
@@ -200,13 +198,14 @@ class SAC():
         a = a.cpu().detach().numpy()
         ns, r, done, info = self.env.step(a)
 
+        success = info["success"]
         # check if it actually earned the reward
         success = False
         if(r >= 200 and self.env.task == "pickup"):
-            self.move_to_box(self.env)
+            self.env.move_to_box()
             # We don't know which obj aff model chose,
             # so give success if any in box
-            success = self.eval_grasp_success(self.env, any=True)
+            success = info["success"]
             # If lifted incorrectly get no reward
             if(not success):
                 r = 0
@@ -324,7 +323,7 @@ class SAC():
             self.log.info("End full objs validation...")
         else:
             if(self.sim):
-                if(self.eval_env.scene.load_only_one):
+                if(self.eval_env.task == "pickup" and self.eval_env.scene.load_only_one):
                     self.eval_env.load_rand_scene(eval=True)
             mean_return, mean_length, success_lst, success_objs = \
                 self.evaluate(self.eval_env, max_ep_length,
@@ -336,7 +335,7 @@ class SAC():
             # Log results to writer
             if(mean_return >= best_eval_return):
                 self.log.info("[%d] New best eval avg. return!%.3f" %
-                            (episode, mean_return))
+                              (episode, mean_return))
                 self.save(self.trained_path+"_best_eval.pth")
                 best_eval_return = mean_return
             # Meassure success
@@ -355,10 +354,10 @@ class SAC():
         # Change scene when method already does something
         if self.sim:
             if(self.eval_env.task == "pickup"
-            and self.eval_env.rand_positions
-            and not eval_all_objs
-            and not self.eval_env.scene.load_only_one
-            and n_success >= len(self.eval_env.scene.rand_positions)//2):
+               and self.eval_env.rand_positions
+               and not eval_all_objs
+               and not self.eval_env.scene.load_only_one
+               and n_success >= len(self.eval_env.scene.rand_positions)//2):
                 for obj in success_objs:
                     obj_class = self.eval_env.scene.class_per_obj[obj]
                     self.p_dist[obj_class] += 1

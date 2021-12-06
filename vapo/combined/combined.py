@@ -9,32 +9,27 @@ from vapo.combined.target_search import TargetSearch
 
 
 class Combined(SAC):
-    def __init__(self, cfg, sac_cfg=None, wandb_login=None,
-                 rand_target=False, target_search_mode="env"):
+    def __init__(self, cfg, sac_cfg=None, wandb_login=None):
         super(Combined, self).__init__(**sac_cfg, wandb_login=wandb_login)
         _cam_id = self._find_cam_id()
         _aff_transforms = get_transforms(
             cfg.affordance.transforms.validation,
-            cfg.target_search_aff.img_size)
+            cfg.target_search.aff_cfg.img_size)
 
         # initial pose
-        _initial_obs = self.env.unwrapped.reset()["robot_obs"]
-        self.origin = _initial_obs[:3]
-        self.target_orn = _initial_obs[3:6]  # np.array([math.pi, 0, 0])
+        self.origin = self.env.origin
+        self.target_orn = self.env.target_orn
 
         # To enumerate static cam preds on target search
         self.no_detected_target = 0
 
         args = {"cam_id": _cam_id,
                 "initial_pos": self.origin,
-                "aff_cfg": cfg.target_search_aff,
                 "aff_transforms": _aff_transforms,
-                "rand_target": rand_target}
+                **cfg.target_search}
         _class_label = self.get_task_label()
         self.target_search = TargetSearch(self.env,
-                                          main_cfg=cfg,
                                           class_label=_class_label,
-                                          mode=target_search_mode,
                                           **args)
         self.p_dist = None
         if(self.env.task == "pickup"):
@@ -54,7 +49,7 @@ class Combined(SAC):
         self.sim = True
 
     def get_task_label(self):
-        task = self.env.task
+        task = self.env.get_task()
         if(task == "hinge"):
             return 1
         elif(task == "drawer"):
@@ -73,7 +68,7 @@ class Combined(SAC):
     # Model based methods
     def detect_and_correct(self, env, obs,
                            p_dist=None, noisy=False,
-                           rand_sample=False):
+                           rand_sample=True):
         if(obs is None):
             obs = env.reset()
         # Compute target in case it moved
@@ -163,8 +158,8 @@ class Combined(SAC):
         # Move to target position only one
         # Episode ends if outside of radius
         self.env, s, _ = self.detect_and_correct(self.env, None,
-                                                 self.p_dist, True,
-                                                 rand_sample=True)
+                                                 self.p_dist,
+                                                 noisy=True)
         for ts in range(1, total_timesteps+1):
             s, done, success, episode_return, episode_length, plot_data, info = \
                 self.training_step(s, self.curr_ts, episode_return, episode_length)
@@ -207,8 +202,8 @@ class Combined(SAC):
                 self.env.obs_it = 0
                 episode_return, episode_length = 0, 0
                 self.env, s, _ = self.detect_and_correct(self.env, None,
-                                                         self.p_dist, True,
-                                                         rand_sample=True)
+                                                         self.p_dist,
+                                                         noisy=True)
             self.curr_ts += 1
         # Evaluate at end of training
         for eval_all_objs in [False, True]:
@@ -284,13 +279,12 @@ class Combined(SAC):
             s = env.reset(eval=True)
             if(env.task == "pickup"):
                 if(self.target_search.mode == "env"):
-                    env.unwrapped.target = tasks[task_it]
+                    env.set_target(tasks[task_it])
                     target_pos, no_target = \
                         self.target_search.compute(env)
                 else:
                     target_pos = center_targets[task_it]["target_pos"]
-                    env.unwrapped.target = \
-                        center_targets[task_it]["target_str"]
+                    env.set_target(center_targets[task_it]["target_str"])
                 task_it += 1
             else:
                 target_pos, no_target = \
@@ -309,7 +303,7 @@ class Combined(SAC):
                 episode_length += 1
             if(episode_return >= 200 and env.task == "pickup"):
                 env.move_to_box()
-                success = self.eval_grasp_success(env, any=True)
+                success = info["success"]
                 if(success):
                     success_objs.append(env.target)
             # Episode ended because it finished the task
@@ -355,12 +349,13 @@ class Combined(SAC):
             # Search affordances and correct position:
             env, s, no_target = self.detect_and_correct(env,
                                                         self.env.get_obs(),
-                                                        False)
+                                                        rand_sample=False)
             if(no_target):
                 # If no target model will move to initial position.
                 # Search affordance from this position again
                 env, s, no_target = \
-                    self.detect_and_correct(env, self.env.get_obs(), False)
+                    self.detect_and_correct(env, self.env.get_obs(),
+                                            rand_sample=False)
 
             # If it did not find a target again, terminate everything
             init_pos = s['robot_obs'][:3]
@@ -381,26 +376,10 @@ class Combined(SAC):
                 dist = np.linalg.norm(init_pos - s['robot_obs'][:3])
             if(episode_return >= 200 and env.task == "pickup"):
                 env.move_to_box(env, sample=True)
-                success = self.eval_grasp_success(env, any=True)
+                success = info["success"]
             else:
                 success = False
             ep_success.append(success)
         self.log.info(
             "Success: %d/%d " % (np.sum(ep_success), len(ep_success)))
         return ep_success
-
-    def all_objs_in_box(self, env):
-        for obj_name in env.scene.table_objs:
-            if(not env.obj_in_box(obj_name)):
-                return False
-        return True
-
-    def eval_grasp_success(self, env, any=False):
-        if(any):
-            success = False
-            for name in env.scene.table_objs:
-                if(env.obj_in_box(name)):
-                    success = True
-        else:
-            success = env.obj_in_box(env.target)
-        return success

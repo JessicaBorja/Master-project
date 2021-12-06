@@ -128,7 +128,6 @@ class Segmentator(pl.LightningModule):
 
     # Affordance mask prediction
     def forward(self, x):
-        # self.unet.encoder.eval()
         # in lightning, forward defines the prediction/inference actions
         features = self.unet.encoder(x)
         decoder_output = self.unet.decoder(*features)
@@ -136,12 +135,21 @@ class Segmentator(pl.LightningModule):
         center_direction_prediction = self.center_direction_net(decoder_output)
 
         # Affordance
-        aff_probs = self.act_fnc(aff_logits)  # Shape: [N x C x H x W]
-        aff_mask = torch.argmax(aff_probs, dim=1)  # Shape: [N x C x H x W]
+        aff_probs = self.act_fnc(aff_logits)  # [N x C x H x W]
+        aff_mask = torch.argmax(aff_probs, dim=1)  # [N x H x W]
         return aff_logits, aff_probs, aff_mask, center_direction_prediction
 
     # Center prediction
-    def predict(self, aff_mask, center_dir):
+    def get_centers(self, aff_mask, directions):
+        '''
+            :param aff_mask (torch.tensor, int64): [N x H x W]
+            :param directions (torch.tensor, float32): [N x 2 x H x W]
+
+            :return object_centers (list(torch.tensor), int64)
+            :return directions (torch.tensor, float32): [N x 2 x H x W] normalized directions
+            :return initial_masks (torch.tensor): [N x 1 x H x W]
+                - range: int values indicating object mask (0 to n_objects)
+        '''
         # x.shape = (B, C, H, W)
         if(self.n_classes > 2):
             bin_mask = torch.zeros_like(aff_mask)
@@ -151,14 +159,14 @@ class Segmentator(pl.LightningModule):
 
         with torch.no_grad():
             # Center direction
-            center_dir /= torch.norm(center_dir,
+            directions /= torch.norm(directions,
                                      dim=1,
                                      keepdim=True
                                      ).clamp(min=1e-10)
 
             initial_masks, num_objects, object_centers_padded = \
                 self.hough_voting_layer((bin_mask == 1).int(),
-                                        center_dir)
+                                        directions)
 
         # Compute list of object centers
         object_centers = []
@@ -169,8 +177,7 @@ class Segmentator(pl.LightningModule):
                 if(torch.norm(obj_center) > 0):
                     # cast to int for pixel
                     object_centers.append(obj_center.long())
-
-        return aff_mask, center_dir, object_centers, initial_masks
+        return object_centers, directions, initial_masks
 
     def log_stats(self, split, max_batch, batch_idx, loss, miou):
         if(batch_idx >= max_batch - 1):
@@ -218,7 +225,7 @@ class Segmentator(pl.LightningModule):
         x, labels = val_batch
         # Predictions
         aff_logits, _, aff_mask, directions = self.forward(x)
-        aff_mask, center_dir, _, _ = self.predict(aff_mask, directions)
+        _, center_dir, _ = self.get_centers(aff_mask, directions)
         preds = {"affordance_logits": aff_logits,
                  "center_dirs": center_dir}
 

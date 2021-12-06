@@ -26,20 +26,24 @@ class PandaEnvWrapper(gym.Wrapper):
         self.reward_success = reward_success
         self.termination_radius = termination_radius
         self.target_pos = None
-        self.task = 'pickup'
         self.offset = offset
+        self.task = 'pickup'
         if("box_pos" in kwargs):
             self.box_pos = kwargs['box_pos']
             self.box_3D_end_points = get_3D_end_points(
                 *self.box_pos,
                 *kwargs["box_dims"])
 
-    def get_target_orn(self, task):
+    def set_task(self, task):
         self.task = task
-        if(task == "drawer"):
-            target_orn = np.array([- math.pi *  3/4, 0, 0])
-        else:
-            # Pickup
+
+    def get_task(self):
+        return self.task
+
+    def get_target_orn(self):
+        if(self.task == "drawer"):
+            target_orn = np.array([- math.pi * 3/4, 0, 0])
+        else:  # Pickup
             target_orn = np.array([math.pi, 0, 0])
         return target_orn
 

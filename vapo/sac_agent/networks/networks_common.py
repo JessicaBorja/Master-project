@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from vapo.sac_agent.sac_utils.utils import get_activation_fn
 import numpy as np
 import os
-import cv2
+
 
 def get_pos_shape(obs_space, key="robot_obs"):
     _obs_space_keys = list(obs_space.spaces.keys())

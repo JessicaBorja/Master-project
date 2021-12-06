@@ -16,6 +16,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
+
 # Keep points in a distance larger than radius from new_point
 # Do not keep fixed points more than 100 frames
 def update_fixed_points(fixed_points, new_point,
@@ -354,8 +355,6 @@ def collect_dataset_close_open(cfg):
             # orn = p.getEulerFromQuaternion(proprio["tcp_orn"])
             orn = proprio["tcp_orn"]
             tcp_pos = proprio["tcp_pos"]
-            # tcp_pos = tcp_to_global(tcp_pos, orn,
-            #                         offset=offset)
             robot_obs = np.array([*tcp_pos,
                                   *orn,
                                   proprio["gripper_opening_width"]])

@@ -1,4 +1,3 @@
-from PIL.Image import new
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -7,24 +6,11 @@ import os
 import json
 import hydra
 from torch.utils.data import DataLoader
-from torchvision import transforms
 from torchvision.transforms.functional import rotate
-from vapo.utils.label_segmentation import resize_center, create_circle_mask, overlay_mask
+from vapo.utils.utils import get_transforms
+from vapo.utils.img_utils import overlay_flow, tresh_np, overlay_mask, resize_center
+from vapo.utils.label_segmentation import create_circle_mask
 import vapo.utils.flowlib as flowlib
-from vapo.utils.img_utils import overlay_flow, tresh_np
-
-
-def get_transforms(transforms_cfg, img_size=None):
-    transforms_lst = []
-    transforms_config = transforms_cfg.copy()
-    for cfg in transforms_config:
-        if((cfg._target_ == "torchvision.transforms.Resize"
-            or "RandomCrop" in cfg._target_)
-           and img_size is not None):
-            cfg.size = img_size
-        transforms_lst.append(hydra.utils.instantiate(cfg))
-
-    return transforms.Compose(transforms_lst)
 
 
 def get_loaders(logger, dataset_cfg, dataloader_cfg, img_size, n_classes):

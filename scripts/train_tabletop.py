@@ -35,9 +35,7 @@ def main(cfg):
         log.info("model: %s" % cfg.model_name)
         model = Combined(cfg,
                          sac_cfg=sac_cfg,
-                         target_search_mode=cfg.target_search,
-                         wandb_login=cfg.wandb_login,
-                         rand_target=True)
+                         wandb_login=cfg.wandb_login)
 
         if cfg.resume_training:
             original_dir = hydra.utils.get_original_cwd()

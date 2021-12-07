@@ -4,7 +4,7 @@ import sys
 from vapo.sac_agent.sac import SAC
 from vapo.sac_agent.sac_utils.utils import tt
 
-from vapo.affordance_model.datasets import get_transforms
+from affordance.datasets import get_transforms
 from vapo.combined.target_search import TargetSearch
 import wandb
 

@@ -2,7 +2,7 @@ import os
 import gym
 from omegaconf import OmegaConf
 from vapo.sac_agent.sac_utils.utils import set_init_pos
-from vapo.affordance_model.segmentator_centers import Segmentator
+from affordance.affordance_model import AffordanceModel
 from torchvision import transforms
 import hydra
 
@@ -26,7 +26,7 @@ def init_aff_net(affordance_cfg, cam_str=None, in_channels=1):
             hp = OmegaConf.create(hp)
             # Create model
             if(os.path.exists(path)):
-                aff_net = Segmentator.load_from_checkpoint(
+                aff_net = AffordanceModel.load_from_checkpoint(
                                     path,
                                     cfg=hp)
                 aff_net.cuda()

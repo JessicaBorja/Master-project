@@ -4,7 +4,7 @@ import cv2
 from gym import spaces
 from vapo.env_wrappers.affordance.aff_wrapper_base import AffordanceWrapperBase
 from vapo.utils.real_world import get_depth_around_point, pos_orn_to_matrix
-from vapo.utils.img_utils import get_px_after_crop_resize
+from affordance.utils.img_utils import get_px_after_crop_resize
 logger = logging.getLogger(__name__)
 
 

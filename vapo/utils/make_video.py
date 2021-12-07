@@ -2,7 +2,7 @@ import os
 import cv2
 import tqdm
 import json
-from vapo.utils.file_manipulation import get_files
+from affordance.utils.file_manipulation import get_files
 
 
 def make_video(files, fps=60, video_name="v"):

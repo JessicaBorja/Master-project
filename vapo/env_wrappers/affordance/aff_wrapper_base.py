@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import cv2
 import gym
-from vapo.utils.img_utils import torch_to_numpy, viz_aff_centers_preds
+from affordance.utils.img_utils import torch_to_numpy, viz_aff_centers_preds
 from vapo.env_wrappers.utils import get_obs_space, get_transforms_and_shape, \
                                     depth_preprocessing, img_preprocessing
 from vapo.utils.utils import init_aff_net

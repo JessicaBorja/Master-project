@@ -4,8 +4,8 @@ import numpy as np
 from omegaconf.omegaconf import OmegaConf
 import torch
 import os
-from vapo.affordance_model.segmentator_centers import Segmentator
-from vapo.affordance_model.datasets import get_transforms
+from affordance.affordance_model import AffordanceModel
+from affordance.datasets import get_transforms
 
 
 def get_name(cfg, model_name):
@@ -121,7 +121,7 @@ def load_aff_from_hydra(cfg):
     # Load model
     checkpoint_path = os.path.join(cfg.folder_name, "trained_models")
     checkpoint_path = os.path.join(checkpoint_path, cfg.model_name)
-    model = Segmentator.load_from_checkpoint(checkpoint_path,
+    model = AffordanceModel.load_from_checkpoint(checkpoint_path,
                                              cfg=model_cfg).cuda()
     model.eval()
     print("model loaded")

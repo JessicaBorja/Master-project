@@ -13,6 +13,14 @@ pip install -e .
 
 Install pytorch and set the CUDA toolkit version to match the native CUDA version (in /usr/local/cuda/), since you must compile the hough voting code with corresponding CUDA compiler (nvcc is not provided with the conda cudatoolkit distribution). This can be checked with: nvcc --version. This code was tested on pytorch 1.8 and cuda 10.1
 
+- Install the affordance model
+```
+git clone https://github.com/JessicaBorja/affordance.git
+conda activate vapo
+cd affordance/
+pip install -e .
+```
+
 - Install the Hough voting layer
 
 The hough voting layer implementation was taken from [uois2d repo](https://github.com/chrisdxie/uois/tree/uois2d). Please refer to their repository for more information about it. To install the voting layer first install [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page).
@@ -47,21 +55,6 @@ This model will get the name full_sparse given the configuration parameters. par
 VAPO
 `python ./scripts/train_tabletop.py paths.parent_folder=~/ model_name=full affordance.gripper_cam.densify_reward=True affordance.gripper_cam.use_distance=True affordance.gripper_cam.use=True`
 
-## Affordance model
-hydra configuration can be found in [cfg_affordance.yaml]("./config/cfg_affordance.yaml")
-
-# Training a model
-
-` python ./scripts/train_affordance.py model_name=test folder_name="./hydra_output_folder/"`
 
 # Testing experiments
 For testing both the affordance model and reinforcement learning policy, the hydra configuration that was generated during training is loaded. This way the model gets loaded with the correct parameters.
-
-## Affordance model visualization
-If desired you can specify a different configuration for the center prediction by modifying the parameters in model_cfg.hough_voting.
-
-Visualization configuration can be found in [viz_affordances.yaml]("./config/viz_affordances.yaml")
-
-**Example**:
-
-` python ./scripts/train_affordance.py model_name=test folder_name="./hydra_output_folder/"`

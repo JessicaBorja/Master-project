@@ -16,6 +16,21 @@ class AffordanceWrapperRealWorld(AffordanceWrapperBase):
         self.gripper_cam = self.env.camera_manager.gripper_cam
         self.T_tcp_cam = self.env.env.camera_manager.gripper_cam.get_extrinsic_calibration('panda')
 
+    @property
+    def task(self):
+        return self.env.task
+
+    @property
+    def target_orn(self):
+        return self.env.target_orn
+
+    def step(self, action, move_to_box=False):
+        if(self.task == "pickup"):
+            action = np.append(action, 1)
+        obs, reward, done, info = self.env.step(action, move_to_box)
+        done = self.termination(done, obs)
+        return self.observation(obs), self.reward(reward, obs, done), done, info
+
     def get_images(self, obs_cfg, obs_dict, cam_type):
         depth_img, rgb_img = None, None
         if obs_cfg.use_depth:

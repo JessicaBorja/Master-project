@@ -199,19 +199,6 @@ class SAC():
         ns, r, done, info = self.env.step(a)
 
         success = info["success"]
-        # check if it actually earned the reward
-        success = False
-        if(r >= 200 and self.env.task == "pickup"):
-            self.env.move_to_box()
-            # We don't know which obj aff model chose,
-            # so give success if any in box
-            success = info["success"]
-            # If lifted incorrectly get no reward
-            if(not success):
-                r = 0
-        elif(self.env.task != "pickup" and r > 0):
-            success = True
-
         self._replay_buffer.add_transition(s, a, r, ns, done)
         s = ns
         ep_return += r
@@ -323,7 +310,7 @@ class SAC():
             self.log.info("End full objs validation...")
         else:
             if(self.sim):
-                if(self.eval_env.task == "pickup" and self.eval_env.scene.load_only_one):
+                if(self.eval_env.task == "pickup" and self.eval_env.unwrapped._rand_scene):
                     self.eval_env.load_rand_scene(eval=True)
             mean_return, mean_length, success_lst, success_objs = \
                 self.evaluate(self.eval_env, max_ep_length,

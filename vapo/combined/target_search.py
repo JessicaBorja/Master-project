@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import cv2
-from numpy.random import rand
 import torch
 import pybullet as p
 from vapo.utils.img_utils import viz_aff_centers_preds, transform_and_predict, resize_center
@@ -102,8 +101,7 @@ class TargetSearch():
             else:
                 res = (target_pos, no_target)
                 if(env.task == "pickup"):
-                    env_target = self.find_env_target(env, target_pos)
-                    env.set_target(env_target)
+                    env.target = self.find_env_target(env, target_pos)
         else:
             if(rand_sample):
                 env.pick_rand_obj(p_dist)

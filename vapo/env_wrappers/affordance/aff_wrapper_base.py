@@ -73,11 +73,27 @@ class AffordanceWrapperBase(gym.Wrapper):
                                                self.channels, self.img_size,
                                                self.use_robot_obs,
                                                self.task,
+                                               real_world=real_world,
                                                oracle=self.use_env_state)
 
-        # Save images
-        self.curr_detected_obj = None
-        self.real_world_exp = real_world
+        self._curr_detected_obj = None
+        self._target = None
+
+    @property
+    def target(self):
+        return self.env.target
+
+    @target.setter
+    def target(self, value):
+        self.env.target = value
+
+    @property
+    def curr_detected_obj(self):
+        return self._curr_detected_obj
+
+    @curr_detected_obj.setter
+    def curr_detected_obj(self, world_pos):
+        self._curr_detected_obj = world_pos
 
     def reset(self, *args, **kwargs):
         observation = self.env.reset(*args, **kwargs)
@@ -85,8 +101,6 @@ class AffordanceWrapperBase(gym.Wrapper):
         return self.observation(observation)
 
     def step(self, action, move_to_box=False):
-        if(self.real_world_exp):
-            action = np.append(action, 1)
         obs, reward, done, info = self.env.step(action, move_to_box)
         done = self.termination(done, obs)
         return self.observation(obs), self.reward(reward, obs, done), done, info
@@ -290,8 +304,8 @@ class AffordanceWrapperBase(gym.Wrapper):
             world_pt = self.get_world_pt(cam, o, depth, orig_shape)
             if(world_pt is not None):
                 c_out = {"center": world_pt,
-                        "pixel_count": pixel_count,
-                        "robustness": robustness}
+                         "pixel_count": pixel_count,
+                         "robustness": robustness}
                 cluster_outputs.append(c_out)
 
         most_robust = 0

@@ -17,7 +17,8 @@ class Combined(SAC):
             cfg.target_search.aff_cfg.img_size)
 
         # initial pose
-        self.origin = self.env.origin
+        _initial_obs = self.env.reset()["robot_obs"]
+        self.origin = _initial_obs[:3]
         self.target_orn = self.env.target_orn
 
         # To enumerate static cam preds on target search
@@ -37,19 +38,17 @@ class Combined(SAC):
                 self.p_dist = \
                     {c: 0 for c in self.env.scene.objs_per_class.keys()}
 
-        self.target_pos, _ = self.target_search.compute(rand_sample=True)
-
         # Target specifics
         self.env.target_search = self.target_search
-        self.env.curr_detected_obj = self.target_pos
-        self.env.unwrapped.curr_detected_obj = self.target_pos
+        self.env.curr_detected_obj, _ = \
+            self.target_search.compute(rand_sample=True)
         self.eval_env = self.env
         self.radius = self.env.termination_radius  # Distance in meters
         self.move_above = 0.03
         self.sim = True
 
     def get_task_label(self):
-        task = self.env.get_task()
+        task = self.env.task
         if(task == "hinge"):
             return 1
         elif(task == "drawer"):
@@ -84,56 +83,9 @@ class Combined(SAC):
         return res
 
     def correct_position(self, env, s, target_pos, no_target):
-        # Take current robot state
-        if(isinstance(s, dict)):
-            s = s["robot_obs"]
-        tcp_pos = s[:3]
-
         # Set current_target in each episode
-        self.target_pos = target_pos
         env.curr_detected_obj = target_pos
-
-        # Move
-        if(np.linalg.norm(tcp_pos - target_pos) > self.radius):
-            if(env.task == "pickup" or env.task == "drawer"):
-                # To never collide with the box
-                z_value = max(self.target_pos[2] + 0.09, 0.8)
-                up_target = [tcp_pos[0],
-                             tcp_pos[1],
-                             z_value]
-                # Move up from starting pose
-                a = [up_target, self.target_orn, 1]
-                tcp_pos = env.move_to_target(tcp_pos, a)
-
-                # Move to target
-                reach_target = [*self.target_pos[:2], tcp_pos[-1]]
-                a = [reach_target, self.target_orn, 1]
-                tcp_pos = env.move_to_target(tcp_pos, a)
-                if(self.target_search.mode == "env"):
-                    # Environment returns the center of mass..
-                    move_to = \
-                        self.target_pos + np.array([0, 0, self.move_above])
-                else:
-                    # Affordances detect the surface of an object
-                    if(env.task == "pickup"):
-                        move_to = \
-                            self.target_pos + np.array(
-                                [0, 0, self.move_above - 0.01])
-                    else:
-                        move_to = \
-                            self.target_pos + np.array([0.03, 0.02, 0.05])
-            else:
-                # Move in x-z dir
-                x_target = [self.target_pos[0], tcp_pos[1], self.target_pos[2]]
-                a = [x_target, self.target_orn, 1]
-                tcp_pos = env.move_to_target(tcp_pos, a)
-
-                # Move up y dir
-                move_to = self.target_pos
-
-            # Move to target
-            a = [move_to, self.target_orn, 1]
-            tcp_pos = env.move_to_target(tcp_pos, a)
+        env.move_to_target(target_pos)
         # as we moved robot, need to update target and obs
         # for rl policy
         return env, env.observation(env.get_obs()), no_target
@@ -266,7 +218,7 @@ class Combined(SAC):
                 n_episodes = len(tasks)
             else:
                 # Search by affordance
-                s = env.reset()
+                s = env.reset(eval=True)
                 target_pos, no_target, center_targets = \
                     self.target_search.compute(env,
                                                return_all_centers=True)
@@ -279,12 +231,12 @@ class Combined(SAC):
             s = env.reset(eval=True)
             if(env.task == "pickup"):
                 if(self.target_search.mode == "env"):
-                    env.set_target(tasks[task_it])
+                    env.target = tasks[task_it]
                     target_pos, no_target = \
                         self.target_search.compute(env)
                 else:
                     target_pos = center_targets[task_it]["target_pos"]
-                    env.set_target(center_targets[task_it]["target_str"])
+                    env.target = center_targets[task_it]["target_str"]
                 task_it += 1
             else:
                 target_pos, no_target = \

@@ -21,12 +21,20 @@ class PlayTableRandScene(PlayTableScene):
 
         self.load_only_one = args["load_only_one"]
         # Load Environment
-        self.target = "banana"
+        self._target = "banana"
         if(self.rand_positions):
-            self.load_rand_scene(load_scene=True)
+            self.load_rand_scene(load=True)
         else:
             self.table_objs = self.obj_names
             self.pick_rand_obj()
+
+    @property
+    def target(self):
+        return self._target
+
+    @target.setter
+    def target(self, value):
+        self._target = value
 
     # Loading random objects
     def _find_obj_class(self):
@@ -131,7 +139,7 @@ class PlayTableRandScene(PlayTableScene):
         self.reset()
         self.pick_rand_obj()
 
-    def load_multiple_objs(self, replace_objs=None, load_scene=False):
+    def load_new_objs(self, replace_objs=None, load_scene=False):
         n_objs = len(self.rand_positions)
         if(replace_objs):
             # Replace some objs
@@ -186,8 +194,8 @@ class PlayTableRandScene(PlayTableScene):
                                      positions=[rand_pos],
                                      load_scene=load_scene)
 
-    def load_rand_scene(self, replace_objs=None, load_scene=False, eval=False):
+    def load_rand_scene(self, new_objs=None, load=False, eval=False):
         if(self.load_only_one and not eval):
-            self.load_one_rand_obj(load_scene)
+            self.load_one_rand_obj(load_scene=load)
         else:
-            self.load_multiple_objs(replace_objs, load_scene)
+            self.load_new_objs(new_objs, load_scene=load)

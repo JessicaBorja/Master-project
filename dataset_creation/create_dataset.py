@@ -132,6 +132,7 @@ def label_gripper(cam, img_hist, back_frames_max, curr_pt,
                 "gripper_width": robot_obs[-1]}
     return save_dict
 
+
 def label_static(static_cam, static_hist, back_min, back_max,
                  fixed_points, pt, viz, save_dict, out_img_size,
                  teleop_data=False, radius=10):

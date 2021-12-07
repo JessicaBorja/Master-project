@@ -97,7 +97,7 @@ objects:
       fixed: false
     small_tool_1:
       file: tabletop/flat_screwdriver/textured.urdf
-      initial_pos: [-0.1, 0.6, 0.61]
+      initial_pos: [-0.1, 0.6, 0.62]
       initial_orn: [0, 0, -1.57]
       fixed: false
     small_tool_2:

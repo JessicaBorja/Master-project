@@ -6,6 +6,7 @@ from vapo.sac_agent.sac_utils.utils import tt
 
 from vapo.affordance_model.datasets import get_transforms
 from vapo.combined.target_search import TargetSearch
+import wandb
 
 
 class FpsController:
@@ -29,7 +30,7 @@ class Combined(SAC):
             cfg.affordance.transforms.validation,
             cfg.target_search.aff_cfg.img_size)
 
-        # initial angle
+        # initial pos
         _initial_obs = self.env.reset()["robot_obs"]
         self.origin = _initial_obs[:3]
 
@@ -51,20 +52,16 @@ class Combined(SAC):
         # Target specifics
         self.env.target_search = self.target_search
         self.env.curr_detected_obj = self.target_pos
-        self.env.unwrapped.curr_detected_obj = self.target_pos
         self.eval_env = self.env
         self.sim = False
 
-    def get_detected_task(self, world_pt):
-        if(world_pt[1] >= 0.2 and world_pt[-1] >= 0.06):
+    def get_target_orn(self, env, target_pos):
+        if(target_pos[1] >= 0.2 and target_pos[-1] >= 0.06):
             task = "drawer"
         else:
             task = "pickup"
-        return task
-
-    def get_target_orn(self, env, target_pos):
         task = self.get_detected_task(target_pos)
-        env.set_task(task)
+        env.task = task
         target_orn = env.get_target_orn(task)
         return target_orn
 
@@ -79,7 +76,7 @@ class Combined(SAC):
             return self.detect_and_correct(env)
 
         robot_target_pos = target_pos.copy()
-        target_orn = self.get_target_orn(env, target_pos)
+        target_orn = env.target_orn
         # target_orn[2] += np.random.uniform(-1, 1) * np.radians(30)
         obs = env.reset(robot_target_pos,
                         target_orn)
@@ -149,6 +146,38 @@ class Combined(SAC):
             # print(1 / (time.time() - t))
             self.curr_ts += 1
 
+    def _eval_and_log(self, t, episode, most_tasks,
+                      best_eval_return, n_eval_ep, max_ep_length):
+        # Log plot_data to writer
+        write_dict = {"eval_timestep": t,
+                      "eval_episode": episode}
+        mean_return, mean_length, success_lst = \
+            self.evaluate(self.eval_env, max_ep_length,
+                          n_episodes=n_eval_ep)
+        write_dict.update({
+            "eval/mean_return(%dep)" % n_eval_ep: mean_return,
+            "eval/mean_ep_length(%dep)" % n_eval_ep: mean_length,
+        })
+        # Log results to writer
+        if(mean_return >= best_eval_return):
+            self.log.info("[%d] New best eval avg. return!%.3f" %
+                          (episode, mean_return))
+            self.save(self.trained_path+"_best_eval.pth")
+            best_eval_return = mean_return
+            # Meassure success
+        n_success = np.sum(success_lst)
+        if(n_success >= most_tasks):
+            self.log.info("[%d] New most successful! %d/%d" %
+                          (episode, n_success, len(success_lst)))
+            self.save(self.trained_path
+                      + "_most_tasks_from_%d.pth" % len(success_lst))
+            most_tasks = n_success
+        wandb.log({
+            **write_dict,
+            "eval/success(%dep)" % len(success_lst): n_success,
+        })
+        return best_eval_return, most_tasks
+
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
                  deterministic=True, **args):
         self.log.info("STARTING EVALUATION")
@@ -171,7 +200,7 @@ class Combined(SAC):
             env.curr_detected_obj = target_pos
             episode_length, episode_return = 0, 0
             done = False
-            target_orn = self.get_target_orn(env, target_pos)
+            target_orn = env.target_orn
             s = env.reset(target_pos,
                           target_orn)
             while(episode_length < max_episode_length and not done):

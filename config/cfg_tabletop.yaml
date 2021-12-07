@@ -6,7 +6,6 @@ defaults:
   - camera_conf: tabletop
   - agent: default
   - test: test_tabletop
-  - wandb_login: vapo_jess
   - paths: general_paths
   - aff_model@target_search.aff_cfg.hyperparameters: static_cam
   - aff_model@affordance.static_cam.hyperparameters: static_cam
@@ -33,6 +32,11 @@ save_images: False
 # Resume training
 resume_training: False
 resume_model_path: ${test_cfg.folder_name}
+
+# Wandb
+wandb_login:
+  entity: jessibd
+  project: vapo
 
 # Define types of observation input to the RL agent
 env_wrapper:

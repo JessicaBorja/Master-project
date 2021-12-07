@@ -26,9 +26,6 @@ class PlayTableRL(PlayTableSimEnv):
             self.set_egl_device(device)
         super(PlayTableRL, self).__init__(**args)
         self.task = task
-        self._action_space_scale = np.array(
-                    [0.03, 0.03, 0.03,
-                     math.pi / 8, math.pi / 8, math.pi / 8, 1])
         _action_space = np.ones(7)
         self.action_space = spaces.Box(_action_space * -1, _action_space)
         obs_space_dict = {
@@ -39,27 +36,16 @@ class PlayTableRL(PlayTableSimEnv):
         }
         self.observation_space = gym.spaces.Dict(obs_space_dict)
         self.sparse_reward = sparse_reward
-        self._action_space_scale = np.array(
-                    [0.03, 0.03, 0.03,
-                     math.pi / 8, math.pi / 8, math.pi / 8, 1])
-        _action_space = np.ones(7)
-        self.action_space = spaces.Box(_action_space * -1, _action_space)
-        obs_space_dict = {
-            "scene_obs": gym.spaces.Box(low=0, high=1.5, shape=(3,)),
-            'robot_obs': gym.spaces.Box(low=-0.5, high=0.5, shape=(7,)),
-            'rgb_obs': gym.spaces.Box(low=0, high=255, shape=(3, 300, 300)),
-            'depth_obs': gym.spaces.Box(low=0, high=255, shape=(1, 300, 300))
-        }
-        self.observation_space = gym.spaces.Dict(obs_space_dict)
-        self.sparse_reward = sparse_reward
+        self.offset = args["offset"][task]
         self.reward_fail = args['reward_fail']
         self.reward_success = args['reward_success']
 
-        _initial_obs = self.reset()["robot_obs"]
+        self._rand_scene = "rand_scene" in args
+        _initial_obs = self.get_obs()["robot_obs"]
         self.target_orn = _initial_obs[3:6]
-        self.origin = _initial_obs[:3]
+
         if(task == "pickup"):
-            if("rand_scene" in args):
+            if(self._rand_scene):
                 load_only_one = args["rand_scene"]["load_only_one"]
             else:
                 load_only_one = False
@@ -70,18 +56,20 @@ class PlayTableRL(PlayTableSimEnv):
             self.rand_positions = self.scene.rand_positions
             self.load()
 
-            self.target = self.scene.target
+            self._target = self.scene.target
             # x1,y1,z1, width, height, depth (x,y,z) in meters]
             self.box_pos = self.scene.object_cfg['fixed_objects']['bin']["initial_pos"]
             w, h, d = 0.24, 0.4, 0.08
             self.box_3D_end_points = get_3D_end_points(*self.box_pos, w, h, d)
 
-    def set_target(self, target):
-        self.target = target
-        self.scene.target = target
+    @property
+    def target(self):
+        return self._target
 
-    def get_task(self):
-        return self.task
+    @target.setter
+    def target(self, value):
+        self._target = value
+        self.scene.target = value
 
     def pick_rand_obj(self, p_dist=None):
         self.scene.pick_rand_obj(p_dist=p_dist)
@@ -91,18 +79,16 @@ class PlayTableRL(PlayTableSimEnv):
         self.scene.load_scene_with_objects(obj_lst, load_scene)
         self.target = self.scene.target
 
-    def load_rand_scene(self, replace_objs=None, load_scene=False, eval=False):
-        self.scene.load_rand_scene(replace_objs, load_scene, eval)
+    def load_rand_scene(self, replace_objs=None, load=False, eval=False):
+        self.scene.load_rand_scene(replace_objs, load, eval)
         self.target = self.scene.target
 
     def reset(self, eval=False):
-        if(self.task == "piclup"):
-            if(self.scene.load_only_one and not eval):
+        res = super(PlayTableRL, self).reset()
+        if(self.task == "pickup"):
+            if(self._rand_scene and not eval):
                 self.load_rand_scene()
-            res = super(PlayTableRL, self).reset()
             self.target = self.scene.target
-        else:
-            res = super(PlayTableRL, self).reset()
         return res
 
     def set_egl_device(self, device):
@@ -252,7 +238,28 @@ class PlayTableRL(PlayTableSimEnv):
                 targetWorldPos = p.getLinkState(curr_target_uid, 0)[0]
         return targetWorldPos, targetState  # normalized
 
-    def move_to_target(self, curr_pos, action):
+    def move_to_target(self, target_pos):
+        tcp_pos = self.get_obs()["robot_obs"][:3]
+        # To never collide with the box
+        z_value = max(target_pos[2] + 0.09, 0.8)
+        up_target = [tcp_pos[0],
+                     tcp_pos[1],
+                     z_value]
+        # Move up from starting pose
+        a = [up_target, self.target_orn, 1]
+        tcp_pos = self.move_to(tcp_pos, a)
+
+        # Move in xy
+        reach_target = [*target_pos[:2], tcp_pos[-1]]
+        a = [reach_target, self.target_orn, 1]
+        tcp_pos = self.move_to(tcp_pos, a)
+        move_to = target_pos + self.offset
+
+        # Move to target
+        a = [move_to, self.target_orn, 1]
+        tcp_pos = self.move_to(tcp_pos, a)
+
+    def move_to(self, curr_pos, action):
         # action = [pos, orn, gripper_action]
         target = action[0]
         # env.robot.apply_action(a)
@@ -287,18 +294,18 @@ class PlayTableRL(PlayTableSimEnv):
         # Move up
         up_target = [*tcp_pos[:2], box_pos[2] + 0.2]
         a = [up_target, self.target_orn, -1]  # -1 means closed
-        tcp_pos = self.move_to_target(tcp_pos, a)
+        tcp_pos = self.move_to(tcp_pos, a)
 
         # Move to obj up
         up_target = [*box_pos[:2], tcp_pos[-1]]
         a = [up_target, self.target_orn, -1]  # -1 means closed
-        tcp_pos = self.move_to_target(tcp_pos, a)
+        tcp_pos = self.move_to(tcp_pos, a)
 
         # Move down
         box_pos = [*box_pos[:2], tcp_pos[-1] - 0.12]
         a = [box_pos, self.target_orn, -1]  # -1 means closed
         tcp_pos = self.get_obs()["robot_obs"][:3]
-        self.move_to_target(tcp_pos, a)
+        self.move_to(tcp_pos, a)
 
         # Get new position and orientation
         # pos, z angle, action = open gripper

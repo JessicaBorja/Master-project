@@ -5,7 +5,7 @@ from robot_io.cams.realsense.realsense import Realsense
 from vapo.env_wrappers.affordance.aff_wrapper_real_world import AffordanceWrapperRealWorld
 from vapo.env_wrappers.utils import get_name
 from vapo.combined.combined_real import Combined
-from vapo.env_wrappers.real_world.panda_tabletop_wrapper import PandaEnvWrapper
+from vapo.env_wrappers.real_world.panda_drawer_wrapper import PandaEnvWrapper
 
 
 @hydra.main(config_path="../config", config_name="cfg_real_world")

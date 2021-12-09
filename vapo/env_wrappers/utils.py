@@ -1,11 +1,8 @@
 import gym
 import cv2
 import numpy as np
-from omegaconf.omegaconf import OmegaConf
 import torch
-import os
-from affordance.affordance_model import AffordanceModel
-from affordance.datasets import get_transforms
+from affordance.utils.utils import get_transforms
 
 
 def get_name(cfg, model_name):
@@ -105,27 +102,6 @@ def get_transforms_and_shape(transforms_cfg, in_size, out_size=None):
     if(test_tensor.shape == 2):
         test_tensor = test_tensor.unsqueeze(0)
     return apply_transforms, test_tensor.shape
-
-
-def load_aff_from_hydra(cfg):
-    # Initialize model
-    hydra_cfg_path = cfg.folder_name + "/.hydra/config.yaml"
-    if os.path.exists(hydra_cfg_path):
-        run_cfg = OmegaConf.load(hydra_cfg_path)
-    else:
-        print("path does not exist %s" % hydra_cfg_path)
-        run_cfg = cfg
-    model_cfg = run_cfg.model_cfg
-    model_cfg.hough_voting = cfg.model_cfg.hough_voting
-
-    # Load model
-    checkpoint_path = os.path.join(cfg.folder_name, "trained_models")
-    checkpoint_path = os.path.join(checkpoint_path, cfg.model_name)
-    model = AffordanceModel.load_from_checkpoint(checkpoint_path,
-                                             cfg=model_cfg).cuda()
-    model.eval()
-    print("model loaded")
-    return model, run_cfg
 
 
 def img_preprocessing(frame, transforms):

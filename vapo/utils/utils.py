@@ -3,8 +3,6 @@ import gym
 from omegaconf import OmegaConf
 from vapo.sac_agent.sac_utils.utils import set_init_pos
 from affordance.affordance_model import AffordanceModel
-from torchvision import transforms
-import hydra
 
 
 def torch_to_numpy(x):
@@ -92,19 +90,6 @@ def load_cfg(cfg_path, cfg, optim_res):
         run_cfg.env.pop('rand_init_state')
         run_cfg.eval_env.pop('rand_init_state')
     return run_cfg, net_cfg, env_wrapper, agent_cfg
-
-
-def get_transforms(transforms_cfg, img_size=None):
-    transforms_lst = []
-    transforms_config = transforms_cfg.copy()
-    for cfg in transforms_config:
-        if((cfg._target_ == "torchvision.transforms.Resize"
-            or "RandomCrop" in cfg._target_)
-           and img_size is not None):
-            cfg.size = img_size
-        transforms_lst.append(hydra.utils.instantiate(cfg))
-
-    return transforms.Compose(transforms_lst)
 
 
 def get_3D_end_points(x, y, z, w, h, d):

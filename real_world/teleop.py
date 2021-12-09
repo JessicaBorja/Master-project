@@ -4,7 +4,7 @@ import hydra
 from robot_io.cams.realsense.realsense import Realsense
 
 from robot_io.utils.utils import FpsController
-from vapo.env_wrappers.utils import load_aff_from_hydra
+from affordance.utils.utils import load_from_hydra
 from vapo.utils.utils import transform_and_predict
 
 
@@ -18,8 +18,8 @@ def main(cfg):
     fps = FpsController(cfg.freq)
 
     obs = env.reset()
-    gripper_cam_aff_net, gripper_cfg = load_aff_from_hydra(cfg.gripper_cam)
-    static_cam_aff_net, static_cfg = load_aff_from_hydra(cfg.static_cam)
+    gripper_cam_aff_net, gripper_cfg = load_from_hydra(cfg.gripper_cam)
+    static_cam_aff_net, static_cfg = load_from_hydra(cfg.static_cam)
 
     recorder = hydra.utils.instantiate(cfg.recorder)
     t1 = time.time()

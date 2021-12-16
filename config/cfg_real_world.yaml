@@ -63,15 +63,16 @@ env_wrapper:
 panda_env_wrapper:
   d_pos: 0.01
   d_rot: 0.3
-  gripper_success_threshold: 0.01
+  gripped_success_displacement: [0, 0, -0.08]
+  gripper_success_width: 0.01
   reward_fail: -20
   reward_success: 200
   termination_radius: 0.08
   box_pos: [0.24, 0.4, 0.08]
   box_dims: [0.10, 0.20, 0.05]
-  offset: 
-    pickup: [0, 0, 0.05]
-    drawer: [0, -0.125, 0.08]
+  offset: [0, 0, -0.05]  # Relative to end effector
+    # pickup: [0, 0, 0.05]
+    # drawer: [0, -0.125, 0.08]
 
 
 # Affordance configuration for RL agent observation inputs

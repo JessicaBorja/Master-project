@@ -2,8 +2,7 @@ import time
 
 import gym
 import numpy as np
-from vapo.utils.utils import get_3D_end_points
-from robot_io.utils.utils import quat_to_euler
+from robot_io.utils.utils import pos_orn_to_matrix
 import logging
 import math
 
@@ -11,18 +10,28 @@ log = logging.getLogger(__name__)
 
 
 class PandaEnvWrapper(gym.Wrapper):
-    def __init__(self, env, d_pos, d_rot, gripper_success_threshold, reward_fail, reward_success, termination_radius, offset, *args, **kwargs):
+    def __init__(self, env, d_pos, d_rot,
+                 gripper_success_width,
+                 gripper_success_displacement,
+                 reward_fail, reward_success,
+                 termination_radius, offset,
+                 gripped_success_displacement, *args, **kwargs):
         super().__init__(env)
         self.d_pos = d_pos
         self.d_rot = d_rot
-        self.gripper_success_threshold = gripper_success_threshold
+        self.gripper_success_width = gripper_success_width
         self.reward_fail = reward_fail
         self.reward_success = reward_success
         self.termination_radius = termination_radius
-        self.target_pos = None
-        self.offset = offset["drawer"]
+        self.offset = np.array([*offset, 1])
+        self.gripper_success_displacement = \
+            np.array([*gripper_success_displacement, 1])
         self._task = "drawer"
         self._target_orn = np.array([- math.pi * 3/4, 0, 0])
+
+        # To track success of episode
+        self.target_pos = None
+        self.gripped_success_displacement = gripped_success_displacement
 
     @property
     def task(self):
@@ -40,14 +49,28 @@ class PandaEnvWrapper(gym.Wrapper):
         self.env.robot.open_gripper()
         if target_pos is not None and target_orn is not None:
             self.target_pos = target_pos
-            move_to = target_pos + self.offset
+            tcp_mat = pos_orn_to_matrix(target_pos, target_orn)
+            # Offset in gripper frame
+            offset_global_frame = tcp_mat @ self.offset
+            move_to = offset_global_frame[:3]
         else:
             move_to = target_pos
         return self.transform_obs(
                     self.env.reset(move_to, target_orn))
 
-    def check_success(self):
-        return False
+    def check_success(self, robot_obs):
+        gripper_width = robot_obs["gripper_opening_width"]
+        holding_obj = gripper_width > self.gripper_success_width
+
+        tcp_pos = robot_obs["tcp_pos"]
+        tcp_orn = robot_obs["tcp_orn"]
+        T_world_tcp = pos_orn_to_matrix(tcp_pos, tcp_orn)
+
+        # Initial position in end effector frame coords
+        rel_disp_from_aff = - np.linalg.inv(T_world_tcp) @ self.target_pos
+        moved_thresh_dist = rel_disp_from_aff[-1] >= self.gripped_success_displacement[-1]
+
+        return holding_obj and moved_thresh_dist
 
     def check_termination(self, current_pos):
         return np.linalg.norm(self.target_pos - current_pos) > self.termination_radius
@@ -59,24 +82,17 @@ class PandaEnvWrapper(gym.Wrapper):
         rel_target_orn = np.array([0, 0, 0])
         gripper_action = action[-1]
 
-        curr_pos = self.env.robot.get_tcp_pos_orn()[0]
-        depth_thresh = curr_pos[-1] <= self.env.workspace_limits[0][-1] + 0.01
-        if(depth_thresh):
-            print("depth tresh")
-            gripper_action = -1
-
         action = {"motion": (rel_target_pos, rel_target_orn, gripper_action),
                   "ref": "rel"}
 
         obs, reward, done, info = self.env.step(action)
+        success = False
 
-        info["success"] = False
-
+        # On gripper close
         if gripper_action == -1:
-            done = True
-            if self.check_success():
+            if self.check_success(obs["robot_state"]):
                 reward = self.reward_success
-                info["success"] = True
+                success = True
             else:
                 reward = self.reward_fail
                 info["failure_case"] = "failed_open"
@@ -88,6 +104,7 @@ class PandaEnvWrapper(gym.Wrapper):
         if('failure_case' in info):
             print(info['failure_case'])
 
+        info["success"] = success
         obs = self.transform_obs(obs)
         return obs, reward, done, info
 

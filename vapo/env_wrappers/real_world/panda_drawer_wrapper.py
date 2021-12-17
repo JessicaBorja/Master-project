@@ -27,7 +27,9 @@ class PandaEnvWrapper(gym.Wrapper):
         self.gripper_success_displacement = \
             np.array([*gripper_success_displacement, 1])
         self._task = "drawer"
-        self._target_orn = np.array([- math.pi * 3/4, 0, 0])
+        # self._target_orn = np.array([- math.pi * 3/4, 0, 0])
+        # Orn from cluster data
+        self._target_orn = np.array([-2.26, 0.05, -0.12])
 
         # To track success of episode
         self.target_pos = None

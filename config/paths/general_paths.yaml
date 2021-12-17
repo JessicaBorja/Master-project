@@ -1,4 +1,4 @@
-parent_folder: /mnt/ssd_shared/Users/Jessica/Documents/Thesis_ssd
+parent_folder: ../
 vapo_path: ${paths.parent_folder}/vapo/
 vr_data: ${paths.parent_folder}/VREnv/data/
 

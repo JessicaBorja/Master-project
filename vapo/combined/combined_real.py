@@ -1,3 +1,4 @@
+from re import match
 import time
 import numpy as np
 import sys
@@ -7,6 +8,7 @@ from vapo.sac_agent.sac_utils.utils import tt
 from affordance.utils.utils import get_transforms
 from vapo.combined.target_search import TargetSearch
 import wandb
+import math
 
 
 class FpsController:
@@ -33,7 +35,9 @@ class Combined(SAC):
         # initial pos
         _initial_obs = self.env.reset()["robot_obs"]
         self.origin = _initial_obs[:3]
-
+        # self.origin[-1] = self.origin[-1] - 0.1
+        # self.origin[0] = self.origin[0] + 0.05
+        # self.env.reset(self.origin, np.array([-2, 0, 0]))
         # To enumerate static cam preds on target search
         self.global_obs_it = 0
         self.no_detected_target = 0
@@ -43,8 +47,6 @@ class Combined(SAC):
                 "rand_target": rand_target,
                 **cfg.target_search}
         self.target_search = TargetSearch(self.env,
-                                          main_cfg=cfg,
-                                          mode="real_world",
                                           **args)
 
         self.target_pos, _ = self.target_search.compute()
@@ -81,7 +83,7 @@ class Combined(SAC):
         obs = env.reset(robot_target_pos,
                         target_orn)
         env.curr_detected_obj = target_pos
-        return env, obs, no_target
+        return obs, no_target
 
     # RL Policy
     def learn(self, total_timesteps=10000, log_interval=100,

@@ -318,6 +318,7 @@ class AffordanceWrapperBase(gym.Wrapper):
                 if(dist < self.env.termination_radius/2):
                     if(out_dict["robustness"] > most_robust):
                         self.curr_detected_obj = c
+                        self.env.target_pos = self.curr_detected_obj
                         most_robust = out_dict["robustness"]
             self.viz_curr_target()
         return im_dict

@@ -15,7 +15,7 @@ defaults:
   - override hydra/job_logging: colorlog
 
 data_path: ${paths.vr_data}
-save_dir: ./hydra_outputs/vapo_real_world/${task}/
+save_dir: ./hydra_outputs/vapo_real_world/
 model_name: real_world
 # task: pickup
 euler_obs: true
@@ -37,15 +37,15 @@ wandb_login:
   project: vapo_real_world
 
 # Static cam affordance model to detect the targets
-static_cam_aff__model: ${paths.vapo_path}/hydra_outputs/affordance_model/2021-11-26/18-46-22_aff_rl/trained_models/last.ckpt
+static_cam_aff_model: ${paths.vapo_path}/hydra_outputs/affordance_model/2021-11-26/18-46-22_aff_rl/trained_models/last.ckpt
 gripper_cam_aff_model: ${paths.vapo_path}/hydra_outputs/affordance_model/2021-11-26/18-46-38_aff_rl/trained_models/last.ckpt
 n_objects: 4
-target_search_aff:
+target_search:
   mode: real_world
   aff_cfg:
     img_size: 200
     use: True
-    model_path: ${static_cam_aff_path}
+    model_path: ${static_cam_aff_model}
 
 # Define types of observation input to the RL agent
 env_wrapper:
@@ -63,14 +63,14 @@ env_wrapper:
 panda_env_wrapper:
   d_pos: 0.01
   d_rot: 0.3
-  gripped_success_displacement: [0, 0, -0.08]
+  gripper_success_displacement: [0, 0, -0.08]
   gripper_success_width: 0.01
   reward_fail: -20
   reward_success: 200
   termination_radius: 0.08
   box_pos: [0.24, 0.4, 0.08]
   box_dims: [0.10, 0.20, 0.05]
-  offset: [0, 0, -0.05]  # Relative to end effector
+  offset: [0, 0, -0.08]  # Relative to end effector
     # pickup: [0, 0, 0.05]
     # drawer: [0, -0.125, 0.08]
 
@@ -79,7 +79,7 @@ panda_env_wrapper:
 affordance:
     static_cam:
       use: False
-      model_path: ${static_cam_aff__model}
+      model_path: ${static_cam_aff_model}
       img_size: 200
     gripper_cam:
       use: True  # Use affordance in observation
@@ -91,5 +91,3 @@ affordance:
 hydra:
   run:
     dir: ${save_dir}/${now:%Y-%m-%d}/${now:%H-%M-%S}
-
-defaults:

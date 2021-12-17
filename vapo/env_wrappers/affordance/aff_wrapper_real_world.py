@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 class AffordanceWrapperRealWorld(AffordanceWrapperBase):
     def __init__(self, *args, **kwargs):
         super(AffordanceWrapperRealWorld, self).__init__(*args, **kwargs)
+        # Position and gripper action
         _action_space = np.ones(4)
         self.action_space = spaces.Box(_action_space * -1, _action_space)
         self.gripper_cam = self.env.camera_manager.gripper_cam
@@ -42,9 +43,10 @@ class AffordanceWrapperRealWorld(AffordanceWrapperBase):
     def observation(self, obs):
         new_obs = super(AffordanceWrapperRealWorld, self).observation(obs)
         # "rgb_obs", "depth_obs", "robot_obs","scene_obs"
-        gripper_action = int(obs["robot_obs"][-1] > 0.4)
-        new_obs.update(
-            {"robot_obs": np.array([*obs["robot_obs"], gripper_action])})
+        # gripper_action = int(obs["robot_obs"][-1] > 0.4)
+        # new_obs.update(
+        #     {"robot_obs": np.array([*obs["robot_obs"], gripper_action])})
+        new_obs.update({"robot_obs": obs["robot_obs"]})
         return new_obs
 
     def get_world_pt(self, cam, pixel, depth, orig_shape):

@@ -3,7 +3,14 @@ import gym
 from omegaconf import OmegaConf
 from vapo.sac_agent.sac_utils.utils import set_init_pos
 from affordance.affordance_model import AffordanceModel
+import hydra
 
+
+def get_abs_path(path_str):
+    if not os.path.isabs(path_str):
+        path_str = os.path.join(hydra.utils.get_original_cwd(), path_str)
+        path_str = os.path.abspath(path_str)
+    return path_str
 
 def torch_to_numpy(x):
     return x.detach().cpu().numpy()
@@ -18,6 +25,7 @@ def init_aff_net(affordance_cfg, cam_str=None, in_channels=1):
             aff_cfg = affordance_cfg
         if("use" in aff_cfg and aff_cfg.use):
             path = aff_cfg.model_path
+            path = get_abs_path(path)
             # Configuration of the model
             hp = {**aff_cfg.hyperparameters,
                   "in_channels": in_channels}
@@ -32,7 +40,6 @@ def init_aff_net(affordance_cfg, cam_str=None, in_channels=1):
                 print("obs_wrapper: %s cam affordance model loaded" % cam_str)
             else:
                 affordance_cfg = None
-                path = os.path.abspath(path)
                 raise TypeError("Path does not exist: %s" % path)
     return aff_net
 

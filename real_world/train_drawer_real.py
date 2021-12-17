@@ -21,7 +21,6 @@ def main(cfg):
                                      train=True,
                                      affordance_cfg=cfg.affordance,
                                      save_images=cfg.save_images,
-                                     real_world=True,
                                      **cfg.env_wrapper)
     sac_cfg = {"env": env,
                "eval_env": None,

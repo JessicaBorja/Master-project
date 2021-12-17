@@ -60,8 +60,7 @@ class TargetSearch():
         res = self._compute_target_aff(env, self.static_cam,
                                        depth_img,
                                        orig_img,
-                                       rand_sample=rand_sample,
-                                       return_all_centers=True)
+                                       rand_sample=rand_sample)
         target_pos, no_target, world_pts = res
         max_height = -1
         for pt in world_pts:

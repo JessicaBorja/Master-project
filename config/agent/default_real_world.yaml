@@ -18,8 +18,8 @@ net_cfg:
     latent_dim: 16
     activation: relu
     affordance: ${affordance}
-    actor_net: "CNNPolicyReal"
-    critic_net: "CNNCriticRes"
+    actor_net: CNNPolicyRes
+    critic_net: CNNCriticRes
 
 learn_config:
     total_timesteps: 90000

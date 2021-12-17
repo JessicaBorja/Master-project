@@ -15,7 +15,7 @@ class PandaEnvWrapper(gym.Wrapper):
                  gripper_success_displacement,
                  reward_fail, reward_success,
                  termination_radius, offset,
-                 gripped_success_displacement, *args, **kwargs):
+                 *args, **kwargs):
         super().__init__(env)
         self.d_pos = d_pos
         self.d_rot = d_rot
@@ -27,11 +27,12 @@ class PandaEnvWrapper(gym.Wrapper):
         self.gripper_success_displacement = \
             np.array([*gripper_success_displacement, 1])
         self._task = "drawer"
-        self._target_orn = np.array([- math.pi * 3/4, 0, 0])
+        self._target_orn = np.array([-2, 0, 0])
 
         # To track success of episode
-        self.target_pos = None
-        self.gripped_success_displacement = gripped_success_displacement
+        self._target_pos = None
+        self.init_task_pos = None
+        self.gripper_success_displacement = gripper_success_displacement
 
     @property
     def task(self):
@@ -45,10 +46,20 @@ class PandaEnvWrapper(gym.Wrapper):
     def target_orn(self):
         return self._target_orn
 
+    @property
+    def target_pos(self):
+        return self._target_pos
+
+    @target_pos.setter
+    def target_pos(self, value):
+        self._target_pos = value
+
+
     def reset(self, target_pos=None, target_orn=None):
         self.env.robot.open_gripper()
         if target_pos is not None and target_orn is not None:
             self.target_pos = target_pos
+            self.init_task_pos = target_pos
             tcp_mat = pos_orn_to_matrix(target_pos, target_orn)
             # Offset in gripper frame
             offset_global_frame = tcp_mat @ self.offset
@@ -67,8 +78,9 @@ class PandaEnvWrapper(gym.Wrapper):
         T_world_tcp = pos_orn_to_matrix(tcp_pos, tcp_orn)
 
         # Initial position in end effector frame coords
-        rel_disp_from_aff = - np.linalg.inv(T_world_tcp) @ self.target_pos
-        moved_thresh_dist = rel_disp_from_aff[-1] >= self.gripped_success_displacement[-1]
+        _initial_pos = np.array([*self.init_task_pos, 1])
+        rel_disp_from_aff = - np.linalg.inv(T_world_tcp) @ _initial_pos
+        moved_thresh_dist = rel_disp_from_aff[-1] >= self.gripper_success_displacement[-1]
 
         return holding_obj and moved_thresh_dist
 
@@ -86,25 +98,16 @@ class PandaEnvWrapper(gym.Wrapper):
                   "ref": "rel"}
 
         obs, reward, done, info = self.env.step(action)
-        success = False
-
-        # On gripper close
-        if gripper_action == -1:
-            if self.check_success(obs["robot_state"]):
-                reward = self.reward_success
-                success = True
-            else:
-                reward = self.reward_fail
-                info["failure_case"] = "failed_open"
-        else:
-            done = self.check_termination(obs["robot_state"]["tcp_pos"])
-            if done:
-                reward = self.reward_fail
-                info["failure_case"] = "outside_radius"
-        if('failure_case' in info):
+        info["success"] = False
+        if self.check_success(obs["robot_state"]):
+            reward = self.reward_success
+            info["success"] = True
+        done = self.check_termination(obs["robot_state"]["tcp_pos"])
+        if done:
+            reward = self.reward_fail
+            info["failure_case"] = "outside_radius"
             print(info['failure_case'])
 
-        info["success"] = success
         obs = self.transform_obs(obs)
         return obs, reward, done, info
 

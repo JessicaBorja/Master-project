@@ -34,6 +34,7 @@ class SAC():
                       "save_replay_buffer": save_replay_buffer}
             wandb.init(name=model_name,
                        config=config,
+                       # settings=wandb.Settings(start_method="fork"),
                        **wandb_login)
         self._save_replay_buffer = save_replay_buffer
         self.log = log

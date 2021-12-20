@@ -79,16 +79,16 @@ class PlayTableRL(PlayTableSimEnv):
         self.scene.load_scene_with_objects(obj_lst, load_scene)
         self.target = self.scene.target
 
-    def load_rand_scene(self, replace_objs=None, load=False, eval=False):
-        self.scene.load_rand_scene(replace_objs, load, eval)
-        self.target = self.scene.target
+    def pick_rand_scene(self, replace_objs=None, load=False, eval=False):
+        self.scene.pick_rand_scene(replace_objs, load, eval)
 
     def reset(self, eval=False):
-        res = super(PlayTableRL, self).reset()
         if(self.task == "pickup"):
             if(self._rand_scene and not eval):
-                self.load_rand_scene()
-            self.target = self.scene.target
+                self.pick_rand_scene()
+        # Resets scene, robot, etc
+        res = super(PlayTableRL, self).reset()
+        self.pick_rand_obj()
         return res
 
     def set_egl_device(self, device):

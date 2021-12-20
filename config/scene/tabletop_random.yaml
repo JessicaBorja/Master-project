@@ -92,12 +92,12 @@ objects:
       fixed: false
     marker:
       file: tabletop/marker/textured.urdf
-      initial_pos: [0.35, 0.92, 0.61]
+      initial_pos: [0.35, 0.92, 0.6156]
       initial_orn: [0, 0, 0]
       fixed: false
     small_tool_1:
       file: tabletop/flat_screwdriver/textured.urdf
-      initial_pos: [-0.1, 0.6, 0.62]
+      initial_pos: [-0.1, 0.6, 0.618]
       initial_orn: [0, 0, -1.57]
       fixed: false
     small_tool_2:

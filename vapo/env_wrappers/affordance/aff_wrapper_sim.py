@@ -46,12 +46,11 @@ class AffordanceWrapperSim(AffordanceWrapperBase):
         return
 
     def get_images(self, obs_cfg, obs_dict, cam_type):
-        cam_id = self.cam_ids[cam_type]
         depth_img, rgb_img = None, None
         if obs_cfg.use_depth:
-            depth_img = obs_dict['depth_obs'][cam_id]
+            depth_img = obs_dict['depth_obs']["depth_%s" % cam_type]
         if obs_cfg.use_img:
-            rgb_img = obs_dict['rgb_obs'][cam_id]
+            rgb_img = obs_dict['rgb_obs']["rgb_%s" % cam_type]
         return depth_img, rgb_img
 
     def get_world_pt(self, cam, pixel, depth, orig_shape):
@@ -87,16 +86,16 @@ class AffordanceWrapperSim(AffordanceWrapperBase):
                 new_obs["robot_obs"] = np.array([*obs["robot_obs"][:7],
                                                  obs["robot_obs"][-1]])
         if(self.viz):
-            for cam_name, cam_id in self.cam_ids.items():
+            for cam_name, _ in self.cam_ids.items():
                 cv2.imshow("%s_cam" % cam_name,
-                           obs['rgb_obs'][cam_id][:, :, ::-1])
+                           obs['rgb_obs']["rgb_%s" % cam_name][:, :, ::-1])
             cv2.waitKey(1)
         if(self.save_images):
-            for cam_name, cam_id in self.cam_ids.items():
+            for cam_name, _ in self.cam_ids.keys():
                 os.makedirs('./images/%s_orig' % cam_name, exist_ok=True)
                 cv2.imwrite("./images/%s_orig/img_%04d.png"
                             % (cam_name, self.obs_it),
-                            obs['rgb_obs'][cam_id][:, :, ::-1])
+                            obs['rgb_obs']["rgb_%s" % cam_name][:, :, ::-1])
         return new_obs
 
     def termination(self, done, obs):

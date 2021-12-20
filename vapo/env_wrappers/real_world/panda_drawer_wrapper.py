@@ -56,7 +56,6 @@ class PandaEnvWrapper(gym.Wrapper):
     def target_pos(self, value):
         self._target_pos = value
 
-
     def reset(self, target_pos=None, target_orn=None):
         self.env.robot.open_gripper()
         if target_pos is not None and target_orn is not None:
@@ -101,15 +100,17 @@ class PandaEnvWrapper(gym.Wrapper):
 
         obs, reward, done, info = self.env.step(action)
         info["success"] = False
-        if self.check_success(obs["robot_state"]):
-            reward = self.reward_success
-            info["success"] = True
         done = self.check_termination(obs["robot_state"]["tcp_pos"])
         if done:
             reward = self.reward_fail
             info["failure_case"] = "outside_radius"
-            print(info['failure_case'])
+            print("outside_radius")
 
+        if self.check_success(obs["robot_state"]):
+            reward = self.reward_success
+            info["success"] = True
+            done = True
+            print("success")
         obs = self.transform_obs(obs)
         return obs, reward, done, info
 

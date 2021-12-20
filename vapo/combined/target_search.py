@@ -30,9 +30,10 @@ class TargetSearch():
             self.T_world_cam = self.static_cam.get_extrinsic_calibration("panda")
             self.orig_img, _ = self.static_cam.get_image()
         else:
-            self.cam_id = kwargs["cam_id"]
+            # self.cam_id = kwargs["cam_id"]
+            self.cam_id = "static"
             self.static_cam = env.cameras[kwargs['cam_id']]
-            self.orig_img = self.env.get_obs()["rgb_obs"][self.cam_id]
+            self.orig_img = self.env.get_obs()["rgb_obs"]["rgb_%s" % self.cam_id]
 
         if(env.task == "pickup"):
             self.box_mask, self.box_3D_end_points = self.get_box_pos_mask(env)
@@ -78,8 +79,8 @@ class TargetSearch():
             env = self.env
             # Get environment observation
             obs = env.get_obs()
-            depth_obs = obs["depth_obs"][self.cam_id]
-            orig_img = obs["rgb_obs"][self.cam_id]
+            depth_obs = obs["depth_obs"]["depth_%s"%self.cam_id]
+            orig_img = obs["rgb_obs"]["rgb_%s"%self.cam_id]
             self.orig_img = orig_img
             res = self._compute_target_aff(env, self.static_cam,
                                            depth_obs, orig_img, rand_sample)
@@ -202,14 +203,14 @@ class TargetSearch():
         # Recover target
         if(self.env.viz or self.save_images):
             v, u = resize_center(centers[target_idx], pred_shape, new_shape)
-            out_img = cv2.drawMarker(np.array(orig_img[:, :, ::-1]),
+            out_img = cv2.drawMarker(np.array(orig_img),
                                      (u, v),
                                      (255, 0, 0),
                                      markerType=cv2.MARKER_CROSS,
                                      markerSize=15,
                                      thickness=3,
                                      line_type=cv2.LINE_AA)
-            cv2.imshow("TargetSearch: img", out_img)
+            cv2.imshow("TargetSearch: img", out_img[:, :, ::-1])
             cv2.waitKey(1)
             if(self.save_images):
                 os.makedirs("./static_centers/", exist_ok=True)

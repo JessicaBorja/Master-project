@@ -102,10 +102,11 @@ class AffordanceWrapperBase(gym.Wrapper):
 
     def step(self, action, move_to_box=False):
         obs, reward, done, info = self.env.step(action, move_to_box)
+        reward = self.reward(reward, obs, done, info["success"])
         done = self.termination(done, obs)
-        return self.observation(obs), self.reward(reward, obs, done), done, info
+        return self.observation(obs), reward, done, info
 
-    def reward(self, rew, obs, done):
+    def reward(self, rew, obs, done, success):
         if self.affordance_cfg.gripper_cam.densify_reward:
             # set by observation wrapper so that
             # both have the same observation on
@@ -113,7 +114,7 @@ class AffordanceWrapperBase(gym.Wrapper):
             tcp_pos = obs["robot_obs"][:3]
 
             # If still inside area
-            if(not done and self.ts_counter < self.max_ts - 1):
+            if(not done):
                 distance = np.linalg.norm(
                         tcp_pos - self.curr_detected_obj)
                 # cannot be larger than 1
@@ -123,11 +124,8 @@ class AffordanceWrapperBase(gym.Wrapper):
                 self.ts_counter += 1
             else:
                 # If episode was successful
-                if(rew > 0):
-                    # Reward for remaining ts
+                if(success):
                     rew += self.max_ts - 1 - self.ts_counter
-                else:
-                    rew = -1
                 self.ts_counter = 0
         return rew
 

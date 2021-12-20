@@ -29,8 +29,8 @@ class AffordanceWrapperRealWorld(AffordanceWrapperBase):
         if(self.task == "pickup"):
             action = np.append(action, 1)
         obs, reward, done, info = self.env.step(action, move_to_box)
-        done = self.termination(done, obs)
-        return self.observation(obs), self.reward(reward, obs, done), done, info
+        reward = self.reward(reward, obs, done, info["success"])
+        return self.observation(obs), reward, done, info
 
     def get_images(self, obs_cfg, obs_dict, cam_type):
         depth_img, rgb_img = None, None
@@ -74,6 +74,3 @@ class AffordanceWrapperRealWorld(AffordanceWrapperBase):
                              thickness=3,
                              line_type=cv2.LINE_AA)
         cv2.imshow("detected target", img[:, :, ::-1])
-
-    def termination(self, done, obs):
-        return done

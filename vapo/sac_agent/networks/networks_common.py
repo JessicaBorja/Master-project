@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from vapo.utils.utils import get_abs_path
 from vapo.sac_agent.sac_utils.utils import get_activation_fn
 import numpy as np
 import os
@@ -44,8 +45,9 @@ def get_img_network(obs_space, out_feat, activation, affordance_cfg, cam_type):
             _img_size = obs_space[depth_obs_key].shape[-1]
 
         # Affordance config
+        aff_model_path = get_abs_path(affordance_cfg.model_path)
         use_affordance = \
-            os.path.exists(affordance_cfg.model_path)\
+            os.path.isfile(aff_model_path)\
             and affordance_cfg.use
         # print("Networks: Using %s cam affordance: %s" % (cam_type, use_affordance))
 

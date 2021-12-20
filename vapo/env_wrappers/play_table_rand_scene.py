@@ -23,7 +23,7 @@ class PlayTableRandScene(PlayTableScene):
         # Load Environment
         self._target = "banana"
         if(self.rand_positions):
-            self.load_rand_scene(load=True)
+            self.pick_rand_scene(load=True)
         else:
             self.table_objs = self.obj_names
             self.pick_rand_obj()
@@ -93,7 +93,7 @@ class PlayTableRandScene(PlayTableScene):
         else:
             self.target = self.np_random.choice(self.table_objs)
 
-    def load_scene_with_objects(self, obj_lst, load_scene=False, positions=None):
+    def get_scene_with_objects(self, obj_lst, load_scene=False, positions=None):
         '''
             obj_lst: list of strings containing names of objs
             load_scene: Only true in initialization of environment
@@ -136,10 +136,8 @@ class PlayTableRandScene(PlayTableScene):
                 _obj.initial_pos[:2] = far_pos[i]
 
         self.table_objs = obj_lst.copy()
-        self.reset()
-        self.pick_rand_obj()
 
-    def load_new_objs(self, replace_objs=None, load_scene=False):
+    def choose_new_objs(self, replace_objs=None, load_scene=False):
         n_objs = len(self.rand_positions)
         if(replace_objs):
             # Replace some objs
@@ -183,19 +181,20 @@ class PlayTableRandScene(PlayTableScene):
             rand_objs.extend(self.np_random.choice(choose_from,
                                                    n_objs,
                                                    replace=False))
-        self.load_scene_with_objects(rand_objs, load_scene=load_scene)
+        self.get_scene_with_objects(rand_objs, load_scene=load_scene)
 
-    def load_one_rand_obj(self, load_scene):
+    def pick_one_rand_obj(self, load_scene):
         rand_pos = self.object_cfg["fixed_objects"]["table"]["initial_pos"]
         rand_pos = self.np_random.uniform(rand_pos - np.ones(3)*0.05,
                                           rand_pos + np.ones(3)*0.05)[:2]
         obj = self.np_random.choice(self.obj_names)
-        self.load_scene_with_objects([obj],
-                                     positions=[rand_pos],
-                                     load_scene=load_scene)
+        self.get_scene_with_objects([obj],
+                                    positions=[rand_pos],
+                                    load_scene=load_scene)
 
-    def load_rand_scene(self, new_objs=None, load=False, eval=False):
-        if(self.load_only_one and not eval):
-            self.load_one_rand_obj(load_scene=load)
-        else:
-            self.load_new_objs(new_objs, load_scene=load)
+    def pick_rand_scene(self, new_objs=None, load=False, eval=False):
+        if(self.rand_positions is not None):
+            if(self.load_only_one and not eval):
+                self.pick_one_rand_obj(load_scene=load)
+            else:
+                self.choose_new_objs(new_objs, load_scene=load)

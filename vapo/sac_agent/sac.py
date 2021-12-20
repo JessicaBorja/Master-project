@@ -312,7 +312,7 @@ class SAC():
         else:
             if(self.sim):
                 if(self.eval_env.task == "pickup" and self.eval_env.unwrapped._rand_scene):
-                    self.eval_env.load_rand_scene(eval=True)
+                    self.eval_env.pick_rand_scene(eval=True)
             mean_return, mean_length, success_lst, success_objs = \
                 self.evaluate(self.eval_env, max_ep_length,
                               n_episodes=n_eval_ep)
@@ -349,7 +349,7 @@ class SAC():
                 for obj in success_objs:
                     obj_class = self.eval_env.scene.class_per_obj[obj]
                     self.p_dist[obj_class] += 1
-                self.eval_env.load_rand_scene(success_objs, eval=True)
+                self.eval_env.pick_rand_scene(success_objs, eval=True)
         return best_eval_return, most_tasks
 
     def eval_all_objs(self):

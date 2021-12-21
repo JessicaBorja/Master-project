@@ -190,7 +190,7 @@ class Combined(SAC):
                 curr_objs = tasks[i*n_objs: i*n_objs + n_objs]
             else:
                 curr_objs = tasks[i:]
-            env.load_scene_with_objects(curr_objs)
+            env.get_scene_with_objects(curr_objs)
             mean_reward, mean_length, ep_success, success_objs = \
                 self.evaluate(env,
                               max_episode_length=max_episode_length,
@@ -204,7 +204,7 @@ class Combined(SAC):
             "Success: %d/%d " % (np.sum(episodes_success), len(ep_success)))
 
         # Restore scene before loading full sweep eval
-        env.load_scene_with_objects(previous_objs)
+        env.get_scene_with_objects(previous_objs)
         return episodes_success, succesful_objs
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,

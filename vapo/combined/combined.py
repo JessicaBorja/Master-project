@@ -44,7 +44,6 @@ class Combined(SAC):
             self.target_search.compute(rand_sample=True)
         self.eval_env = self.env
         self.radius = self.env.termination_radius  # Distance in meters
-        self.move_above = 0.03
         self.sim = True
 
     def get_task_label(self):

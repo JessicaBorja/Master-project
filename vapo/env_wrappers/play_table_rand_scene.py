@@ -154,11 +154,20 @@ class PlayTableRandScene(PlayTableScene):
                     rand_objs.add(rand_obj)
                 else:
                     continue
-            n_objs -= len(rand_objs)
+
+            # If we have more positions to fill than classes
+            if(n_objs - len(rand_objs) >= 0):
+                n_objs -= len(rand_objs)
+            else:
+                logger.error("Objects to be placed larger than positions available")
+                rand_objs_str = ", ".join(rand_objs)
+                logger.info("random objects (%d): %s, positions available: %d"
+                            % (len(rand_objs), rand_objs_str, n_objs))
             rand_objs = list(rand_objs)
             choose_from = [o for o in self.obj_names
                            if o not in rand_objs]
-            rand_objs.extend(self.np_random.choice(choose_from, n_objs))
+            extra_objs = self.np_random.choice(choose_from, n_objs)
+            rand_objs.extend(extra_objs)
             print_str = "Classes in env:"
             for obj in rand_objs:
                 print_str += "%s: %s \n" % (obj, self.class_per_obj[obj])

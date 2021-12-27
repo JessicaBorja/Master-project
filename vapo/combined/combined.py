@@ -232,7 +232,7 @@ class Combined(SAC):
                 if(self.target_search.mode == "env"):
                     env.target = tasks[task_it]
                     target_pos, no_target = \
-                        self.target_search.compute(env)
+                        self.target_search.compute(env, rand_sample=False, noisy=False)
                 else:
                     target_pos = center_targets[task_it]["target_pos"]
                     env.target = center_targets[task_it]["target_str"]
@@ -252,11 +252,9 @@ class Combined(SAC):
                 s = ns
                 episode_return += r
                 episode_length += 1
-            if(episode_return >= 200 and env.task == "pickup"):
-                env.move_to_box()
-                success = info["success"]
-                if(success):
-                    success_objs.append(env.target)
+            success = info["success"]
+            if(success):
+                success_objs.append(env.target)
             # Episode ended because it finished the task
             elif(env.task != "pickup" and r > 0):
                 success = True
@@ -325,8 +323,6 @@ class Combined(SAC):
                 episode_length += 1
                 total_ts += 1
                 dist = np.linalg.norm(init_pos - s['robot_obs'][:3])
-            if(episode_return >= 200 and env.task == "pickup"):
-                env.move_to_box(env, sample=True)
                 success = info["success"]
             else:
                 success = False

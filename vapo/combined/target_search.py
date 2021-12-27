@@ -75,13 +75,13 @@ class TargetSearch():
         return res
 
     def _compute_sim(self, env, noisy, p_dist, rand_sample, return_all_centers):
+        obs = env.get_obs()
+        depth_obs = obs["depth_obs"]["depth_%s" % self.cam_id]
+        orig_img = obs["rgb_obs"]["rgb_%s" % self.cam_id]
+        self.orig_img = orig_img
         if(self.mode == "affordance"):
             env = self.env
             # Get environment observation
-            obs = env.get_obs()
-            depth_obs = obs["depth_obs"]["depth_%s"%self.cam_id]
-            orig_img = obs["rgb_obs"]["rgb_%s"%self.cam_id]
-            self.orig_img = orig_img
             res = self._compute_target_aff(env, self.static_cam,
                                            depth_obs, orig_img, rand_sample)
             target_pos, no_target, object_centers = res

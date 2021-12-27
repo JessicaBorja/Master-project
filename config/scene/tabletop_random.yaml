@@ -13,9 +13,9 @@ surfaces: []
 # [0.41086270736336566, 0.5142109572720498, 0.6685946313865824]
 # x,y pos to randomly place objects
 positions:
-  [[-0.08, 0.75],
-   [0.35, 0.55],
-   [0.025, 0.55],
+  [[-0.09, 0.75],
+   [0.35, 0.50],
+   [0.025, 0.50],
    [0.13, 0.76],
    [0.43, 0.83]]
 
@@ -69,7 +69,7 @@ objects:
       fixed: false
     frying_pan_3:
       file: tabletop/skillet/textured.urdf
-      initial_pos: [0.1, 0.9, 0.637398831966368]
+      initial_pos: [0.1, 0.9, 0.61]
       initial_orn: [0, 0, 0.5]
       fixed: false
     teapot:

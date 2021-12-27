@@ -43,7 +43,6 @@ class AffordanceWrapperSim(AffordanceWrapperBase):
                              thickness=3,
                              line_type=cv2.LINE_AA)
         cv2.imshow("detected target", img[:, :, ::-1])
-        return
 
     def get_images(self, obs_cfg, obs_dict, cam_type):
         depth_img, rgb_img = None, None

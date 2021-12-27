@@ -126,7 +126,12 @@ class AffordanceWrapperBase(gym.Wrapper):
                 # If episode was successful
                 if(success):
                     rew += self.max_ts - 1 - self.ts_counter
+                else:
+                    rew = self.env.reward_fail
                 self.ts_counter = 0
+        if(rew < 0):
+            logger.info("Reward below to 0: %0.3f, max_ts % d, ts_counter %d"
+                        % (rew, self.max_ts, self.ts_counter))
         return rew
 
     def observation(self, obs):

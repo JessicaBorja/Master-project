@@ -155,6 +155,8 @@ class PlayTableRL(PlayTableSimEnv):
         if(self.sparse_reward):
             if(success):
                 reward = self.reward_success
+            else:
+                reward = 0
         else:
             reward_near = - np.linalg.norm(targetWorldPos - robotPos)
 

@@ -42,7 +42,7 @@ class PlayTableRL(PlayTableSimEnv):
 
         self._rand_scene = "rand_scene" in args
         _initial_obs = self.get_obs()["robot_obs"]
-        self.target_orn = _initial_obs[3:6]
+        self._start_orn = _initial_obs[3:6]
 
         if(task == "pickup"):
             if(self._rand_scene):
@@ -61,6 +61,10 @@ class PlayTableRL(PlayTableSimEnv):
             self.box_pos = self.scene.object_cfg['fixed_objects']['bin']["initial_pos"]
             w, h, d = 0.24, 0.4, 0.08
             self.box_3D_end_points = get_3D_end_points(*self.box_pos, w, h, d)
+
+    @property
+    def start_orn(self):
+        return self._start_orn
 
     @property
     def target(self):
@@ -248,18 +252,19 @@ class PlayTableRL(PlayTableSimEnv):
         up_target = [tcp_pos[0],
                      tcp_pos[1],
                      z_value]
+        initial_orn = self.start_orn.copy()
         # Move up from starting pose
-        a = [up_target, self.target_orn, 1]
+        a = [up_target, initial_orn, 1]
         tcp_pos = self.move_to(tcp_pos, a)
 
         # Move in xy
         reach_target = [*target_pos[:2], tcp_pos[-1]]
-        a = [reach_target, self.target_orn, 1]
+        a = [reach_target, initial_orn, 1]
         tcp_pos = self.move_to(tcp_pos, a)
         move_to = target_pos + self.offset
 
         # Move to target
-        a = [move_to, self.target_orn, 1]
+        a = [move_to, initial_orn, 1]
         tcp_pos = self.move_to(tcp_pos, a)
 
     def move_to(self, curr_pos, action):
@@ -295,25 +300,26 @@ class PlayTableRL(PlayTableSimEnv):
         box_pos = [x_pos, y_pos, 0.65]
 
         # Move up
+        initial_orn = self.start_orn.copy()
         up_target = [*tcp_pos[:2], box_pos[2] + 0.2]
-        a = [up_target, self.target_orn, -1]  # -1 means closed
+        a = [up_target, initial_orn, -1]  # -1 means closed
         tcp_pos = self.move_to(tcp_pos, a)
 
         # Move to obj up
         up_target = [*box_pos[:2], tcp_pos[-1]]
-        a = [up_target, self.target_orn, -1]  # -1 means closed
+        a = [up_target, initial_orn, -1]  # -1 means closed
         tcp_pos = self.move_to(tcp_pos, a)
 
         # Move down
         box_pos = [*box_pos[:2], tcp_pos[-1] - 0.12]
-        a = [box_pos, self.target_orn, -1]  # -1 means closed
+        a = [box_pos, initial_orn, -1]  # -1 means closed
         tcp_pos = self.get_obs()["robot_obs"][:3]
         self.move_to(tcp_pos, a)
 
         # Get new position and orientation
         # pos, z angle, action = open gripper
         tcp_pos = self.get_obs()["robot_obs"][:3]
-        a = [tcp_pos, self.target_orn, 1]  # drop object
+        a = [tcp_pos, initial_orn, 1]  # drop object
         for i in range(8):
             self.robot.apply_action(a)
             for i in range(self.action_repeat):

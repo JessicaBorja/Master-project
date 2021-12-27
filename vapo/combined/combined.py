@@ -19,7 +19,6 @@ class Combined(SAC):
         # initial pose
         _initial_obs = self.env.reset()["robot_obs"]
         self.origin = _initial_obs[:3]
-        self.target_orn = self.env.target_orn
 
         # To enumerate static cam preds on target search
         self.no_detected_target = 0

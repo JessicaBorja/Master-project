@@ -28,7 +28,7 @@ class PandaEnvWrapper(gym.Wrapper):
         self.target_pos = None
         self.offset = offset["pickup"]
         self.task = "pickup"
-        self.target_orn = np.array([math.pi, 0, 0])
+        self.start_orn = np.array([math.pi, 0, 0])
         if("box_pos" in kwargs):
             self.box_pos = kwargs['box_pos']
             self.box_3D_end_points = get_3D_end_points(

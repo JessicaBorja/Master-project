@@ -24,7 +24,6 @@ class AffordanceWrapperBase(gym.Wrapper):
         self.env = env
         # REWARD FUNCTION
         self.affordance_cfg = affordance_cfg
-        self.ts_counter = 0
         self.max_ts = max_ts
         if(self.affordance_cfg.gripper_cam.densify_reward):
             print("RewardWrapper: Gripper cam to shape reward")
@@ -121,17 +120,10 @@ class AffordanceWrapperBase(gym.Wrapper):
                 # scale dist increases as it falls away from object
                 scale_dist = min(distance / self.termination_radius, 1)
                 rew += (1 - scale_dist)**0.5
-                self.ts_counter += 1
             else:
                 # If episode was successful
-                if(success):
-                    rew += self.max_ts - 1 - self.ts_counter
-                else:
+                if(not success):
                     rew = self.env.reward_fail
-                self.ts_counter = 0
-        if(rew < 0):
-            logger.info("Reward below to 0: %0.3f, max_ts % d, ts_counter %d"
-                        % (rew, self.max_ts, self.ts_counter))
         return rew
 
     def observation(self, obs):

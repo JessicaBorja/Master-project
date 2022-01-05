@@ -306,14 +306,14 @@ class SAC():
 
         if(eval_all_objs):
             self.log.info("Running full objs validation...")
-            success_lst, success_objs = \
+            success_lst, objs_success = \
                 self.eval_all_objs(self.eval_env, max_ep_length)
             self.log.info("End full objs validation...")
         else:
             if(self.sim):
                 if(self.eval_env.task == "pickup" and self.eval_env.unwrapped._rand_scene):
                     self.eval_env.pick_rand_scene(eval=True)
-            mean_return, mean_length, success_lst, success_objs = \
+            mean_return, mean_length, success_lst, objs_success = \
                 self.evaluate(self.eval_env, max_ep_length,
                               n_episodes=n_eval_ep)
             write_dict.update({
@@ -341,15 +341,9 @@ class SAC():
         # If environment definition allows for randoming environment
         # Change scene when method already does something
         if self.sim:
-            if(self.eval_env.task == "pickup"
-               and self.eval_env.rand_positions
-               and not eval_all_objs
-               and not self.eval_env.scene.load_only_one
-               and n_success >= len(self.eval_env.scene.rand_positions)//2):
-                for obj in success_objs:
-                    obj_class = self.eval_env.scene.class_per_obj[obj]
-                    self.p_dist[obj_class] += 1
-                self.eval_env.pick_rand_scene(success_objs, eval=True)
+            if (self.eval_env.task == "pickup"
+               and self.eval_env.rand_positions):
+                self.eval_env.pick_rand_scene(objs_success, eval=True)
         return best_eval_return, most_tasks
 
     def eval_all_objs(self):

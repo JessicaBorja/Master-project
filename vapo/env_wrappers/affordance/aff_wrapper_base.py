@@ -8,6 +8,8 @@ from affordance.utils.img_utils import torch_to_numpy, viz_aff_centers_preds
 from vapo.env_wrappers.utils import get_obs_space, get_transforms_and_shape, \
                                     depth_preprocessing, img_preprocessing
 from vapo.utils.utils import init_aff_net
+import pybullet as p
+
 logger = logging.getLogger(__name__)
 
 
@@ -103,6 +105,8 @@ class AffordanceWrapperBase(gym.Wrapper):
         obs, reward, done, info = self.env.step(action, move_to_box)
         reward = self.reward(reward, obs, done, info["success"])
         done = self.termination(done, obs)
+        if self.curr_detected_obj is not None:
+            self.p.addUserDebugText("ct", textPosition=self.curr_detected_obj, textColorRGB=[0, 1, 0])
         return self.observation(obs), reward, done, info
 
     def reward(self, rew, obs, done, success):

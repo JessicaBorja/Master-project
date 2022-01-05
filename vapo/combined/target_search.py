@@ -40,7 +40,6 @@ class TargetSearch():
 
     def compute(self, env=None,
                 return_all_centers=False,
-                p_dist=None,
                 rand_sample=True,
                 noisy=False):
         if(env is None):
@@ -50,7 +49,7 @@ class TargetSearch():
                                            return_all_centers,
                                            rand_sample)
         else:
-            res = self._compute_sim(env, noisy, p_dist,
+            res = self._compute_sim(env, noisy,
                                     rand_sample,
                                     return_all_centers)
         return res
@@ -74,7 +73,7 @@ class TargetSearch():
             res = (target_pos, no_target, world_pts)
         return res
 
-    def _compute_sim(self, env, noisy, p_dist, rand_sample, return_all_centers):
+    def _compute_sim(self, env, noisy, rand_sample, return_all_centers):
         obs = env.get_obs()
         depth_obs = obs["depth_obs"]["depth_%s" % self.cam_id]
         orig_img = obs["rgb_obs"]["rgb_%s" % self.cam_id]
@@ -104,7 +103,7 @@ class TargetSearch():
                     env.target = self.find_env_target(env, target_pos)
         else:
             if(rand_sample):
-                env.pick_rand_obj(p_dist)
+                env.pick_table_obj()
             res = self._env_compute_target(env, noisy)
         return res
 

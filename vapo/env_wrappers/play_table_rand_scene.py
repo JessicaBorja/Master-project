@@ -1,7 +1,7 @@
 import logging
 from omegaconf import OmegaConf
 from random import shuffle
-from collections import defaultdict
+from collections import defaultdict, deque
 import numpy as np
 from vr_env.scene.play_table_scene import PlayTableScene
 logger = logging.getLogger(__name__)
@@ -14,19 +14,26 @@ class PlayTableRandScene(PlayTableScene):
         self.obj_names = list(self.object_cfg['movable_objects'].keys())
         self.objs_per_class, self.class_per_obj = {}, {}
         self._find_obj_class()
+        self.load_only_one = args["load_only_one"]
+        self.counts = None
         if('positions' in args):
             self.rand_positions = args['positions']
+            if(self.load_only_one):
+                self.counts = {c: deque(maxlen=args['max_counts'])
+                               for c in self.obj_names}
+            else:
+                self.counts = {c: deque(maxlen=args['max_counts'])
+                               for c in self.objs_per_class.keys()}
         else:
             self.rand_positions = None
 
-        self.load_only_one = args["load_only_one"]
         # Load Environment
         self._target = "banana"
         if(self.rand_positions):
             self.pick_rand_scene(load=True)
         else:
             self.table_objs = self.obj_names
-            self.pick_rand_obj()
+            self.pick_table_obj()
 
     @property
     def target(self):
@@ -65,25 +72,37 @@ class PlayTableRandScene(PlayTableScene):
         self.objs_per_class = objs_per_class
         self.class_per_obj = class_per_object
 
-    def pick_rand_obj(self, p_dist=None):
+    def normalize_class_dist(self, counts, decreasing=False):
+        probs = {}
+        for label, hits in counts.items():
+            if len(hits) == 0:
+                probs[label] = 0
+            else:
+                probs[label] = np.sum(hits) / len(hits)
+        weights = np.array(list(probs.values()))
+        w_sum = weights.sum(axis=0)
+        if w_sum == 0:
+            weights = np.ones_like(weights) * (1 / len(weights))
+        else:
+            weights = weights / w_sum
+            # Make less successful more likely
+            if(decreasing):
+                weights = 1 - weights
+                weights = weights / weights.sum(axis=0)
+        return probs, weights
+
+    def pick_table_obj(self):
         '''
-            p_dist = {class: counts}
+            counts = {class: counts}
         '''
         if(self.load_only_one):
             self.target = self.table_objs[0]
             return
-        elif(p_dist):
-            labels = list(p_dist.keys())
-            counts = list(p_dist.values())
-            weights = np.array(counts)
-            w_sum = weights.sum(axis=0)
-            if(w_sum == 0):
-                weights = np.ones_like(weights) * (1 / len(weights))
-            else:
-                # Make less successful more likely
-                weights = weights / w_sum  # Normalize to sum 1
-                weights = 1 - weights
-                weights = weights / weights.sum(axis=0)
+
+        # More than one obj in table
+        if(self.counts is not None):
+            self.normalized_dist = self.normalized_class_dist()
+            labels, weights = self.normalized_dist
             choose_class = self.np_random.choice(labels, p=weights)
             _class_in_table = []
             for obj in self.table_objs:
@@ -137,19 +156,37 @@ class PlayTableRandScene(PlayTableScene):
 
         self.table_objs = obj_lst.copy()
 
-    def choose_new_objs(self, replace_objs=None, load_scene=False):
+    def choose_new_objs(self, replace_all=False, load_scene=False):
         n_objs = len(self.rand_positions)
-        if(replace_objs):
-            # Replace some objs
-            rand_objs = {o for o in self.table_objs
-                         if o not in replace_objs}
-            for obj in replace_objs:
+        if(replace_all):
+            # Full random scene
+            choose_from = []
+            for v in self.objs_per_class.values():
+                choose_from.extend(v)
+
+            # At least 1 obj from each class in env
+            rand_objs = []
+            rand_obj_classes = list(self.objs_per_class.keys())
+            for class_name in rand_obj_classes:
+                class_objs = self.objs_per_class[class_name]
+                rand_obj = self.np_random.choice(class_objs, 1)
+                rand_objs.extend(rand_obj)
+                choose_from.remove(rand_obj)
+                n_objs -= 1
+            rand_objs.extend(self.np_random.choice(choose_from,
+                                                   n_objs,
+                                                   replace=False))
+        else:
+            probs, weights = self.normalized_class_dist()
+            rand_objs = []
+            for obj in self.table_objs:
                 obj_class = self.class_per_obj[obj]
                 # Replace obj for another of the same class
                 remaining_objs = [o for o in self.objs_per_class[obj_class]
                                   if o not in rand_objs and o != obj]
-                # Replace new obj
-                if(len(remaining_objs) > 0):
+
+                # If class has 50% success rate
+                if(len(remaining_objs) > 0 and probs[obj_class] > 0.5):
                     rand_obj = self.np_random.choice(remaining_objs)
                     rand_objs.add(rand_obj)
                 else:
@@ -172,38 +209,32 @@ class PlayTableRandScene(PlayTableScene):
             for obj in rand_objs:
                 print_str += "%s: %s \n" % (obj, self.class_per_obj[obj])
             logger.info(print_str)
-        else:
-            # Full random scene
-            choose_from = []
-            for v in self.objs_per_class.values():
-                choose_from.extend(v)
-
-            # At least 1 obj from each class in env
-            rand_objs = []
-            rand_obj_classes = list(self.objs_per_class.keys())
-            for class_name in rand_obj_classes:
-                class_objs = self.objs_per_class[class_name]
-                rand_obj = self.np_random.choice(class_objs, 1)
-                rand_objs.extend(rand_obj)
-                choose_from.remove(rand_obj)
-                n_objs -= 1
-            rand_objs.extend(self.np_random.choice(choose_from,
-                                                   n_objs,
-                                                   replace=False))
         self.get_scene_with_objects(rand_objs, load_scene=load_scene)
 
     def pick_one_rand_obj(self, load_scene):
+        # Get position
         rand_pos = self.object_cfg["fixed_objects"]["table"]["initial_pos"]
-        rand_pos = self.np_random.uniform(rand_pos - np.ones(3)*0.05,
-                                          rand_pos + np.ones(3)*0.05)[:2]
-        obj = self.np_random.choice(self.obj_names)
+        rand_pos = self.np_random.uniform(rand_pos - np.array([0.07, 0.05, 0]),
+                                          rand_pos + np.array([0.02, 0.05, 0]))[:2]
+        # Get obj
+        probs, weights = self.normalize_class_dist(self.counts, decreasing=True)
+        obj = self.np_random.choice(list(probs.keys()), p=weights)
         self.get_scene_with_objects([obj],
                                     positions=[rand_pos],
                                     load_scene=load_scene)
 
-    def pick_rand_scene(self, new_objs=None, load=False, eval=False):
+    def pick_rand_scene(self, objs_success=None, load=False, eval=False):
+        if objs_success is not None:
+            if self.load_only_one:
+                for obj, v in objs_success.items():
+                    self.counts[obj].append(v)
+            else:
+                for obj, v in objs_success.items():
+                    obj_class = self.class_per_obj[obj]
+                    self.counts[obj_class].append(v)
+
         if(self.rand_positions is not None):
             if(self.load_only_one and not eval):
                 self.pick_one_rand_obj(load_scene=load)
-            else:
-                self.choose_new_objs(new_objs, load_scene=load)
+            elif(eval):
+                self.choose_new_objs(replace_all=eval, load_scene=load)

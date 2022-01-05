@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class PlayTableRL(PlayTableSimEnv):
-    def __init__(self, task="slide", sparse_reward=False, **args):
+    def __init__(self, task="slide", sparse_reward=False,
+                 max_counts=50, **args):
         if('use_egl' in args and args['use_egl']):
             # if("CUDA_VISIBLE_DEVICES" in os.environ):
             #     device_id = os.environ["CUDA_VISIBLE_DEVICES"]
@@ -52,6 +53,7 @@ class PlayTableRL(PlayTableSimEnv):
             self.scene = PlayTableRandScene(p=self.p, cid=self.cid,
                                             np_random=self.np_random,
                                             load_only_one=load_only_one,
+                                            max_counts=max_counts,
                                             **args['scene_cfg'])
             self.rand_positions = self.scene.rand_positions
             self.load()
@@ -75,16 +77,16 @@ class PlayTableRL(PlayTableSimEnv):
         self._target = value
         self.scene.target = value
 
-    def pick_rand_obj(self, p_dist=None):
-        self.scene.pick_rand_obj(p_dist=p_dist)
+    def pick_table_obj(self):
+        self.scene.pick_table_obj()
         self.target = self.scene.target
 
     def get_scene_with_objects(self, obj_lst, load_scene=False):
         self.scene.get_scene_with_objects(obj_lst, load_scene)
         self.target = self.scene.target
 
-    def pick_rand_scene(self, replace_objs=None, load=False, eval=False):
-        self.scene.pick_rand_scene(replace_objs, load, eval)
+    def pick_rand_scene(self, objs_success=None, load=False, eval=False):
+        self.scene.pick_rand_scene(objs_success, load, eval)
 
     def reset(self, eval=False):
         if(self.task == "pickup"):
@@ -92,7 +94,7 @@ class PlayTableRL(PlayTableSimEnv):
                 self.pick_rand_scene()
         # Resets scene, robot, etc
         res = super(PlayTableRL, self).reset()
-        self.pick_rand_obj()
+        self.pick_table_obj()
         return res
 
     def set_egl_device(self, device):
@@ -134,7 +136,6 @@ class PlayTableRL(PlayTableSimEnv):
         if(done):
             success = self.check_success()
         reward, r_info = self._reward(success)
-
         info = self.get_info()
         info.update({"success": success,
                      **r_info})

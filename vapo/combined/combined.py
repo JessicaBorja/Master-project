@@ -7,6 +7,24 @@ from vapo.sac_agent.sac_utils.utils import tt
 from affordance.utils.utils import get_transforms
 from vapo.combined.target_search import TargetSearch
 
+# from pynput import keyboard
+# curr_key = None
+
+# def on_press(key):
+#     global curr_key
+#     if(isinstance(key, keyboard._xorg.KeyCode)):
+#         curr_key = str(key).replace("'", "")
+#     else:
+#         curr_key = key.name
+#     print("key pressed: %s" % curr_key)
+
+# def on_release(key):
+#     global curr_key
+#     curr_key = None
+
+# listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+# listener.start()  # start to listen on a separate thread
+
 
 class Combined(SAC):
     def __init__(self, cfg, sac_cfg=None, wandb_login=None):
@@ -31,11 +49,6 @@ class Combined(SAC):
         self.target_search = TargetSearch(self.env,
                                           class_label=_class_label,
                                           **args)
-        self.p_dist = None
-        if(self.env.task == "pickup"):
-            if(self.env.rand_positions):
-                self.p_dist = \
-                    {c: 0 for c in self.env.scene.objs_per_class.keys()}
 
         # Target specifics
         self.env.target_search = self.target_search
@@ -63,8 +76,7 @@ class Combined(SAC):
         return 0
 
     # Model based methods
-    def detect_and_correct(self, env, obs,
-                           p_dist=None, noisy=False,
+    def detect_and_correct(self, env, obs, noisy=False,
                            rand_sample=True):
         if(obs is None):
             obs = env.reset()
@@ -72,7 +84,6 @@ class Combined(SAC):
         # Area center is the target position + 5cm in z direction
         target_pos, no_target = \
             self.target_search.compute(env,
-                                       p_dist=p_dist,
                                        noisy=noisy,
                                        rand_sample=rand_sample)
         if(no_target):
@@ -87,6 +98,33 @@ class Combined(SAC):
         # as we moved robot, need to update target and obs
         # for rl policy
         return env, env.observation(env.get_obs()), no_target
+
+    def manual_control(self):
+        # Move to target position only one
+        # Episode ends if outside of radius
+        self.env, s, _ = self.detect_and_correct(self.env, None,
+                                                 noisy=True)
+        key_map = {"up": {"axis": 1, "value": 1},
+                    "down": {"axis": 1, "value": -1},
+                    "left": {"axis": 0, "value": -1},
+                    "right": {"axis": 0, "value": 1},
+                    "w": {"axis": 2, "value": 1},
+                    "s": {"axis": 2, "value": -1},
+                    "q": {"axis": 3, "value": 1},
+                    "e": {"axis": 3, "value": -1},
+                    "f": {"axis": 4, "value": -1}}
+        for i in range(10):
+            for i in range(1000):
+                action = np.zeros(self.env.action_space.shape[0])
+                action[-1] = 1
+                for k, v in key_map.items():
+                    if curr_key is not None:
+                        if curr_key == k:
+                            axis = v["axis"]
+                            action[axis] = v["value"]
+                ns, r, d, info = self.env.step(action)
+            self.env, s, _ = self.detect_and_correct(self.env, None,
+                                                     noisy=True)
 
     # RL Policy
     def learn(self, total_timesteps=10000, log_interval=100,
@@ -108,7 +146,6 @@ class Combined(SAC):
         # Move to target position only one
         # Episode ends if outside of radius
         self.env, s, _ = self.detect_and_correct(self.env, None,
-                                                 self.p_dist,
                                                  noisy=True)
         for ts in range(1, total_timesteps+1):
             s, done, success, episode_return, episode_length, plot_data, info = \
@@ -152,7 +189,6 @@ class Combined(SAC):
                 self.env.obs_it = 0
                 episode_return, episode_length = 0, 0
                 self.env, s, _ = self.detect_and_correct(self.env, None,
-                                                         self.p_dist,
                                                          noisy=True)
             self.curr_ts += 1
         # Evaluate at end of training
@@ -181,7 +217,7 @@ class Combined(SAC):
         tasks = env.scene.obj_names
         n_objs = len(env.scene.rand_positions)
         n_total_objs = len(tasks)
-        succesful_objs = []
+        objs_success = {}
         episodes_success = []
         for i in range(math.ceil(n_total_objs/n_objs)):
             if(len(tasks[i:]) >= n_objs):
@@ -189,12 +225,12 @@ class Combined(SAC):
             else:
                 curr_objs = tasks[i:]
             env.get_scene_with_objects(curr_objs)
-            mean_reward, mean_length, ep_success, success_objs = \
+            mean_reward, mean_length, ep_success, success_count = \
                 self.evaluate(env,
                               max_episode_length=max_episode_length,
                               render=render,
                               save_images=save_images)
-            succesful_objs.extend(success_objs)
+            objs_success.update(success_count)
             episodes_success.extend(ep_success)
 
         self.log.info(
@@ -203,7 +239,7 @@ class Combined(SAC):
 
         # Restore scene before loading full sweep eval
         env.get_scene_with_objects(previous_objs)
-        return episodes_success, succesful_objs
+        return episodes_success, objs_success
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
                  print_all_episodes=False, render=False, save_images=False):
@@ -223,7 +259,7 @@ class Combined(SAC):
                 n_episodes = len(center_targets)
 
         ep_success = []
-        success_objs = []
+        success_objs = {}
         # One episode per task
         for episode in range(n_episodes):
             s = env.reset(eval=True)
@@ -251,20 +287,13 @@ class Combined(SAC):
                 s = ns
                 episode_return += r
                 episode_length += 1
-            success = info["success"]
-            if(success):
-                success_objs.append(env.target)
-            # Episode ended because it finished the task
-            elif(env.task != "pickup" and r > 0):
-                success = True
-            else:
-                success = False
-            ep_success.append(success)
+            success_objs[env.target] = info["success"]
+            ep_success.append(info["success"])
             ep_returns.append(episode_return)
             ep_lengths.append(episode_length)
             if(print_all_episodes):
                 print("Episode %d, Return: %.3f, Success: %s"
-                      % (episode, episode_return, str(success)))
+                      % (episode, episode_return, str(info["success"])))
 
         # mean and print
         mean_reward, reward_std = np.mean(ep_returns), np.std(ep_returns)

@@ -1,5 +1,4 @@
 import logging
-from omegaconf import OmegaConf
 from random import shuffle
 from collections import defaultdict, deque
 import numpy as np
@@ -62,7 +61,7 @@ class PlayTableRandScene(PlayTableScene):
         classes = list(objs_per_class.keys())
         for class_name in classes:
             objs_in_class = objs_per_class[class_name]
-            if len(objs_in_class) <= 1:
+            if len(objs_in_class) < 1:
                 objs_per_class["misc"].extend(objs_in_class)
                 class_per_object.update({obj: "misc" for obj in objs_in_class})
                 objs_per_class.pop(class_name)
@@ -101,9 +100,9 @@ class PlayTableRandScene(PlayTableScene):
 
         # More than one obj in table
         if(self.counts is not None):
-            self.normalized_dist = self.normalized_class_dist()
-            labels, weights = self.normalized_dist
-            choose_class = self.np_random.choice(labels, p=weights)
+            self.normalized_dist = self.normalize_class_dist(self.counts, decreasing=True)
+            probs, weights = self.normalized_dist
+            choose_class = self.np_random.choice(list(probs.keys()), p=weights)
             _class_in_table = []
             for obj in self.table_objs:
                 if(self.class_per_obj[obj] == choose_class):
@@ -217,8 +216,9 @@ class PlayTableRandScene(PlayTableScene):
         rand_pos = self.np_random.uniform(rand_pos - np.array([0.07, 0.05, 0]),
                                           rand_pos + np.array([0.02, 0.05, 0]))[:2]
         # Get obj
-        probs, weights = self.normalize_class_dist(self.counts, decreasing=True)
-        obj = self.np_random.choice(list(probs.keys()), p=weights)
+        # probs, weights = self.normalize_class_dist(self.counts, decreasing=True)
+        # obj = self.np_random.choice(list(probs.keys()), p=weights)
+        obj = self.np_random.choice(list(self.counts.keys()))
         self.get_scene_with_objects([obj],
                                     positions=[rand_pos],
                                     load_scene=load_scene)
@@ -236,5 +236,6 @@ class PlayTableRandScene(PlayTableScene):
         if(self.rand_positions is not None):
             if(self.load_only_one and not eval):
                 self.pick_one_rand_obj(load_scene=load)
-            elif(eval):
-                self.choose_new_objs(replace_all=eval, load_scene=load)
+            else:
+                replace_all = eval or objs_success == None
+                self.choose_new_objs(replace_all=replace_all, load_scene=load)

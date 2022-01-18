@@ -22,4 +22,4 @@ offset:
 rand_scene:
   # Only load one random object on the table
   # and use uniform sampling over all objects
-  load_only_one: True
+  load_only_one: False

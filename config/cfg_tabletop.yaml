@@ -46,7 +46,7 @@ env_wrapper:
   max_target_dist: 0.10
   gripper_cam:
     use_img: True
-    use_depth: False
+    use_depth: True
   static_cam:
     use_img: False
     use_depth: False

@@ -12,6 +12,7 @@ def get_abs_path(path_str):
         path_str = os.path.abspath(path_str)
     return path_str
 
+
 def torch_to_numpy(x):
     return x.detach().cpu().numpy()
 

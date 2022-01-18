@@ -105,8 +105,8 @@ class AffordanceWrapperBase(gym.Wrapper):
         obs, reward, done, info = self.env.step(action, move_to_box)
         reward = self.reward(reward, obs, done, info["success"])
         done = self.termination(done, obs)
-        if self.curr_detected_obj is not None:
-            self.p.addUserDebugText("ct", textPosition=self.curr_detected_obj, textColorRGB=[0, 1, 0])
+        # if self.curr_detected_obj is not None:
+        #     self.p.addUserDebugText("ct", textPosition=self.curr_detected_obj, textColorRGB=[0, 1, 0])
         return self.observation(obs), reward, done, info
 
     def reward(self, rew, obs, done, success):

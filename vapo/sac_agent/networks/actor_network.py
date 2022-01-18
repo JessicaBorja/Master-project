@@ -200,6 +200,7 @@ class CNNPolicyRes(CNNPolicy):
         sigma = torch.clamp(log_sigma, -20, 2).exp()
         return mu, sigma, gripper_action_logits
 
+
 class CNNPolicyReal(nn.Module):
     def __init__(self, obs_space, action_dim, action_space, affordance=None,
                  activation="relu", hidden_dim=256, latent_dim=16, **kwargs):

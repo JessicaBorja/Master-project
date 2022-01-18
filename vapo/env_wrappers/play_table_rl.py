@@ -114,6 +114,7 @@ class PlayTableRL(PlayTableSimEnv):
 
     def step(self, action, *args):
         # Action space that SAC sees is between -1,1 for all elements in vector
+        update_target = True
         if(len(action) == 5):
             a = action.copy()
             if(self.task == "pickup"):  # Constraint angle
@@ -123,9 +124,10 @@ class PlayTableRL(PlayTableSimEnv):
                 a = list(a)
                 # constraint angle
                 a[1] = np.array([- math.pi, 0, a[1][-1]])
+                update_target = False
         else:
             a = action
-        self.robot.apply_action(a)
+        self.robot.apply_action(a, update_target)
         for i in range(self.action_repeat):
             self.p.stepSimulation(physicsClientId=self.cid)
         self.scene.step()

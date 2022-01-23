@@ -152,12 +152,13 @@ class SAC():
     # Update all networks
     def _update(self, td_target, batch_states, batch_actions):
         plot_data = {}
+        _batch_states = self.env.transform_obs(batch_states, "train")
         # Critic 1
-        curr_prediction_c1 = self._q1(batch_states, batch_actions)
+        curr_prediction_c1 = self._q1(_batch_states, batch_actions)
         loss_c1 = self._loss_function(curr_prediction_c1, td_target.detach())
 
         # Critic 2
-        curr_prediction_c2 = self._q2(batch_states, batch_actions)
+        curr_prediction_c2 = self._q2(_batch_states, batch_actions)
         loss_c2 = self._loss_function(curr_prediction_c2, td_target.detach())
         # --- update two critics w/same optimizer ---#
         self._q_optim.zero_grad()
@@ -167,14 +168,12 @@ class SAC():
 
         plot_data["critic_loss"] = [loss_c1.item(), loss_c2.item()]
         # ---------------- Policy network update -------------#
-        batch_states = tt(batch_states)
-        batch_states = self.env.transform_obs(batch_states, "train")
-        predicted_actions, log_probs = self._pi.act(batch_states,
+        predicted_actions, log_probs = self._pi.act(_batch_states,
                                                     deterministic=False,
                                                     reparametrize=True)
         critic_value = torch.min(
-            self._q1(batch_states, predicted_actions),
-            self._q2(batch_states, predicted_actions))
+            self._q1(_batch_states, predicted_actions),
+            self._q2(_batch_states, predicted_actions))
         # Actor update/ gradient ascent
         self._pi_optim.zero_grad()
         policy_loss = (self.ent_coef * log_probs - critic_value).mean()

@@ -10,7 +10,7 @@ hyperparameters:
     tau: 0.005
     batch_size: 256
     buffer_size: 1e5
-    learning_starts: 0 # timesteps before starting updates
+    learning_starts: 1000 # timesteps before starting updates
     init_temp: 0.01 # Initialization of entropy coeficient
 
 net_cfg:
@@ -23,6 +23,6 @@ net_cfg:
 
 learn_config:
     total_timesteps: 90000
-    log_interval: 200 #log timestep mean_eval reward every log_interval steps
+    log_interval: 2000 #log timestep mean_eval reward every log_interval steps
     max_episode_length: 100 #max episode length
     n_eval_ep: 5

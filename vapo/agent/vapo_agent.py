@@ -2,10 +2,10 @@ import numpy as np
 import math
 import sys
 
-from vapo.sac_agent.sac import SAC
-from vapo.sac_agent.sac_utils.utils import tt
+from vapo.agent.core.sac import SAC
+from vapo.agent.core.utils import tt
 from affordance.utils.utils import get_transforms
-from vapo.combined.target_search import TargetSearch
+from vapo.agent.core.target_search import TargetSearch
 
 # from pynput import keyboard
 # curr_key = None
@@ -26,9 +26,9 @@ from vapo.combined.target_search import TargetSearch
 # listener.start()  # start to listen on a separate thread
 
 
-class Combined(SAC):
+class VAPOAgent(SAC):
     def __init__(self, cfg, sac_cfg=None, wandb_login=None):
-        super(Combined, self).__init__(**sac_cfg, wandb_login=wandb_login)
+        super(VAPOAgent, self).__init__(**sac_cfg, wandb_login=wandb_login)
         _cam_id = self._find_cam_id()
         _aff_transforms = get_transforms(
             cfg.affordance.transforms.validation,
@@ -242,7 +242,7 @@ class Combined(SAC):
         return episodes_success, objs_success
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
-                 print_all_episodes=False, render=False, save_images=False):
+                 print_all_episodes=True, render=False, save_images=False):
         ep_returns, ep_lengths = [], []
         tasks, task_it = [], 0
 
@@ -279,9 +279,10 @@ class Combined(SAC):
             done = False
             # Correct Position
             env, s, _ = self.correct_position(env, s, target_pos, no_target)
-            while(episode_length < max_episode_length // 2 and not done):
+            while(episode_length < max_episode_length and not done):
                 # sample action and scale it to action space
-                a, _ = self._pi.act(tt(s), deterministic=True)
+                s = env.transform_obs(tt(s), "validation")
+                a, _ = self._pi.act(s, deterministic=True)
                 a = a.cpu().detach().numpy()
                 ns, r, done, info = env.step(a)
                 s = ns
@@ -292,8 +293,11 @@ class Combined(SAC):
             ep_returns.append(episode_return)
             ep_lengths.append(episode_length)
             if(print_all_episodes):
-                print("Episode %d, Return: %.3f, Success: %s"
-                      % (episode, episode_return, str(info["success"])))
+                print_str = "EVALUATION [%d] %s, " % (episode, env.target) \
+                            + "Return: %.3f, " % (episode_return) \
+                            + "Success: %s, " % str(info["success"]) \
+                            + "Steps: %d" % episode_length
+                self.log.info(print_str)
 
         # mean and print
         mean_reward, reward_std = np.mean(ep_returns), np.std(ep_returns)
@@ -342,7 +346,8 @@ class Combined(SAC):
                   and dist < env.termination_radius
                   and not done):
                 # sample action and scale it to action space
-                a, _ = self._pi.act(tt(s), deterministic=True)
+                s = env.transform_obs(tt(s), "validation")
+                a, _ = self._pi.act(s, deterministic=True)
                 a = a.cpu().detach().numpy()
                 ns, r, _, info = env.step(a)
                 done = r >= 200

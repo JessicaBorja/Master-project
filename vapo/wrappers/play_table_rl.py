@@ -9,7 +9,7 @@ import pybullet as p
 from gym import spaces
 from vr_env.envs.play_table_env import PlayTableSimEnv
 from vr_env.utils.utils import EglDeviceNotFoundError, get_egl_device_id
-from vapo.env_wrappers.play_table_rand_scene import PlayTableRandScene
+from vapo.wrappers.play_table_rand_scene import PlayTableRandScene
 from vapo.utils.utils import get_3D_end_points
 logger = logging.getLogger(__name__)
 

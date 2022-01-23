@@ -1,6 +1,6 @@
 import numpy as np
 from collections import deque, namedtuple
-from vapo.sac_agent.sac_utils.utils import tt
+from vapo.agent.core.utils import tt
 from pathlib import Path
 
 

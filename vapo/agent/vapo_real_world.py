@@ -1,14 +1,12 @@
-from re import match
 import time
 import numpy as np
 import sys
-from vapo.sac_agent.sac import SAC
-from vapo.sac_agent.sac_utils.utils import tt
+from vapo.agent.core.sac import SAC
+from vapo.agent.core.utils import tt
 
 from affordance.utils.utils import get_transforms
-from vapo.combined.target_search import TargetSearch
+from vapo.agent.core.target_search import TargetSearch
 import wandb
-import math
 
 
 class FpsController:
@@ -24,10 +22,10 @@ class FpsController:
         self.prev_time = time.time()
 
 
-class Combined(SAC):
+class VAPOAgent(SAC):
     def __init__(self, cfg, sac_cfg=None, wandb_login=None,
                  rand_target=False, *args, **kwargs):
-        super(Combined, self).__init__(**sac_cfg, wandb_login=wandb_login)
+        super(VAPOAgent, self).__init__(**sac_cfg, wandb_login=wandb_login)
         _aff_transforms = get_transforms(
             cfg.affordance.transforms.validation,
             cfg.target_search.aff_cfg.img_size)
@@ -207,7 +205,8 @@ class Combined(SAC):
                           target_orn)
             while(episode_length < max_episode_length and not done):
                 # sample action and scale it to action space
-                a, _ = self._pi.act(tt(s), deterministic=deterministic)
+                s = env.transform_obs(tt(s), "validation")
+                a, _ = self._pi.act(s, deterministic=deterministic)
                 a = a.cpu().detach().numpy()
                 ns, r, done, info = env.step(a)
                 s = ns
@@ -248,7 +247,8 @@ class Combined(SAC):
             while(episode_length < max_episode_length
                   and not done):
                 # sample action and scale it to action space
-                a, _ = self._pi.act(tt(s),
+                s = env.transform_obs(tt(s), "validation")
+                a, _ = self._pi.act(s,
                                     deterministic=deterministic)
                 a = a.cpu().detach().numpy()
                 ns, r, done, info = env.step(a, move_to_box=True)

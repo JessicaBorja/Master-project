@@ -2,10 +2,10 @@ import hydra
 import logging
 import os
 
-from vapo.env_wrappers.play_table_rl import PlayTableRL
-from vapo.env_wrappers.affordance.aff_wrapper_sim import AffordanceWrapperSim
-from vapo.env_wrappers.utils import get_name
-from vapo.combined.combined import Combined
+from vapo.wrappers.play_table_rl import PlayTableRL
+from vapo.wrappers.affordance.aff_wrapper_sim import AffordanceWrapperSim
+from vapo.wrappers.utils import get_name
+from vapo.agent.vapo_agent import VAPOAgent
 
 
 @hydra.main(config_path="../config", config_name="cfg_playtable")
@@ -33,9 +33,9 @@ def main(cfg):
                    **cfg.agent.hyperparameters}
 
         log.info("model: %s" % cfg.model_name)
-        model = Combined(cfg,
-                         sac_cfg=sac_cfg,
-                         wandb_login=cfg.wandb_login)
+        model = VAPOAgent(cfg,
+                          sac_cfg=sac_cfg,
+                          wandb_login=cfg.wandb_login)
 
         if cfg.resume_training:
             original_dir = hydra.utils.get_original_cwd()

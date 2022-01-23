@@ -3,8 +3,8 @@ import numpy as np
 import cv2
 import logging
 import gym.spaces as spaces
-from vapo.env_wrappers.affordance.aff_wrapper_base import AffordanceWrapperBase
-from vapo.env_wrappers.utils import find_cam_ids
+from vapo.wrappers.affordance.aff_wrapper_base import AffordanceWrapperBase
+from vapo.wrappers.utils import find_cam_ids
 logger = logging.getLogger(__name__)
 
 

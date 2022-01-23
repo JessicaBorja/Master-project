@@ -1,7 +1,7 @@
 import os
 import gym
 from omegaconf import OmegaConf
-from vapo.sac_agent.sac_utils.utils import set_init_pos
+from vapo.agent.core.utils import set_init_pos
 from affordance.affordance_model import AffordanceModel
 import hydra
 

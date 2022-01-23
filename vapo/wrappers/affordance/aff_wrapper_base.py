@@ -4,10 +4,11 @@ import torch
 import numpy as np
 import cv2
 import gym
-from affordance.utils.img_utils import torch_to_numpy, viz_aff_centers_preds
-from vapo.env_wrappers.utils import get_obs_space, get_transforms_and_shape, \
-                                    depth_preprocessing, img_preprocessing
+from affordance.utils.img_utils import torch_to_numpy, viz_aff_centers_preds, overlay_mask
+from vapo.wrappers.utils import get_obs_space, get_transforms_and_shape, \
+                                    depth_preprocessing
 from vapo.utils.utils import init_aff_net
+from vapo.agent.core.utils import tt
 import pybullet as p
 
 logger = logging.getLogger(__name__)
@@ -18,8 +19,9 @@ class AffordanceWrapperBase(gym.Wrapper):
                  gripper_cam, static_cam, transforms=None,
                  use_pos=False,
                  affordance_cfg=None,
-                 use_env_state=False, train=False,
-                 save_images=False, viz=False,
+                 use_env_state=False,
+                 save_images=False,
+                 viz=False,
                  real_world=False,
                  **args):
         super(AffordanceWrapperBase, self).__init__(env)
@@ -46,10 +48,14 @@ class AffordanceWrapperBase(gym.Wrapper):
                                                 self.img_size)[0]}
 
         # Preprocessing for RL policy obs
-        _transforms_cfg =\
-            transforms["train"] if train else transforms["validation"]
-        self.rl_transforms, shape = get_transforms_and_shape(_transforms_cfg,
-                                                             self.img_size)
+        _train_transforms, shape = get_transforms_and_shape(transforms["train"],
+                                                            self.img_size)
+        _val_transforms, _ = get_transforms_and_shape(transforms["validation"],
+                                                      self.img_size)
+        self.rl_transforms = {
+            "train": _train_transforms,
+            "validation": _val_transforms
+        }
         self.channels = shape[0]
 
         # Cameras defaults
@@ -174,9 +180,8 @@ class AffordanceWrapperBase(gym.Wrapper):
                                             self.img_size)
             obs["%s_depth_obs" % cam_type] = depth_obs
         if(rgb_img is not None):
-            img_obs = img_preprocessing(rgb_img,
-                                        self.rl_transforms)
-            # 1, W, H
+            # Img should be stored raw on replay buffer
+            img_obs = np.transpose(rgb_img, (2, 0, 1))  # C, H, W
             obs["%s_img_obs" % cam_type] = img_obs
 
         get_gripper_target = cam_type == "gripper" and (
@@ -185,21 +190,17 @@ class AffordanceWrapperBase(gym.Wrapper):
                     or self.affordance_cfg.gripper_cam.use_distance)
 
         if(aff_net is not None and (aff_cfg.use or get_gripper_target)):
-            # Np array 1, H, W
-            processed_obs = img_preprocessing(rgb_img,
-                                              self.aff_transforms[cam_type])
             with torch.no_grad():
+                # Np array 1, H, W
+                processed_obs = self.aff_transforms[cam_type](tt(img_obs))
                 # 1, 1, H, W in range [-1, 1]
-                obs_t = torch.tensor(processed_obs).unsqueeze(0)
+                obs_t = processed_obs.unsqueeze(0)
                 obs_t = obs_t.float().cuda()
 
                 # 1, H, W
                 _, aff_probs, aff_mask, directions = aff_net(obs_t)
                 # foreground/affordance Mask
                 mask = torch_to_numpy(aff_mask)
-                if(obs_cfg.use_img and aff_mask.shape[1:] != img_obs.shape[1:]):
-                    new_shape = (aff_mask.shape[0], *img_obs.shape[1:])
-                    mask = np.resize(mask, new_shape)
                 if(get_gripper_target):
                     preds = {"%s_aff" % cam_type: aff_mask,
                              "%s_center_dir" % cam_type: directions,
@@ -220,6 +221,37 @@ class AffordanceWrapperBase(gym.Wrapper):
                 obs["%s_aff" % cam_type] = mask
         return obs, viz_dict
 
+    def transform_obs(self, obs_dct, split="validation"):
+        '''
+            inputs:
+                obs_dct (dict): {key: torch.tensor}
+        '''
+        new_dct = {}
+        for k, v in obs_dct.items():
+            if("img_obs" in k):
+                new_dct[k] = self.rl_transforms[split](v)
+            else:
+                new_dct[k] = v
+        return new_dct
+
+    def viz_transformed(self, obs_dct):
+        ''' input:
+                img: torch.tensor(shape=(C, H, W)) -1 to 1
+                mask: torch.tensor(shape=(H, W, 1)) 0 or 1
+        '''
+        img = obs_dct["gripper_img_obs"].permute((1, 2, 0))
+        img = img.detach().cpu().numpy()
+        img = (img + 1) / 2
+        img = (img[:, :, ::-1] * 255).astype('uint8')
+
+        mask = obs_dct["gripper_aff"].squeeze()
+        mask = mask.detach().cpu().numpy()
+        mask = (mask * 255).astype('uint8')
+
+        img = overlay_mask(mask, img, (0, 0, 255))
+        img = cv2.resize(img, (200, 200))
+        cv2.imshow("transformed img", img)
+
     # Aff-center
     def find_target_center(self, cam, orig_img, depth, obs):
         """
@@ -229,7 +261,6 @@ class AffordanceWrapperBase(gym.Wrapper):
                         range = 0 to 255
                         Only used for vizualization purposes
             obs: dictionary
-                - "img_obs":
                 - "gripper_aff":
                     affordance segmentation mask, range 0-1
                     np.array(size=(1, img_size,img_size))
@@ -271,7 +302,7 @@ class AffordanceWrapperBase(gym.Wrapper):
                 write_depth = write_depth / write_depth.max() * 255
                 write_depth = np.uint8(write_depth)
                 im_dict.extend(
-                    {"./images/ep_%04d/gripper_depth/img_%04d.png" 
+                    {"./images/ep_%04d/gripper_depth/img_%04d.png"
                      % (self.episode, self.obs_it): write_depth})
 
         # Plot different objects

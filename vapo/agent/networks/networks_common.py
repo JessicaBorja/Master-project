@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from vapo.utils.utils import get_abs_path
-from vapo.sac_agent.sac_utils.utils import get_activation_fn
+from vapo.agent.core.utils import get_activation_fn
 import numpy as np
 import os
 

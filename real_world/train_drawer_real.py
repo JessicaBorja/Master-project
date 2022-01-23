@@ -2,10 +2,10 @@ import hydra
 import logging
 import os
 from robot_io.cams.realsense.realsense import Realsense
-from vapo.env_wrappers.affordance.aff_wrapper_real_world import AffordanceWrapperRealWorld
-from vapo.env_wrappers.utils import get_name
-from vapo.combined.combined_real import Combined
-from vapo.env_wrappers.real_world.panda_drawer_wrapper import PandaEnvWrapper
+from vapo.wrappers.affordance.aff_wrapper_real_world import AffordanceWrapperRealWorld
+from vapo.wrappers.utils import get_name
+from vapo.agent.vapo_real_world import VAPOAgent
+from vapo.wrappers.real_world.panda_drawer_wrapper import PandaEnvWrapper
 
 
 @hydra.main(config_path="../config", config_name="cfg_real_world")
@@ -33,11 +33,11 @@ def main(cfg):
                **cfg.agent.hyperparameters}
 
     log.info("model: %s" % cfg.model_name)
-    model = Combined(cfg,
-                     sac_cfg=sac_cfg,
-                     target_search_mode=cfg.target_search,
-                     wandb_login=cfg.wandb_login,
-                     rand_target=True)
+    model = VAPOAgent(cfg,
+                      sac_cfg=sac_cfg,
+                      target_search_mode=cfg.target_search,
+                      wandb_login=cfg.wandb_login,
+                      rand_target=True)
     if cfg.resume_training:
         original_dir = hydra.utils.get_original_cwd()
         model_path = os.path.join(original_dir, cfg.resume_model_path)

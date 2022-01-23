@@ -102,10 +102,3 @@ def get_transforms_and_shape(transforms_cfg, in_size, out_size=None):
     if(test_tensor.shape == 2):
         test_tensor = test_tensor.unsqueeze(0)
     return apply_transforms, test_tensor.shape
-
-
-def img_preprocessing(frame, transforms):
-    frame = torch.from_numpy(frame).permute(2, 0, 1)
-    frame = transforms(frame)
-    frame = frame.cpu().detach().numpy()
-    return frame

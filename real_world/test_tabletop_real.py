@@ -3,9 +3,9 @@ import os.path
 import hydra
 import logging
 from robot_io.cams.realsense.realsense import Realsense
-from vapo.env_wrappers.real_world.panda_tabletop_wrapper import PandaEnvWrapper
-from vapo.env_wrappers.affordance.aff_wrapper_real_world import AffordanceWrapperRealWorld
-from vapo.combined.combined import Combined
+from vapo.wrappers.real_world.panda_tabletop_wrapper import PandaEnvWrapper
+from vapo.wrappers.affordance.aff_wrapper_real_world import AffordanceWrapperRealWorld
+from vapo.agent.vapo_agent import VAPOAgent
 from omegaconf import OmegaConf
 
 
@@ -40,10 +40,10 @@ def main(cfg):
     run_cfg.save_images = cfg.save_images
     log.info("model: %s" % run_cfg.model_name)
 
-    model = Combined(run_cfg,
-                     sac_cfg=sac_cfg,
-                     target_search_mode=run_cfg.target_search,
-                     rand_target=True)
+    model = VAPOAgent(run_cfg,
+                      sac_cfg=sac_cfg,
+                      target_search_mode=run_cfg.target_search,
+                      rand_target=True)
 
     original_dir = hydra.utils.get_original_cwd()
     model_path = os.path.join(original_dir, cfg.resume_model_path)

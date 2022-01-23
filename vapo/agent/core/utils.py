@@ -33,10 +33,10 @@ def get_nets(img_obs, obs_space, action_space, log,
     critic = critic_net_str if critic_net_str is not None else critic
 
     actor_net = getattr(
-        importlib.import_module("vapo.sac_agent.networks.actor_network"),
+        importlib.import_module("vapo.agent.networks.actor_network"),
         policy)
     critic_net = getattr(
-        importlib.import_module("vapo.sac_agent.networks.critic_network"),
+        importlib.import_module("vapo.agent.networks.critic_network"),
         critic)
     log.info("SAC get_nets: %s, \t%s" % (policy, critic))
     return actor_net, critic_net, obs_space, action_dim

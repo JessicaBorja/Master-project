@@ -1,8 +1,8 @@
 import hydra
 import os
-from vapo.env_wrappers.play_table_rl import PlayTableRL
-from vapo.env_wrappers.aff_wrapper import AffordanceWrapper
-from vapo.combined.combined import Combined
+from vapo.wrappers.play_table_rl import PlayTableRL
+from vapo.wrappers.aff_wrapper import AffordanceWrapper
+from vapo.agent.vapo_agent import VAPOAgent
 from vapo.utils.utils import load_cfg
 
 
@@ -38,9 +38,9 @@ def main(cfg):
                "net_cfg": net_cfg,
                **agent_cfg}
 
-    model = Combined(run_cfg,
-                     sac_cfg=sac_cfg,
-                     target_search_mode=run_cfg.target_search)
+    model = VAPOAgent(run_cfg,
+                      sac_cfg=sac_cfg,
+                      target_search_mode=run_cfg.target_search)
     path = "%s/trained_models/%s.pth" % (
             test_cfg.folder_name,
             test_cfg.model_name)

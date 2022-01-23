@@ -8,8 +8,8 @@ import logging
 import gym
 import collections
 import wandb
-from vapo.sac_agent.sac_utils.replay_buffer import ReplayBuffer
-from vapo.sac_agent.sac_utils.utils import tt, soft_update, get_nets
+from vapo.agent.core.replay_buffer import ReplayBuffer
+from vapo.agent.core.utils import tt, soft_update, get_nets
 
 
 class SAC():
@@ -167,6 +167,8 @@ class SAC():
 
         plot_data["critic_loss"] = [loss_c1.item(), loss_c2.item()]
         # ---------------- Policy network update -------------#
+        batch_states = tt(batch_states)
+        batch_states = self.env.transform_obs(batch_states, "train")
         predicted_actions, log_probs = self._pi.act(batch_states,
                                                     deterministic=False,
                                                     reparametrize=True)
@@ -195,7 +197,10 @@ class SAC():
     # Take one step in the environment and update the networks
     def training_step(self, s, ts, ep_return, ep_length):
         # sample action and scale it to action space
-        a, _ = self._pi.act(tt(s), deterministic=False)
+        _s = self.env.transform_obs(tt(s), "train")
+        if self.env.viz:
+            self.env.viz_transformed(_s)
+        a, _ = self._pi.act(_s, deterministic=False)
         a = a.cpu().detach().numpy()
         ns, r, done, info = self.env.step(a)
 
@@ -215,6 +220,9 @@ class SAC():
                 batch_next_states, batch_terminal_flags = sample
 
             with torch.no_grad():
+                batch_next_states = tt(batch_next_states)
+                batch_next_states = self.env.transform_obs(batch_next_states,
+                                                           "train")
                 next_actions, log_probs = self._pi.act(
                                                 batch_next_states,
                                                 deterministic=False,
@@ -239,11 +247,13 @@ class SAC():
     def _on_train_ep_end(self, ts, episode, total_ts,
                          best_return, episode_length, episode_return,
                          success, plot_data):
-        self.log.info(
-            "Episode %d: %d Steps," % (episode, episode_length) +
-            "Success: %s " % str(success) +
-            "Return: %.3f, total timesteps: %d/%d" %
-            (episode_return, ts, total_ts))
+
+        print_str = "[%d] %s, " % (episode, self.env.target) \
+            + "Return: %.3f, " % episode_return \
+            + "Success: %s, " % str(success) \
+            + "Steps: %d, " % episode_length \
+            + "Total timesteps: %d/%d" % (ts, total_ts)
+        self.log.info(print_str)
 
         # Summary Writer
         # log everything on timesteps to get the same scale

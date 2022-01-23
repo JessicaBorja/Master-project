@@ -220,7 +220,6 @@ class SAC():
                 batch_next_states, batch_terminal_flags = sample
 
             with torch.no_grad():
-                batch_next_states = tt(batch_next_states)
                 batch_next_states = self.env.transform_obs(batch_next_states,
                                                            "train")
                 next_actions, log_probs = self._pi.act(

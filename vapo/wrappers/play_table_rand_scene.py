@@ -71,9 +71,9 @@ class PlayTableRandScene(PlayTableScene):
         self.objs_per_class = objs_per_class
         self.class_per_obj = class_per_object
 
-    def normalize_class_dist(self, counts, decreasing=False):
+    def normalize_class_dist(self, decreasing=False):
         probs = {}
-        for label, hits in counts.items():
+        for label, hits in self.counts.items():
             if len(hits) == 0:
                 probs[label] = 0
             else:
@@ -90,7 +90,7 @@ class PlayTableRandScene(PlayTableScene):
                 weights = weights / weights.sum(axis=0)
         return probs, weights
 
-    def pick_table_obj(self):
+    def pick_table_obj(self, eval=False):
         '''
             counts = {class: counts}
         '''
@@ -99,9 +99,9 @@ class PlayTableRandScene(PlayTableScene):
             return
 
         # More than one obj in table
-        if(self.counts is not None):
-            self.normalized_dist = self.normalize_class_dist(self.counts, decreasing=True)
-            probs, weights = self.normalized_dist
+        if(self.counts is not None and not eval):
+            _normalized_dist = self.normalize_class_dist(decreasing=True)
+            probs, weights = _normalized_dist
             choose_class = self.np_random.choice(list(probs.keys()), p=weights)
             _class_in_table = []
             for obj in self.table_objs:
@@ -176,7 +176,7 @@ class PlayTableRandScene(PlayTableScene):
                                                    n_objs,
                                                    replace=False))
         else:
-            probs, weights = self.normalized_class_dist()
+            probs, weights = self.normalize_class_dist()
             rand_objs = []
             for obj in self.table_objs:
                 obj_class = self.class_per_obj[obj]
@@ -184,12 +184,12 @@ class PlayTableRandScene(PlayTableScene):
                 remaining_objs = [o for o in self.objs_per_class[obj_class]
                                   if o not in rand_objs and o != obj]
 
-                # If class has 50% success rate
-                if(len(remaining_objs) > 0 and probs[obj_class] > 0.5):
+                # If class has 30% success rate change object
+                if(len(remaining_objs) > 0 and probs[obj_class] > 0.3):
                     rand_obj = self.np_random.choice(remaining_objs)
-                    rand_objs.add(rand_obj)
-                else:
-                    continue
+                    rand_objs.append(rand_obj)
+                else:  # keep
+                    rand_objs.append(obj)
 
             # If we have more positions to fill than classes
             if(n_objs - len(rand_objs) >= 0):
@@ -224,6 +224,7 @@ class PlayTableRandScene(PlayTableScene):
                                     load_scene=load_scene)
 
     def pick_rand_scene(self, objs_success=None, load=False, eval=False):
+        # Increment counter
         if objs_success is not None:
             if self.load_only_one:
                 for obj, v in objs_success.items():
@@ -237,5 +238,5 @@ class PlayTableRandScene(PlayTableScene):
             if(self.load_only_one and not eval):
                 self.pick_one_rand_obj(load_scene=load)
             else:
-                replace_all = eval or objs_success == None
+                replace_all = eval or load
                 self.choose_new_objs(replace_all=replace_all, load_scene=load)

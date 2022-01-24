@@ -35,7 +35,7 @@ class VAPOAgent(SAC):
             cfg.target_search.aff_cfg.img_size)
 
         # initial pose
-        _initial_obs = self.env.reset()["robot_obs"]
+        _initial_obs = self.env.get_obs()["robot_obs"]
         self.origin = _initial_obs[:3]
 
         # To enumerate static cam preds on target search
@@ -251,7 +251,7 @@ class VAPOAgent(SAC):
                 tasks = env.scene.table_objs
                 n_episodes = len(tasks)
             else:
-                # Search by affordance
+                # Keep same scene that with wich was trained
                 s = env.reset(eval=True)
                 target_pos, no_target, center_targets = \
                     self.target_search.compute(env,

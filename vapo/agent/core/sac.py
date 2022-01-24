@@ -319,7 +319,7 @@ class SAC():
             self.log.info("End full objs validation...")
         else:
             if(self.sim):
-                if(self.eval_env.task == "pickup" and self.eval_env.unwrapped._rand_scene):
+                if(self.eval_env.task == "pickup" and self.eval_env.rand_scene):
                     self.eval_env.pick_rand_scene(eval=True)
             mean_return, mean_length, success_lst, objs_success = \
                 self.evaluate(self.eval_env, max_ep_length,

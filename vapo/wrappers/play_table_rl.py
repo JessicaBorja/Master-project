@@ -65,6 +65,10 @@ class PlayTableRL(PlayTableSimEnv):
             self.box_3D_end_points = get_3D_end_points(*self.box_pos, w, h, d)
 
     @property
+    def rand_scene(self):
+        return self._rand_scene
+
+    @property
     def start_orn(self):
         return self._start_orn
 
@@ -77,8 +81,8 @@ class PlayTableRL(PlayTableSimEnv):
         self._target = value
         self.scene.target = value
 
-    def pick_table_obj(self):
-        self.scene.pick_table_obj()
+    def pick_table_obj(self, eval=False):
+        self.scene.pick_table_obj(eval)
         self.target = self.scene.target
 
     def get_scene_with_objects(self, obj_lst, load_scene=False):
@@ -90,11 +94,11 @@ class PlayTableRL(PlayTableSimEnv):
 
     def reset(self, eval=False):
         if(self.task == "pickup"):
-            if(self._rand_scene and not eval):
+            if(self.rand_scene and not eval):
                 self.pick_rand_scene()
         # Resets scene, robot, etc
         res = super(PlayTableRL, self).reset()
-        self.pick_table_obj()
+        self.pick_table_obj(eval)
         return res
 
     def set_egl_device(self, device):

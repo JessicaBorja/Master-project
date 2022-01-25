@@ -204,7 +204,7 @@ class PlayTableRandScene(PlayTableScene):
                            if o not in rand_objs]
             extra_objs = self.np_random.choice(choose_from, n_objs)
             rand_objs.extend(extra_objs)
-            print_str = "Classes in env:"
+            print_str = "Classes in env: \n"
             for obj in rand_objs:
                 print_str += "%s: %s \n" % (obj, self.class_per_obj[obj])
             logger.info(print_str)

@@ -2,8 +2,10 @@
 train:
   - _target_: torchvision.transforms.Resize
     size: ${img_size}
-  # - _target_: torchvision.transforms.Grayscale
-  #   num_output_channels: 1
+  - _target_: torchvision.transforms.RandomResizedCrop
+    size: ${img_size}
+    scale: [0.9, 1.0]
+    ratio: [0.9, 1.0]
   - _target_: affordance.dataloader.transforms.ScaleImageTensor  # Scale 0-255 to 0-1
   - _target_: torchvision.transforms.Normalize
     mean: [0.5,]

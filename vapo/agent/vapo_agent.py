@@ -127,7 +127,7 @@ class VAPOAgent(SAC):
                                                      noisy=True)
 
     # RL Policy
-    def learn(self, total_timesteps=10000, log_interval=100,
+    def learn(self, total_timesteps=10000, log_interval=100, full_eval_interval=200,
               max_episode_length=None, n_eval_ep=5):
         if not isinstance(total_timesteps, int):   # auto
             total_timesteps = int(total_timesteps)
@@ -139,7 +139,8 @@ class VAPOAgent(SAC):
                      "critic_loss": [],
                      "ent_coef_loss": [], "ent_coef": []}
 
-        _log_n_ep = log_interval//max_episode_length
+        _log_n_ep = log_interval // max_episode_length
+        _full_eval_interval = full_eval_interval // max_episode_length
         if(_log_n_ep < 1):
             _log_n_ep = 1
 
@@ -160,7 +161,7 @@ class VAPOAgent(SAC):
             if((ts % log_interval == 0 and not self._log_by_episodes)
                or (self._log_by_episodes and end_ep
                    and self.episode % _log_n_ep == 0)):
-                eval_all_objs = self.episode % (2 * _log_n_ep) == 0
+                eval_all_objs = self.episode % _full_eval_interval == 0
                 self.best_eval_return, self.most_tasks = \
                     self._eval_and_log(self.curr_ts,
                                        self.episode,

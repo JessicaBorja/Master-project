@@ -1,7 +1,5 @@
 # Use RGB imgs in RL policy
 train:
-  - _target_: torchvision.transforms.Resize
-    size: ${img_size}
   - _target_: torchvision.transforms.RandomResizedCrop
     size: ${img_size}
     scale: [0.9, 1.0]

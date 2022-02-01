@@ -1,9 +1,12 @@
 import os
 import gym
+import numpy as np
+from scipy.spatial.transform.rotation import Rotation as R
+import hydra
+
 from omegaconf import OmegaConf
 from vapo.agent.core.utils import set_init_pos
 from affordance.affordance_model import AffordanceModel
-import hydra
 
 
 def get_abs_path(path_str):
@@ -28,14 +31,13 @@ def init_aff_net(affordance_cfg, cam_str=None, in_channels=1):
             path = aff_cfg.model_path
             path = get_abs_path(path)
             # Configuration of the model
-            hp = {**aff_cfg.hyperparameters,
-                  "in_channels": in_channels}
+            hp = {"cfg": aff_cfg.hyperparameters.cfg,
+                  "n_classes": aff_cfg.hyperparameters.n_classes,
+                  "input_channels": in_channels}
             hp = OmegaConf.create(hp)
             # Create model
             if(os.path.exists(path)):
-                aff_net = AffordanceModel.load_from_checkpoint(
-                                    path,
-                                    cfg=hp)
+                aff_net = AffordanceModel.load_from_checkpoint(path, **hp)
                 aff_net.cuda()
                 aff_net.eval()
                 print("obs_wrapper: %s cam affordance model loaded" % cam_str)
@@ -114,3 +116,41 @@ def register_env():
         entry_point='VREnv.vr_env.envs.play_table_env:PlayTableSimEnv',
         max_episode_steps=200,
     )
+
+
+def np_quat_to_scipy_quat(quat):
+    """wxyz to xyzw"""
+    return np.array([quat.x, quat.y, quat.z, quat.w])
+
+
+def pos_orn_to_matrix(pos, orn):
+    """
+    :param pos: np.array of shape (3,)
+    :param orn: np.array of shape (4,) -> quaternion xyzw
+                np.quaternion -> quaternion wxyz
+                np.array of shape (3,) -> euler angles xyz
+    :return: 4x4 homogeneous transformation
+    """
+    mat = np.eye(4)
+    if isinstance(orn, np.quaternion):
+        orn = np_quat_to_scipy_quat(orn)
+        mat[:3, :3] = R.from_quat(orn).as_matrix()
+    elif len(orn) == 4:
+        mat[:3, :3] = R.from_quat(orn).as_matrix()
+    elif len(orn) == 3:
+        mat[:3, :3] = R.from_euler('xyz', orn).as_matrix()
+    mat[:3, 3] = pos
+    return mat
+
+
+def get_depth_around_point(point, depth):
+    for width in range(5):
+        area = depth[point[1] - width: point[1] + width + 1, point[0] - width: point[0] + width + 1]
+        area[np.where(area == 0)] = np.inf
+        if np.all(np.isinf(area)):
+            continue
+        new_point = np.array([point[1], point[0]]) + np.array(np.unravel_index(area.argmin(), area.shape)) - width
+
+        assert depth[new_point[0], new_point[1]] != 0
+        return (new_point[1], new_point[0]), True
+    return None, False

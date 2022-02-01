@@ -10,7 +10,7 @@ from gym import spaces
 from vr_env.envs.play_table_env import PlayTableSimEnv
 from vr_env.utils.utils import EglDeviceNotFoundError, get_egl_device_id
 from vapo.wrappers.play_table_rand_scene import PlayTableRandScene
-from vapo.utils.utils import get_3D_end_points
+from vapo.utils.utils import get_3D_end_points, pos_orn_to_matrix
 logger = logging.getLogger(__name__)
 
 
@@ -37,7 +37,7 @@ class PlayTableRL(PlayTableSimEnv):
         }
         self.observation_space = gym.spaces.Dict(obs_space_dict)
         self.sparse_reward = sparse_reward
-        self.offset = args["offset"][task]
+        self.offset = np.array([*args["offset"], 1])
         self.reward_fail = args['reward_fail']
         self.reward_success = args['reward_success']
 
@@ -63,6 +63,9 @@ class PlayTableRL(PlayTableSimEnv):
             self.box_pos = self.scene.object_cfg['fixed_objects']['bin']["initial_pos"]
             w, h, d = 0.24, 0.4, 0.08
             self.box_3D_end_points = get_3D_end_points(*self.box_pos, w, h, d)
+        else:
+            self._target = task
+            self.rand_positions = False
 
     @property
     def rand_scene(self):
@@ -82,8 +85,9 @@ class PlayTableRL(PlayTableSimEnv):
         self.scene.target = value
 
     def pick_table_obj(self, eval=False):
-        self.scene.pick_table_obj(eval)
-        self.target = self.scene.target
+        if self.task == "pickup":
+            self.scene.pick_table_obj(eval)
+            self.target = self.scene.target
 
     def get_scene_with_objects(self, obj_lst, load_scene=False):
         self.scene.get_scene_with_objects(obj_lst, load_scene)
@@ -268,7 +272,11 @@ class PlayTableRL(PlayTableSimEnv):
         reach_target = [*target_pos[:2], tcp_pos[-1]]
         a = [reach_target, initial_orn, 1]
         tcp_pos = self.move_to(tcp_pos, a)
-        move_to = target_pos + self.offset
+
+        # Offset relative to gripper frame
+        tcp_mat = pos_orn_to_matrix(target_pos, initial_orn)
+        offset_global_frame = tcp_mat @ self.offset
+        move_to = offset_global_frame[:3]
 
         # Move to target
         a = [move_to, initial_orn, 1]

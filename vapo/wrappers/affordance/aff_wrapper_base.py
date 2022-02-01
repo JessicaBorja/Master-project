@@ -40,12 +40,16 @@ class AffordanceWrapperBase(gym.Wrapper):
         _static_aff_im_size = 200
         if(img_size in affordance_cfg.static_cam):
             _static_aff_im_size = affordance_cfg.static_cam.img_size
+
+        _gripper_aff_transforms, _aff_shape = \
+            get_transforms_and_shape(_transforms_cfg, self.img_size)
+
         self.aff_transforms = {
             "static": get_transforms_and_shape(_transforms_cfg,
                                                self.img_size,
                                                out_size=_static_aff_im_size)[0],
-            "gripper": get_transforms_and_shape(_transforms_cfg,
-                                                self.img_size)[0]}
+            "gripper": _gripper_aff_transforms
+            }
 
         # Preprocessing for RL policy obs
         _train_transforms, shape = get_transforms_and_shape(transforms["train"],
@@ -72,8 +76,9 @@ class AffordanceWrapperBase(gym.Wrapper):
         # self._mask_transforms = DistanceTransform()
 
         # Parameters to store affordance
-        self.gripper_cam_aff_net = init_aff_net(affordance_cfg, 'gripper')
-        self.static_cam_aff_net = init_aff_net(affordance_cfg, 'static')
+        _in_channels = _aff_shape[0]
+        self.gripper_cam_aff_net = init_aff_net(affordance_cfg, 'gripper', _in_channels)
+        self.static_cam_aff_net = init_aff_net(affordance_cfg, 'static', _in_channels)
         self.observation_space = get_obs_space(affordance_cfg,
                                                self.gripper_cam_cfg,
                                                self.static_cam_cfg,

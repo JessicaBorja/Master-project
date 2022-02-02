@@ -345,6 +345,7 @@ class SAC():
         wandb.log({
             **write_dict,
             "eval/success(%dep)" % len(success_lst): n_success,
+            "eval/success_rate(%dep)" % len(success_lst): n_success/len(success_lst)
         })
         # If environment definition allows for randoming environment
         # Change scene when method already does something

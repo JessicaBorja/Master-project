@@ -56,7 +56,7 @@ env_wrapper:
 gripper_cam_aff_path: ${paths.trained_models}/tabletop_multiscene_gripper_labels.ckpt
 static_cam_aff_path: ${paths.trained_models}/tabletop_multiscene_static_sideview.ckpt
 target_search:
-  mode: "env"
+  mode: "env" # "affordance"
   aff_cfg:
     img_size: 200
     use: True

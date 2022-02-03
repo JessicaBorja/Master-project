@@ -77,10 +77,10 @@ objects:
       file: tabletop/screwdriver_2/screwdriver_2.urdf
       initial_pos: [0.2, 0.45, 0.61]
       initial_orn: [0, 0, 0]
-    screwdriver_3:
-      file: tabletop/screwdriver_3/screwdriver_3.urdf
-      initial_pos: [0.1, 0.9, 0.608]
-      initial_orn: [0, 0, 0]
+    # screwdriver_3:
+    #   file: tabletop/screwdriver_3/screwdriver_3.urdf
+    #   initial_pos: [0.1, 0.9, 0.608]
+    #   initial_orn: [0, 0, 0]
     screwdriver_4:
       file: tabletop/screwdriver_4/screwdriver_4.urdf
       initial_pos: [-0.1, 0.6, 0.61]

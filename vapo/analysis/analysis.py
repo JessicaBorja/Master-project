@@ -137,7 +137,7 @@ def plot_by_time(plot_dict, csv_dir="./results_csv/"):
     cm = plt.get_cmap('cool')
     colors = cm(np.linspace(0, 1, len(data)))
     colors = [[0, 0, 1, 1],
-              [1, 0, 0, 0.8]]
+              [1, 0, 0, 1]]
     smooth_window = 5
     for exp_data, c, label in zip(data, colors, labels):
         d = exp_data[:, 2]

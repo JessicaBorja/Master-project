@@ -15,7 +15,7 @@ task: ${task} #slide, hinge, drawer
 sparse_reward: True
 reward_success: 200
 reward_fail: -10
-offset: [0, 0, -0.04]
+offset: [0, 0, -0.03]
 rand_scene:
   # Only load one random object on the table
   # and use uniform sampling over all objects

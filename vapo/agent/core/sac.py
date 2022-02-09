@@ -20,8 +20,8 @@ class SAC():
                  batch_size=256, buffer_size=1e6,
                  model_name="sac", net_cfg=None, log=None,
                  save_replay_buffer=False, init_temp=0.01,
-                 train_mean_n_ep=5, wandb_login=None):
-        if(wandb_login):
+                 train_mean_n_ep=5, wandb_login=None, resume=False):
+        if(wandb_login and not resume):
             config = {"batch_size": batch_size,
                       "learning_starts": learning_starts,
                       "actor_lr": actor_lr,
@@ -32,10 +32,16 @@ class SAC():
                       "init_temp": init_temp,
                       "gamma": gamma,
                       "save_replay_buffer": save_replay_buffer}
+            id = wandb.util.generate_id()
             wandb.init(name=model_name,
                        config=config,
-                       # settings=wandb.Settings(start_method="fork"),
+                       id=id,
+                       resume="allow",
                        **wandb_login)
+        else:
+            id = 0
+        self.wandb_login = wandb_login
+        self.wandb_id = id
         self._save_replay_buffer = save_replay_buffer
         self.log = log
         if(not log):
@@ -378,7 +384,8 @@ class SAC():
             'curr_ts': self.curr_ts,
             'most_tasks': self.most_tasks,
             'last_n_train_success': self.last_n_train_success,
-            'last_n_train_mean_success': self.last_n_train_mean_success
+            'last_n_train_mean_success': self.last_n_train_mean_success,
+            'wandb_id': self.wandb_id
         }
         if self._auto_entropy:
             save_dict['ent_coef_optimizer'] = \
@@ -408,8 +415,12 @@ class SAC():
 
             self.ent_coef = checkpoint["ent_coef"]
             self.ent_coef_optimizer.load_state_dict(checkpoint['ent_coef_optimizer'])
-
             if(resume_training):
+                self.wandb_id = checkpoint["wandb_id"]
+                wandb.init(id=self.wandb_id,
+                           resume="allow",
+                           **self.wandb_login)
+
                 self.best_return = checkpoint['best_return']
                 self.best_eval_return = checkpoint['best_eval_return']
                 self.most_tasks = checkpoint['most_tasks']

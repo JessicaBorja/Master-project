@@ -61,8 +61,8 @@ class ReplayBuffer:
                      "terminal_flag": transition.terminal_flag}
                     )
         if(num_entries - 1 - self.last_saved_idx > 0):
-            self.logger.info("Saved transitions with indices : %d - %d" 
-                % (self.last_saved_idx, i))
+            self.logger.info("Saved transitions with indices : %d - %d"
+                             % (self.last_saved_idx, i))
             self.last_saved_idx = i
 
     def load(self, path="./replay_buffer"):

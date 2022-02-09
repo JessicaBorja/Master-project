@@ -22,7 +22,7 @@ net_cfg:
     critic_net: "CNNCriticRes"
 
 learn_config:
-    total_timesteps: 90000
+    total_timesteps: 400000
     log_interval: 4000 # log timestep mean_eval reward every log_interval steps
     full_eval_interval: 16000
     max_episode_length: 100 #max episode length

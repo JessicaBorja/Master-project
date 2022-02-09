@@ -27,8 +27,8 @@ from vapo.agent.core.target_search import TargetSearch
 
 
 class VAPOAgent(SAC):
-    def __init__(self, cfg, sac_cfg=None, wandb_login=None):
-        super(VAPOAgent, self).__init__(**sac_cfg, wandb_login=wandb_login)
+    def __init__(self, cfg, sac_cfg=None, wandb_login=None, resume=False):
+        super(VAPOAgent, self).__init__(**sac_cfg, wandb_login=wandb_login, resume=resume)
         _cam_id = self._find_cam_id()
         _aff_transforms = get_transforms(
             cfg.affordance.transforms.validation,

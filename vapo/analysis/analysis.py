@@ -122,7 +122,8 @@ def plot_by_time(plot_dict, csv_dir="./results_csv/"):
     data, labels = [], []
     for exp_name, label in plot_dict.items():
         # Skip wall time
-        files = glob.glob("%s*%s*success*.csv" % (csv_dir, exp_name))
+        csv_dir = os.path.abspath(csv_dir)
+        files = glob.glob("%s/*%s*success*.csv" % (csv_dir, exp_name))
         data.append(pd.read_csv(files[0]).to_numpy())
         labels.append(label)
     search_res = re.search(r"\((.*?)\)", files[0])
@@ -133,9 +134,10 @@ def plot_by_time(plot_dict, csv_dir="./results_csv/"):
         n_eval_ep = 10
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 5.5), sharey=True)
-    cm = plt.get_cmap('tab10')
+    cm = plt.get_cmap('cool')
     colors = cm(np.linspace(0, 1, len(data)))
-
+    colors = [[0, 0, 1, 1],
+              [1, 0, 0, 0.8]]
     smooth_window = 5
     for exp_data, c, label in zip(data, colors, labels):
         d = exp_data[:, 2]
@@ -146,10 +148,12 @@ def plot_by_time(plot_dict, csv_dir="./results_csv/"):
         ax.plot(time, d, color=c, label=label)
 
     ax.set_xlabel("Time (hours)")
-    ax.set_ylabel("Mean episode success")
+    ax.set_ylabel("Success rate")
     ax.legend(loc='upper left')
 
+    basename = os.path.basename(os.path.split(files[0])[0])
     save_folder = "./analysis/figures/"
+    save_folder = os.path.join(save_folder, basename)
     save_name = "real_world_mean_success"
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
@@ -316,10 +320,10 @@ if __name__ == "__main__":
     #              "rgb_img_depth_dist_affMask_dense": "RGB + depth + dist + affMask + dense"}
     # plot_by_episodes(plot_dict, csv_dir="./analysis/results_csv/pickup_ablation/")
     # plot_by_timesteps(plot_dict, csv_dir="./analysis/results_csv/pickup_ablation/")
-    plot_dict = {"sparse": "local-SAC",
-                 "dense": "VAPO"}
-    plot_by_episodes(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_rand/")
+    # plot_dict = {"sparse": "local-SAC",
+    #              "dense": "VAPO"}
+    # plot_by_episodes(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_rand/")
     # plot_by_timesteps(plot_dict, csv_dir="/home/jessica/Downloads/tabletop_rand/")
-    plot_dict = {"sparse": "local-SAC",
-                 "dense": "VAPO"}
-    plot_by_time(plot_dict, csv_dir="/home/jessica/Downloads/real-world/")
+    plot_dict = {"dense": "VAPO",
+                 "sparse": "local-SAC"}
+    plot_by_time(plot_dict, csv_dir="./vapo/analysis/results_csv/pickup_real_world/")

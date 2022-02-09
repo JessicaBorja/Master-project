@@ -22,6 +22,7 @@ class SAC():
                  save_replay_buffer=False, init_temp=0.01,
                  train_mean_n_ep=5, wandb_login=None, resume=False):
         if(wandb_login and not resume):
+            log_dir = os.path.join(*os.getcwd().split(os.path.sep)[-3:])
             config = {"batch_size": batch_size,
                       "learning_starts": learning_starts,
                       "actor_lr": actor_lr,
@@ -32,7 +33,7 @@ class SAC():
                       "init_temp": init_temp,
                       "gamma": gamma,
                       "save_replay_buffer": save_replay_buffer,
-                      "cwd": os.getcwd()}
+                      "cwd": log_dir}
             id = wandb.util.generate_id()
             wandb.init(name=model_name,
                        config=config,

@@ -432,7 +432,7 @@ class SAC():
                 replay_buffer_dir = os.path.join(os.path.dirname(path),
                                                  "replay_buffer")
                 if(os.path.isdir(replay_buffer_dir)):
-                    self._replay_buffer.load(replay_buffer_dir)
+                    self._replay_buffer.load(os.path.abspath(replay_buffer_dir))
             print("load done")
             return True
         else:

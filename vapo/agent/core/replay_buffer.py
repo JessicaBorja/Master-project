@@ -2,7 +2,8 @@ import numpy as np
 from collections import deque, namedtuple
 from vapo.agent.core.utils import tt
 from pathlib import Path
-
+import glob
+import os
 
 class ReplayBuffer:
     # Replay buffer for experience replay. Stores transitions.
@@ -68,16 +69,16 @@ class ReplayBuffer:
     def load(self, path="./replay_buffer"):
         p = Path(path)
         if p.is_dir():
-            p = p.glob('*.npz')
+            p = p.glob('*.npy')
             files = [x for x in p if x.is_file()]
             if len(files) > 0:
                 for file in files:
-                    data = np.load(file, allow_pickle=True)
-                    transition = self._transition(data['state'].item(),
+                    data = np.load(file, allow_pickle=True).item()
+                    transition = self._transition(data['state'],
                                                   data['action'],
-                                                  data['reward'].item(),
-                                                  data['next_state'].item(),
-                                                  data['terminal_flag'].item())
+                                                  data['reward'],
+                                                  data['next_state'],
+                                                  data['terminal_flag'])
                     self._data.append(transition)
                 self.last_saved_idx = len(files)
                 self.logger.info("Replay buffer loaded successfully")

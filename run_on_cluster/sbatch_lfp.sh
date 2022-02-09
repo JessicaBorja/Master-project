@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --exclusive	
 
 # Print some information about the job to STDOUT
 echo "Workingdir: $PWD";

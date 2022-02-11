@@ -1,4 +1,5 @@
 #!/bin/bash
+# SBATCH --exclude=dlcgpu17
 
 # Print some information about the job to STDOUT
 echo "Workingdir: $PWD";
@@ -13,6 +14,7 @@ echo "JID $SLURM_JOB_ID on queue $SLURM_JOB_PARTITION";
 export NCCL_DEBUG=INFO
 export PYTHONFAULTHANDLER=1
 export HYDRA_FULL_ERROR=1
+export CUDA_LAUNCH_BLOCKING=1
  
 # Job to perform
 source ~/.bashrc

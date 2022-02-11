@@ -8,24 +8,26 @@ from vapo.wrappers.utils import get_name
 from vapo.agent.vapo_agent import VAPOAgent
 from omegaconf import OmegaConf
 import glob
+import os
 
 
 @hydra.main(config_path="../config", config_name="cfg_tabletop")
 def main(cfg):
-    # Auto generate names given dense, aff-mask, aff-target
-    previous_model = glob.glob("./trained_models/*last.pth")
+    log = logging.getLogger(__name__)
+    resume_model_path = os.path.join(cfg.resume_model_path, "trained_models")
+    previous_model = glob.glob("%s/*last.pth" % resume_model_path)
     resume_training = len(previous_model) > 0
-    if resume_training:
+    if cfg.resume_training:
         model_path = previous_model[0]
         hydra_run_dir = os.getcwd()
         hydra_cfg_path = os.path.join(hydra_run_dir, ".hydra/config.yaml")
-        print("Old configuration found, resuming training from same directory")
+        log.info("Old configuration found, resuming training from same directory")
         if os.path.exists(hydra_cfg_path):
             cfg = OmegaConf.load(hydra_cfg_path)
     else:
-        print("Starting new training")
-
-    log = logging.getLogger(__name__)
+        log.info("Starting new training")
+    
+    # Auto generate names given dense, aff-mask, aff-target
     cfg.model_name = get_name(cfg, cfg.model_name)
     max_ts = cfg.agent.learn_config.max_episode_length
     env = PlayTableRL(**cfg.env)

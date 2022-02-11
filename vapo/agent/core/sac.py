@@ -10,6 +10,7 @@ import collections
 import wandb
 from vapo.agent.core.replay_buffer import ReplayBuffer
 from vapo.agent.core.utils import tt, soft_update, get_nets
+import datetime
 
 
 class SAC():
@@ -419,8 +420,12 @@ class SAC():
             self.ent_coef_optimizer.load_state_dict(checkpoint['ent_coef_optimizer'])
             if(resume_training):
                 self.wandb_id = checkpoint["wandb_id"]
+                _date = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
+                log_dir = os.path.join(*os.getcwd().split(os.path.sep)[-3:])
+                config = {"resume_%s" % _date: log_dir}
                 wandb.init(id=self.wandb_id,
-                           resume="allow",
+                           resume="must",
+                           config=config,
                            **self.wandb_login)
 
                 self.best_return = checkpoint['best_return']

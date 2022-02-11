@@ -419,6 +419,11 @@ class SAC():
             self.ent_coef = checkpoint["ent_coef"]
             self.ent_coef_optimizer.load_state_dict(checkpoint['ent_coef_optimizer'])
             if(resume_training):
+                self.save_dir = os.path.dirname(path)
+                self.trained_path = "{}/{}".format(self.save_dir, self.model_name)
+                self.log.info("CHANGING WRITE DIRECTORIES")
+                self.log.info("Models + replay buffer stored in %s " % self.save_dir)
+
                 self.wandb_id = checkpoint["wandb_id"]
                 _date = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
                 log_dir = os.path.join(*os.getcwd().split(os.path.sep)[-3:])
@@ -435,8 +440,8 @@ class SAC():
                 self.episode = checkpoint['episode']
                 self.last_n_train_success = checkpoint['last_n_train_success']
                 self.last_n_train_mean_success = checkpoint['last_n_train_mean_success']
-                replay_buffer_dir = os.path.join(os.path.dirname(path),
-                                                 "replay_buffer")
+
+                replay_buffer_dir = os.path.join(self.save_dir, "replay_buffer")
                 if(os.path.isdir(replay_buffer_dir)):
                     self._replay_buffer.load(os.path.abspath(replay_buffer_dir))
             print("load done")

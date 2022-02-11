@@ -2,6 +2,8 @@ import hydra
 import logging
 import os
 
+from numpy import save
+
 from vapo.wrappers.play_table_rl import PlayTableRL
 from vapo.wrappers.affordance.aff_wrapper_sim import AffordanceWrapperSim
 from vapo.wrappers.utils import get_name
@@ -20,14 +22,13 @@ def main(cfg):
     resume_training = cfg.resume_training and model_available
     if resume_training:
         model_path = previous_model[0]
-        hydra_run_dir = os.getcwd()
-        hydra_cfg_path = os.path.join(hydra_run_dir, ".hydra/config.yaml")
+        hydra_cfg_path = os.path.join(cfg.resume_model_path, ".hydra/config.yaml")
         log.info("Old configuration found, resuming training from same directory")
         if os.path.exists(hydra_cfg_path):
             cfg = OmegaConf.load(hydra_cfg_path)
     else:
         log.info("No previous model found, starting new training..")
-    
+
     # Auto generate names given dense, aff-mask, aff-target
     cfg.model_name = get_name(cfg, cfg.model_name)
     max_ts = cfg.agent.learn_config.max_episode_length

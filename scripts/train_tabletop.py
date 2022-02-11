@@ -16,8 +16,9 @@ def main(cfg):
     log = logging.getLogger(__name__)
     resume_model_path = os.path.join(cfg.resume_model_path, "trained_models")
     previous_model = glob.glob("%s/*last.pth" % resume_model_path)
-    resume_training = len(previous_model) > 0
-    if cfg.resume_training:
+    model_available = len(previous_model) > 0
+    resume_training = cfg.resume_training and model_available
+    if resume_training:
         model_path = previous_model[0]
         hydra_run_dir = os.getcwd()
         hydra_cfg_path = os.path.join(hydra_run_dir, ".hydra/config.yaml")
@@ -25,7 +26,7 @@ def main(cfg):
         if os.path.exists(hydra_cfg_path):
             cfg = OmegaConf.load(hydra_cfg_path)
     else:
-        log.info("Starting new training")
+        log.info("No previous model found, starting new training..")
     
     # Auto generate names given dense, aff-mask, aff-target
     cfg.model_name = get_name(cfg, cfg.model_name)

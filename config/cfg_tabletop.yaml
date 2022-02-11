@@ -39,6 +39,7 @@ wandb_login:
   project: vapo
 
 # Define types of observation input to the RL agent
+gripper_offset: [0.0, 0.0, -0.035]
 env_wrapper:
   use_pos: True
   img_size: ${img_size}

@@ -31,7 +31,7 @@ save_images: False
 
 # Resume training
 resume_training: False
-resume_model_path: ${test_cfg.folder_name}
+resume_model_path: ./
 
 # Wandb
 wandb_login:

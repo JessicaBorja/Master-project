@@ -71,6 +71,7 @@ class ReplayBuffer:
         if p.is_dir():
             p = p.glob('*.npy')
             files = [x for x in p if x.is_file()]
+            self.logger.info("Loading replay buffer...")
             if len(files) > 0:
                 for file in files:
                     data = np.load(file, allow_pickle=True).item()

@@ -159,15 +159,17 @@ class VAPOAgent(SAC):
 
             # Log interval (sac)
             if((ts % log_interval == 0 and not self._log_by_episodes)
-               or (self._log_by_episodes and end_ep
-                   and self.episode % _log_n_ep == 0)):
-                eval_all_objs = self.episode % _full_eval_interval == 0
+               or (self._log_by_episodes and end_ep and self.episode % _log_n_ep==0)):
                 self.best_eval_return, self.most_tasks = \
                     self._eval_and_log(self.curr_ts,
                                        self.episode,
                                        self.most_tasks,
                                        self.best_eval_return,
                                        n_eval_ep, max_episode_length)
+
+            eval_all_objs = self.episode % _full_eval_interval == 0
+            if((ts % full_eval_interval == 0 and not self._log_by_episodes)
+               or (self._log_by_episodes and end_ep and eval_all_objs)):
                 if(self.eval_env.rand_positions and eval_all_objs):
                     _, self.most_full_tasks = \
                         self._eval_and_log(self.curr_ts,

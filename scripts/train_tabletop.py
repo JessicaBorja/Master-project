@@ -2,15 +2,12 @@ import hydra
 import logging
 import os
 
-from numpy import save
-
 from vapo.wrappers.play_table_rl import PlayTableRL
 from vapo.wrappers.affordance.aff_wrapper_sim import AffordanceWrapperSim
 from vapo.wrappers.utils import get_name
 from vapo.agent.vapo_agent import VAPOAgent
 from omegaconf import OmegaConf
 import glob
-import os
 
 
 @hydra.main(config_path="../config", config_name="cfg_tabletop")

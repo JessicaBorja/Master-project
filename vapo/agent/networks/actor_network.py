@@ -201,6 +201,36 @@ class CNNPolicyRes(CNNPolicy):
         return mu, sigma, gripper_action_logits
 
 
+class CNNPolicyDenseNet(CNNPolicy):
+    def __init__(self, *args, **kwargs):
+        super(CNNPolicyDenseNet, self).__init__(*args, **kwargs)
+        out_size = self.hidden_dim + self.out_feat
+        self.fc0 = nn.Linear(self.out_feat, self.hidden_dim)
+        self.fc1 = nn.Linear(out_size, self.hidden_dim)
+        # Last dimension of action_dim is gripper_action
+        latent_dim = out_size + self.hidden_dim
+        self.mu = nn.Linear(latent_dim, self.action_dim - 1)
+        self.sigma = nn.Linear(latent_dim, self.action_dim - 1)
+        self.gripper_action = nn.Linear(latent_dim, 2)  # open / close
+
+    def forward(self, obs):
+        features = get_concat_features(self.aff_cfg,
+                                       obs,
+                                       self.cnn_img,
+                                       self.cnn_gripper)
+        x_out = F.elu(self.fc0(features))
+        x_in = torch.cat([x_out, features], -1)
+        x_out = F.elu(self.fc1(x_in))
+        x_in = torch.cat([x_out, x_in], -1)
+
+        mu = self.mu(x_in)
+        log_sigma = self.sigma(x_in)
+        gripper_action_logits = self.gripper_action(x_in)
+        # avoid log_sigma to go to infinity
+        sigma = torch.clamp(log_sigma, -20, 2).exp()
+        return mu, sigma, gripper_action_logits
+
+
 class CNNPolicyReal(nn.Module):
     def __init__(self, obs_space, action_dim, action_space, affordance=None,
                  activation="relu", hidden_dim=256, latent_dim=16, **kwargs):

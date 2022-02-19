@@ -204,25 +204,29 @@ class CNNPolicyRes(CNNPolicy):
 class CNNPolicyDenseNet(CNNPolicy):
     def __init__(self, *args, **kwargs):
         super(CNNPolicyDenseNet, self).__init__(*args, **kwargs)
-        out_size = self.hidden_dim + self.out_feat
-        self.fc0 = nn.Linear(self.out_feat, self.hidden_dim)
-        self.fc1 = nn.Linear(out_size, self.hidden_dim)
+        n_layers = kwargs["n_layers"]
+        self.fc_layers = []
+
+        out_size = self.out_feat
+        for i in range(n_layers):
+            self.fc_layers.append(nn.Linear(out_size, self.hidden_dim))
+            out_size += self.hidden_dim
+
+        self.fc_layers = nn.ModuleList(self.fc_layers)
+
         # Last dimension of action_dim is gripper_action
-        latent_dim = out_size + self.hidden_dim
-        self.mu = nn.Linear(latent_dim, self.action_dim - 1)
-        self.sigma = nn.Linear(latent_dim, self.action_dim - 1)
-        self.gripper_action = nn.Linear(latent_dim, 2)  # open / close
+        self.mu = nn.Linear(out_size, self.action_dim - 1)
+        self.sigma = nn.Linear(out_size, self.action_dim - 1)
+        self.gripper_action = nn.Linear(out_size, 2)  # open / close
 
     def forward(self, obs):
-        features = get_concat_features(self.aff_cfg,
-                                       obs,
-                                       self.cnn_img,
-                                       self.cnn_gripper)
-        x_out = F.elu(self.fc0(features))
-        x_in = torch.cat([x_out, features], -1)
-        x_out = F.elu(self.fc1(x_in))
-        x_in = torch.cat([x_out, x_in], -1)
-
+        x_in = get_concat_features(self.aff_cfg,
+                                   obs,
+                                   self.cnn_img,
+                                   self.cnn_gripper)
+        for layer in self.fc_layers:
+            x_out = F.silu(layer(x_in))
+            x_in = torch.cat([x_out, x_in], -1)
         mu = self.mu(x_in)
         log_sigma = self.sigma(x_in)
         gripper_action_logits = self.gripper_action(x_in)

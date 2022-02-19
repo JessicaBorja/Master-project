@@ -17,6 +17,7 @@ net_cfg:
     hidden_dim: 256
     latent_dim: 16
     activation: relu
+    n_layers: 4
     affordance: ${affordance}
     actor_net: "CNNPolicyDenseNet"
     critic_net: "CNNCriticDenseNet"

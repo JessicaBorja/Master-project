@@ -100,21 +100,26 @@ class CNNCriticRes(CNNCritic):
 class CNNCriticDenseNet(CNNCritic):
     def __init__(self, *args, **kwargs):
         super(CNNCriticDenseNet, self).__init__(*args, **kwargs)
-        out_size = self.hidden_dim + self.out_feat + self.action_dim
-        self.fc0 = nn.Linear(self.out_feat + self.action_dim, self.hidden_dim)
-        self.fc1 = nn.Linear(out_size, self.hidden_dim)
-        self.q = nn.Linear(out_size + self.hidden_dim, 1)
+        n_layers = kwargs["n_layers"]
+        self.fc_layers = []
+
+        out_size = self.out_feat + self.action_dim
+        for i in range(n_layers):
+            self.fc_layers.append(nn.Linear(out_size, self.hidden_dim))
+            out_size += self.hidden_dim
+
+        self.fc_layers = nn.ModuleList(self.fc_layers)
+        self.q = nn.Linear(out_size, 1)
 
     def forward(self, states, actions):
         features = get_concat_features(self.aff_cfg,
                                        states,
                                        self.cnn_img,
                                        self.cnn_gripper)
-        features = torch.cat((features, actions), -1)
-        x_out = F.elu(self.fc0(features))
-        x_in = torch.cat([x_out, features], -1)
-        x_out = F.elu(self.fc1(x_in))
-        x_in = torch.cat([x_out, x_in], -1)
+        x_in = torch.cat((features, actions), -1)
+        for layer in self.fc_layers:
+            x_out = F.silu(layer(x_in))
+            x_in = torch.cat([x_out, x_in], -1)
 
         x = self.q(x_in).squeeze()
         return x

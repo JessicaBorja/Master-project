@@ -29,7 +29,7 @@ class SAC():
                       "actor_lr": actor_lr,
                       "critic_lr": critic_lr,
                       "alpha_lr": alpha_lr,
-                      "net_cfg": net_cfg,
+                      "net_cfg": dict(net_cfg),
                       "alpha": alpha,
                       "init_temp": init_temp,
                       "gamma": gamma,

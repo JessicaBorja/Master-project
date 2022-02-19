@@ -6,6 +6,11 @@ from affordance.utils.utils import get_transforms
 
 
 def get_name(cfg, model_name):
+    offset_dist = str(cfg.env.offset[-1]).split('.')[-1]
+    model_name += "_%s" % offset_dist
+
+    timesteps = str(cfg.agent.learn_config.max_episode_length)
+    model_name += "_%sts" % timesteps
     if(cfg.env_wrapper.gripper_cam.use_img):
         model_name += "_img"
     if(cfg.env_wrapper.gripper_cam.use_depth):

@@ -34,6 +34,8 @@ class SAC():
                       "init_temp": init_temp,
                       "gamma": gamma,
                       "save_replay_buffer": save_replay_buffer,
+                      "offset": env.offset,
+                      "max_target_dist": env.termination_radius,
                       "cwd": log_dir}
             id = wandb.util.generate_id()
             wandb.init(name=model_name,

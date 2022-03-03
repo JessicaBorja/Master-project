@@ -207,7 +207,7 @@ class VAPOAgent(SAC):
                                        eval_all_objs=eval_all_objs)
 
     # Only applies to pickup task
-    def eval_all_objs(self, env, max_episode_length,
+    def eval_all_objs(self, env, max_episode_length=100,
                       n_episodes=None, print_all_episodes=False,
                       render=False, save_images=False):
         if(env.rand_positions is None):
@@ -230,22 +230,20 @@ class VAPOAgent(SAC):
             env.get_scene_with_objects(curr_objs)
             mean_reward, mean_length, ep_success, success_count = \
                 self.evaluate(env,
-                              max_episode_length=max_episode_length,
-                              render=render,
-                              save_images=save_images)
+                              max_episode_length=max_episode_length)
             objs_success.update(success_count)
             episodes_success.extend(ep_success)
 
         self.log.info(
             "Full evaluation over %d objs \n" % n_total_objs +
-            "Success: %d/%d " % (np.sum(episodes_success), len(ep_success)))
+            "Success: %d/%d " % (np.sum(episodes_success), len(episodes_success)))
 
         # Restore scene before loading full sweep eval
         env.get_scene_with_objects(previous_objs)
         return episodes_success, objs_success
 
     def evaluate(self, env, max_episode_length=150, n_episodes=5,
-                 print_all_episodes=True, render=False, save_images=False):
+                 print_all_episodes=True):
         ep_returns, ep_lengths = [], []
         tasks, task_it = [], 0
 
@@ -327,7 +325,7 @@ class VAPOAgent(SAC):
         # Set total timeout to timeout per task times all tasks + 1
         while(total_ts <= max_episode_length * n_tasks
               and self.no_detected_target < 3
-              and not self.all_objs_in_box(env)):
+              and not self.env.all_objs_in_box()):
             episode_length, episode_return = 0, 0
             done = False
             # Search affordances and correct position:

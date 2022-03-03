@@ -49,6 +49,7 @@ def init_aff_net(affordance_cfg, cam_str=None, in_channels=1):
 
 def change_project_path(cfg, run_cfg):
     net_cfg = run_cfg.agent.net_cfg
+    run_cfg.paths.parent_folder = cfg.paths.parent_folder
     # Change affordance path to match current system
     static_cam_aff_path = net_cfg.affordance.static_cam.model_path
     static_cam_aff_path = static_cam_aff_path.replace(
@@ -83,7 +84,8 @@ def load_cfg(cfg_path, cfg, optim_res):
         net_cfg = run_cfg.agent.net_cfg
         env_wrapper = run_cfg.env_wrapper
         agent_cfg = run_cfg.agent.hyperparameters
-        change_project_path(cfg, run_cfg)
+        run_cfg.paths.parent_folder = cfg.paths.parent_folder
+        # change_project_path(cfg, run_cfg)
     else:
         run_cfg = cfg
         net_cfg = cfg.agent.net_cfg

@@ -90,7 +90,7 @@ class AffordanceWrapperSim(AffordanceWrapperBase):
                            obs['rgb_obs']["rgb_%s" % cam_name][:, :, ::-1])
             cv2.waitKey(1)
         if(self.save_images):
-            for cam_name, _ in self.cam_ids.keys():
+            for cam_name, _ in self.cam_ids.items():
                 os.makedirs('./images/%s_orig' % cam_name, exist_ok=True)
                 cv2.imwrite("./images/%s_orig/img_%04d.png"
                             % (cam_name, self.obs_it),

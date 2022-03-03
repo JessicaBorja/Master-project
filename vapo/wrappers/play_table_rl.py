@@ -141,10 +141,11 @@ class PlayTableRL(PlayTableSimEnv):
         self.scene.step()
         # dict w/keys: "rgb_obs", "depth_obs", "robot_obs","scene_obs"
         obs = self.get_obs()
-        success = False
         done = self._termination()
-        if(done):
+        if(done and self.task == "pickup"):
             success = self.check_success()
+        else:
+            success = done
         reward, r_info = self._reward(success)
         info = self.get_info()
         info.update({"success": success,
@@ -222,8 +223,7 @@ class PlayTableRL(PlayTableSimEnv):
                                                  physicsClientId=self.cid)[0]
             targetState = self.p.getJointState(link_id, 0,
                                                physicsClientId=self.cid)[0]
-
-            targetWorldPos = [-0.05, targetWorldPos[1] - 0.38, 0.469]
+            targetWorldPos = [-0.05, targetWorldPos[1] - 0.38, 0.5]
             targetState = self._normalize(targetState, 0, 0.23)
         else:
             lifted = False

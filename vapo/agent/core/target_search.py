@@ -79,7 +79,6 @@ class TargetSearch():
         orig_img = obs["rgb_obs"]["rgb_%s" % self.cam_id]
         self.orig_img = orig_img
         if(self.mode == "affordance"):
-            env = self.env
             # Get environment observation
             res = self._compute_target_aff(env, self.static_cam,
                                            depth_obs, orig_img, rand_sample)
@@ -214,7 +213,7 @@ class TargetSearch():
             if(self.save_images):
                 os.makedirs("./static_centers/", exist_ok=True)
                 cv2.imwrite("./static_centers/img_%04d.jpg" % self.global_obs_it,
-                            out_img)
+                            out_img[:, :, ::-1])
 
         target_pos = world_pts[target_idx]
         return target_pos, no_target, world_pts

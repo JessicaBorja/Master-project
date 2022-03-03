@@ -1,6 +1,5 @@
 import hydra
 import logging
-import os
 
 from vapo.wrappers.play_table_rl import PlayTableRL
 from vapo.wrappers.affordance.aff_wrapper_sim import AffordanceWrapperSim
@@ -36,17 +35,6 @@ def main(cfg):
         model = VAPOAgent(cfg,
                           sac_cfg=sac_cfg,
                           wandb_login=cfg.wandb_login)
-
-        if cfg.resume_training:
-            original_dir = hydra.utils.get_original_cwd()
-            model_path = os.path.join(original_dir, cfg.resume_model_path)
-            path = "%s/trained_models/%s.pth" % (model_path,
-                                                 cfg.model_name + "_last")
-            if(os.path.exists(path)):
-                model.load(path)
-            else:
-                print("Model path does not exist: %s \n Training from start"
-                      % os.path.abspath(path))
         model.learn(**cfg.agent.learn_config)
         training_env.close()
 

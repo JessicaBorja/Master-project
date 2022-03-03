@@ -2,18 +2,20 @@
 optim_res: False
 
 # Absolute path where models are stored
-models_dir: ${paths.vapo_path}/combined/hydra_outputs
-
+models_dir: ${paths.vapo_path}/hydra_outputs
+# Unseen objects
 # Baseline
-# model_name: rgb_img_depth_sparse_29-06_19-23_most_tasks
-# folder_name: ${test.models_dir}/pickup/2021-06-29/19-21-58_aff_rl
 
-# model_name: tabletop_rand_relative_img_depth_sparse_19-09_12-13_most_tasks_from_20
-# folder_name: ${test.models_dir}/pickup/2021-09-19/12-11-57_aff_rl
+# Vapo
 
-# RGB rgb_img_depth_dist_affMask_dense
-model_name: tabletop_rand_relative_img_depth_dist_affMask_dense_19-09_01-12_most_tasks_from_20
-folder_name: ${test.models_dir}/pickup/2021-09-19/01-10-30_aff_rl
+# Seen objects
+# Baseline
+# model_name: 15objs_4lay_256_05_100ts_img_depth_sparse_most_tasks_from_15
+# folder_name: ${test.models_dir}/pickup/2022-02-22/19-07-20_aff_rl
+
+# Vapo
+model_name: 15objs_4lay_256_05_100ts_img_depth_dist_affMask_dense_most_tasks_from_15
+folder_name: ${test.models_dir}/pickup/2022-02-21/21-12-47_aff_rl
 
 eval_cfg:
   n_episodes: 5

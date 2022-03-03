@@ -306,7 +306,7 @@ class AffordanceWrapperBase(gym.Wrapper):
                 write_depth = depth_img - depth_img.min()
                 write_depth = write_depth / write_depth.max() * 255
                 write_depth = np.uint8(write_depth)
-                im_dict.extend(
+                im_dict.update(
                     {"./images/ep_%04d/gripper_depth/img_%04d.png"
                      % (self.episode, self.obs_it): write_depth})
 

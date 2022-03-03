@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser(description="Parse slurm parameters and hydra c
 parser.add_argument("--script", type=str, default="./sbatch_lfp.sh")
 parser.add_argument("--train_file", type=str, default="../lfp/training.py")
 parser.add_argument("-l", "--log_dir", type=str, default=default_log_dir)
-parser.add_argument("-j", "--job_name", type=str, default="aff_rl")
+parser.add_argument("-j", "--job_name", type=str, default="vapo")
 parser.add_argument("-g", "--gpus", type=int, default=1)
 parser.add_argument("--mem", type=int, default=0)  # 0 means no memory limit
 parser.add_argument("--cpus", type=int, default=8)

@@ -6,6 +6,8 @@ import os
 import re
 from scipy.interpolate import interp1d
 import seaborn as sns
+import matplotlib.ticker as ticker
+
 import wandb
 import json
 
@@ -13,7 +15,7 @@ plt.rc('text', usetex=True)
 
 sns.set(style='white', font_scale=2)
 # plt.rcParams['text.latex.preamble'] = [r"\usepackage{lmodern}"]
-plt.rcParams['font.size'] = 24
+plt.rcParams['font.size'] = 50
 
 
 def plot_data(data, ax, label, n_ep=5, color="gray", stats_axis=0):
@@ -22,7 +24,7 @@ def plot_data(data, ax, label, n_ep=5, color="gray", stats_axis=0):
     min_values = np.min(data, axis=stats_axis)[:, -1]
     max_values = np.max(data, axis=stats_axis)[:, -1]
 
-    smooth_window = 10 if n_ep == 5 else 1
+    smooth_window = 10 if n_ep == 5 else 5
     mean = np.array(pd.Series(mean).rolling(smooth_window,
                                             min_periods=smooth_window).mean())
     # std = np.array(pd.Series(std).rolling(smooth_window,
@@ -43,7 +45,7 @@ def plot_data(data, ax, label, n_ep=5, color="gray", stats_axis=0):
     lb = min_values
     lb[lb < 0] = 0
     # ax.fill_between(steps, mean + std, lb, color=color, alpha=0.15)
-    ax.fill_between(steps, max_values, min_values, color=color, alpha=0.15)
+    ax.fill_between(steps, max_values, min_values, color=color, alpha=0.10)
     # ax.axhline(n_ep, color="gray", ls="--")
     return ax
 
@@ -71,7 +73,8 @@ def merge_data(data, min_data_axs, n_datapoints, axis=0):
         run_values = np.zeros(shape=(n_pts, 2))
         interp = interp1d(d[:, axis], d[:, -1],
                           kind='linear',
-                          fill_value="extrapolate")
+                          fill_value=(0, d[:, -1][-1]),
+                          bounds_error=False)
         run_values[:, 1] = interp(idxs)
         run_values[:, 0] = idxs
         data_copy.append(run_values)
@@ -87,7 +90,7 @@ def plot_experiments(data, show=True, save=True, n_ep=5,
                      x_lim=None,
                      x_label="timesteps",
                      y_label="success_Rate"):
-    fig, ax = plt.subplots(1, 1, figsize=(10, 5.5), sharey=True)
+    fig, ax = plt.subplots(1, 1, figsize=(10, 8), sharey=True)
     # ax.set_title("Evaluation")
 
     cm = plt.get_cmap('tab10')
@@ -103,6 +106,7 @@ def plot_experiments(data, show=True, save=True, n_ep=5,
     ax.set_xlim(xmin=0, xmax=x_lim)
     # x_ticks = [*ax.get_xticks()[:-1], x_lim]
     # ax.set_xticks(x_ticks)
+    ax.xaxis.set_major_formatter(ticker.EngFormatter())
     ax.set_ylim([0, 1])
     ax.legend(loc='upper left')
     # fig.suptitle("%s" % (metric.title()))
@@ -122,6 +126,7 @@ class WandbPlots:
                  experiments,
                  track_metrics,
                  load_from_file=True,
+                 show=True,
                  save_dir="./analysis/figures") -> None:
 
         os.makedirs(save_dir, exist_ok=True)
@@ -137,7 +142,7 @@ class WandbPlots:
             print("No file found, loading data wandb..")
             data = self.read_from_wandb(experiments, track_metrics)
         self.data = data
-        self.plot_stats()
+        self.plot_stats(show)
 
     def read_from_wandb(self, experiments, wandb_metrics):
         # Get the runs
@@ -172,7 +177,7 @@ class WandbPlots:
             json.dump(data, outfile, indent=2)
         return data
 
-    def plot_stats(self):
+    def plot_stats(self, show):
         for metric in self.metrics:
             metric_data = {"timesteps": {"data": [], "min_x_value": np.inf},
                            "episodes": {"data": [], "min_x_value": np.inf}}
@@ -196,7 +201,7 @@ class WandbPlots:
                 save_name = "%s_by_%s" % (metric, x_label)
                 plot_experiments(plot_info['data'],
                                  n_ep=n_eval_ep,
-                                 show=True,
+                                 show=show,
                                  save=True,
                                  save_name=save_name,
                                  save_folder=self.save_dir,
@@ -233,26 +238,30 @@ class WandbPlots:
 
         ts_axis = 0
         min_data_axs = min([np.array(d)[:, ts_axis][-1] for d in data])
+        min_data_axs = 400000
         data_by_ts = merge_data(data, min_data_axs, n_data_points, axis=ts_axis)
         return data_by_ep, data_by_ts, n_eval_ep
 
 
 if __name__ == "__main__":
     # Tabletop Rand
-    runs = {"VAPO": {
-                "jessibd/vapo": ['131keo3j', '2mapf2dl']},
-            "local-SAC": {
-                "jessibd/vapo_new": ['37yfiy6u', 'fxz176vy']}
-            }
+    runs_orig = {"VAPO": {
+                    "jessibd/vapo_ablation": ['1yfwtff4', '2nxav2vp', 'p7jxgqvu']},
+                 "local-SAC": {
+                    "jessibd/vapo_ablation": ['3q2bo42g', '30z3jgi5', '1q43lu1l']}
+                 }
 
     # Generalization
-    # runs = {"VAPO": {
-    #             "jessibd/vapo": ['et0bvdv2'],
-    #             "jessibd/vapo_new": ['2dt7ri0i']},
-    #         "local-SAC": {
-    #             "jessibd/vapo_new": ['2epa4nn7']}
-    #         }
+    runs_gen = {"VAPO": {
+                    "jessibd/vapo_ablation": ['2g3fqg16', '2p6qrqwq']},
+                "local-SAC": {
+                    "jessibd/vapo_ablation": ['194x7p41', '8898hvp5', '2mufff20']} # 194x7p41
+                }
+
+    run_info = {"vapo_gen_15objs": runs_gen,
+                "vapo_15objs": runs_orig}
 
     track_metrics = ['eval/success(15ep)', 'eval/success(5ep)']
-    analysis = WandbPlots(runs, track_metrics, load_from_file=True,
-                          save_dir="./analysis/figures/sim_15objs")
+    for exp_name, runs in run_info.items():
+        analysis = WandbPlots(runs, track_metrics, load_from_file=True, show=False,
+                              save_dir="./analysis/figures/%s" % exp_name)

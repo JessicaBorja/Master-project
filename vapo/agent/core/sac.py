@@ -144,7 +144,7 @@ class SAC():
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         self.model_name = model_name
-        self.trained_path = "{}/{}".format(self.save_dir, self.model_name)
+        self.trained_path = "{}/".format(self.save_dir)
 
     # update alpha(entropy coeficient)
     def _update_entropy(self, log_probs):
@@ -294,16 +294,16 @@ class SAC():
         if(episode_return >= best_return):
             self.log.info("[%d] New best train ep. return!%.3f" %
                           (episode, episode_return))
-            self.save(self.trained_path + "_best_train.pth")
+            self.save(self.trained_path + "best_train.pth")
             best_return = episode_return
 
         if(last_n_train_mean_success >= self.last_n_train_mean_success):
             self.log.info("[%d] New best train ep. success: %.3f over last %d ep !" %
                           (episode, last_n_train_mean_success, self.train_mean_n_ep))
-            self.save(self.trained_path + "_best_train_success_%d_ep.pth" % self.train_mean_n_ep)
+            self.save(self.trained_path + "best_train_success_%d_ep.pth" % self.train_mean_n_ep)
 
         # Always save last model(last training episode)
-        self.save(self.trained_path + "_last.pth")
+        self.save(self.trained_path + "last.pth")
         return best_return
 
     # Evaluate model and log plot_data to writter

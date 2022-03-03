@@ -24,3 +24,5 @@ build/
 config/robot_io/cams/static_cam/kinect4_jessica_1.yaml
 wandb/
 analysis/figures
+analysis/flow.png
+analysis/flow.pdf

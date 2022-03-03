@@ -40,7 +40,7 @@ def find_cam_ids(cameras):
     cameras = {"static": static_id,
                "gripper": gripper_id}
     if(render_cam_id):
-        cameras.update({"rendering": render_cam_id})
+        cameras.update({"render": render_cam_id})
     return cameras
 
 

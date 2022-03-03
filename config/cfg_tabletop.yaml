@@ -1,6 +1,6 @@
 defaults:
   - robot: panda
-  - scene: tabletop_random
+  - scene: tabletop_random_15objs
   - env: env_combined
   - env@eval_env: env_combined
   - camera_conf: tabletop
@@ -39,7 +39,7 @@ wandb_login:
   project: vapo
 
 # Define types of observation input to the RL agent
-gripper_offset: [0.0, 0.0, -0.035]
+gripper_offset: [0.0, 0.0, -0.04]
 env_wrapper:
   use_pos: True
   img_size: ${img_size}

@@ -4,7 +4,7 @@ defaults:
   - env: env_combined
   - env@eval_env: env_combined
   - camera_conf: tabletop
-  - agent: default
+  - agent: default_densenet
   - test: test_tabletop
   - paths: general_paths
   - aff_model@target_search.aff_cfg.hyperparameters: static_cam
@@ -39,7 +39,7 @@ wandb_login:
   project: vapo
 
 # Define types of observation input to the RL agent
-gripper_offset: [0.0, 0.0, -0.04]
+gripper_offset: [0.0, 0.0, -0.05]
 env_wrapper:
   use_pos: True
   img_size: ${img_size}

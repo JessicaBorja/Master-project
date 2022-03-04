@@ -4,7 +4,7 @@ defaults:
   - env: env_combined
   - env@eval_env: env_combined
   - camera_conf: playtable
-  - agent: default
+  - agent: default_densenet
   - test: test_playtable
   - paths: general_paths
   - aff_model@target_search.aff_cfg.hyperparameters: static_cam_playtable

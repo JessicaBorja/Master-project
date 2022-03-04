@@ -2,12 +2,13 @@ import os
 import cv2
 import tqdm
 import json
-from affordance.utils.file_manipulation import get_files
+from vapo.utils.utils import get_files
+import glob
 
 
 def make_video(files, fps=60, video_name="v"):
     h, w, c = cv2.imread(files[0]).shape
-    fourcc = cv2.VideoWriter_fourcc(*'X264')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     video = cv2.VideoWriter(
                 video_name,
                 fourcc,
@@ -42,28 +43,20 @@ def make_videos(path, cam, val_dir=False):
         make_video(files, fps=60, video_name=video_name)
     else:
         for img_folder in path:
-            files = get_files(img_folder, "png")
+            files = get_files(img_folder, "png")[:-1]
             if(not files):
                 return
             video_name = os.path.join(
                     os.path.dirname(img_folder),
                     os.path.basename(img_folder) + ".mp4")
-            make_video(files, fps=30, video_name=video_name)
+            make_video(files, fps=20, video_name=video_name)
 
 
 if __name__ == "__main__":
-    # pred_folder = "C:/Users/Jessica/Documents/Proyecto_ssd/tmp/2021-06-21/19-52-03/gripper_dirs"
-    # path = ['%s/obj_%d' % (pred_folder, i) for i in range(1, 7)]
-    pred_folder = "D:/GoogleDrive/ICRA/real_world_exps/generalization/images/gripper_dirs"
-    # path = [
-    #         "%s/rendering_orig" % pred_folder,
-    #         "%s/gripper_dirs" % pred_folder,
-    #         "%s/gripper_depth" % pred_folder,
-    #         ]
-    path = [
-            "%s/roller" % pred_folder,
-            "%s/screwdriver1" % pred_folder,
-            "%s/screwdriver2" % pred_folder,
-            ]
-    val_dir = False
-    make_videos(path, "", val_dir)
+    pred_folder = "/mnt/ssd_shared/Users/Jessica/Documents/Thesis_ssd/tmp/2022-03-04/00-18-35/images"
+
+    gripper_ep_dirs = glob.glob('%s/ep_*' % pred_folder)
+    gripper_eps = [os.path.join(ep_dir, "gripper_dirs") for ep_dir in gripper_ep_dirs]
+    dirs = ["%s/render_orig" % pred_folder]
+    dirs.extend(gripper_eps)
+    make_videos(dirs, "")

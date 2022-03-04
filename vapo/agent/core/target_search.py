@@ -160,11 +160,12 @@ class TargetSearch():
                                              directions, centers,
                                              "static",
                                              self.global_obs_it,
-                                             save_images=self.save_images)
-            for img_path, img in img_dict.items():
-                folder = os.path.dirname(img_path)
-                os.makedirs(folder, exist_ok=True)
-                cv2.imwrite(img_path, img)
+                                             viz=env.viz)
+            if(self.save_images):
+                for img_path, img in img_dict.items():
+                    folder = os.path.dirname(img_path)
+                    os.makedirs(folder, exist_ok=True)
+                    cv2.imwrite(img_path, img)
         self.global_obs_it += 1
 
         # No center detected

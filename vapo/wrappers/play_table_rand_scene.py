@@ -122,7 +122,6 @@ class PlayTableRandScene(PlayTableScene):
         else:
             assert len(obj_lst) <= len(self.rand_positions)
             rand_pos = self.rand_positions[:len(obj_lst)]
-        shuffle(obj_lst)
         # movable_objs is a reference to self.object_cfg
         if(load_scene):
             movable_objs = self.object_cfg['movable_objects']
@@ -208,6 +207,7 @@ class PlayTableRandScene(PlayTableScene):
             for obj in rand_objs:
                 print_str += "%s: %s \n" % (obj, self.class_per_obj[obj])
             logger.info(print_str)
+        shuffle(rand_objs)
         self.get_scene_with_objects(rand_objs, load_scene=load_scene)
 
     def pick_one_rand_obj(self, load_scene):

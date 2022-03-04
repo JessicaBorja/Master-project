@@ -82,6 +82,7 @@ class VAPOAgent(SAC):
             obs = env.reset()
         # Compute target in case it moved
         # Area center is the target position + 5cm in z direction
+        env.move_to_target(self.origin)
         target_pos, no_target = \
             self.target_search.compute(env,
                                        noisy=noisy,
@@ -331,36 +332,31 @@ class VAPOAgent(SAC):
             # Search affordances and correct position:
             env, s, no_target = self.detect_and_correct(env,
                                                         self.env.get_obs(),
-                                                        rand_sample=False)
+                                                        rand_sample=True)
             if(no_target):
                 # If no target model will move to initial position.
                 # Search affordance from this position again
                 env, s, no_target = \
                     self.detect_and_correct(env, self.env.get_obs(),
-                                            rand_sample=False)
+                                            rand_sample=True)
 
             # If it did not find a target again, terminate everything
-            init_pos = s['robot_obs'][:3]
-            dist = 0
             while(episode_length < max_episode_length
                   and self.no_detected_target < 3
-                  and dist < env.termination_radius
                   and not done):
                 # sample action and scale it to action space
                 s = env.transform_obs(tt(s), "validation")
                 a, _ = self._pi.act(s, deterministic=True)
                 a = a.cpu().detach().numpy()
-                ns, r, _, info = env.step(a)
-                done = r >= 200
+                ns, r, done, info = env.step(a)
                 s = ns
                 episode_return += r
                 episode_length += 1
                 total_ts += 1
-                dist = np.linalg.norm(init_pos - s['robot_obs'][:3])
                 success = info["success"]
-            else:
-                success = False
             ep_success.append(success)
+            env.episode += 1
+            env.obs_it = 0
         self.log.info(
             "Success: %d/%d " % (np.sum(ep_success), len(ep_success)))
         return ep_success

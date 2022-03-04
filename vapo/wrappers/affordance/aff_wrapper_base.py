@@ -9,7 +9,6 @@ from vapo.wrappers.utils import get_obs_space, get_transforms_and_shape, \
                                     depth_preprocessing
 from vapo.utils.utils import init_aff_net
 from vapo.agent.core.utils import tt
-import pybullet as p
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +19,6 @@ class AffordanceWrapperBase(gym.Wrapper):
                  use_pos=False,
                  affordance_cfg=None,
                  use_env_state=False,
-                 save_images=False,
-                 viz=False,
                  real_world=False,
                  **args):
         super(AffordanceWrapperBase, self).__init__(env)
@@ -65,8 +62,8 @@ class AffordanceWrapperBase(gym.Wrapper):
         # Cameras defaults
         self.obs_it = 0
         self.episode = 0
-        self.save_images = save_images
-        self.viz = viz
+        self.save_images = env.save_images
+        self.viz = env.viz
 
         # Parameters to define observation
         self.gripper_cam_cfg = gripper_cam
@@ -110,6 +107,7 @@ class AffordanceWrapperBase(gym.Wrapper):
     def reset(self, *args, **kwargs):
         observation = self.env.reset(*args, **kwargs)
         self.episode += 1
+        self.obs_it = 0
         return self.observation(observation)
 
     def step(self, action, move_to_box=False):
@@ -142,7 +140,6 @@ class AffordanceWrapperBase(gym.Wrapper):
         return rew
 
     def observation(self, obs):
-        self.obs_it += 1
         obs_dict = obs.copy()
         gripper_obs, gripper_viz = \
             self.get_cam_obs(obs_dict, "gripper",
@@ -156,6 +153,8 @@ class AffordanceWrapperBase(gym.Wrapper):
                              self.affordance_cfg.static_cam)
         new_obs = {**static_obs, **gripper_obs}
         viz_dict = {**static_viz, **gripper_viz}
+
+        # Rollout images stored by episodes(each folder is an episode)
         if(self.save_images):
             for filename, img in viz_dict.items():
                 folder_name = os.path.dirname(filename)
@@ -291,24 +290,25 @@ class AffordanceWrapperBase(gym.Wrapper):
             self.gripper_cam_aff_net.get_centers(aff_mask, directions)
 
         # Visualize predictions
-        if self.viz or self.save_images:
+        im_dict = viz_aff_centers_preds(orig_img, aff_mask,
+                                        center_dir, object_centers,
+                                        "gripper",
+                                        self.obs_it,
+                                        self.episode,
+                                        viz=self.viz)
+        if self.viz:
             depth_img = cv2.resize(depth, orig_img.shape[:2])
             cv2.imshow("gripper-depth", depth_img)
-            im_dict = viz_aff_centers_preds(orig_img, aff_mask,
-                                            center_dir, object_centers,
-                                            "gripper",
-                                            self.obs_it,
-                                            self.episode,
-                                            save_images=self.save_images)
 
-            if self.save_images:
-                # Now between 0 and 8674
-                write_depth = depth_img - depth_img.min()
-                write_depth = write_depth / write_depth.max() * 255
-                write_depth = np.uint8(write_depth)
-                im_dict.update(
-                    {"./images/ep_%04d/gripper_depth/img_%04d.png"
-                     % (self.episode, self.obs_it): write_depth})
+        if self.save_images:
+            # Now between 0 and 8674
+            write_depth = depth_img - depth_img.min()
+            write_depth = write_depth / write_depth.max() * 255
+            write_depth = np.uint8(write_depth)
+            im_dict.update(
+                {"./images/ep_%04d/gripper_depth/img_%04d.png"
+                    % (self.episode, self.obs_it): write_depth})
+            self.obs_it += 1
 
         # Plot different objects
         cluster_outputs = []

@@ -17,18 +17,19 @@ def main(cfg):
                  cfg, optim_res=False)
 
     run_cfg.test = cfg.test
-    run_cfg.eval_env.show_gui = cfg.env.show_gui
+    run_cfg.env.show_gui = cfg.env.show_gui
     run_cfg.scene = cfg.scene
     run_cfg.target_search = cfg.target_search
     run_cfg.camera_conf = cfg.camera_conf
+    run_cfg.env_wrapper.use_aff_termination = True
 
     max_ts = cfg.agent.learn_config.max_episode_length
     save_images = cfg.test.eval_cfg.save_images
-    env = PlayTableRL(**run_cfg.eval_env)
+    env = PlayTableRL(viz=cfg.viz_obs,
+                      save_images=save_images,
+                      **run_cfg.env)
     env = AffordanceWrapperSim(env, max_ts,
                                affordance_cfg=run_cfg.affordance,
-                               viz=cfg.viz_obs,
-                               save_images=save_images,
                                **run_cfg.env_wrapper)
 
     sac_cfg = {"env": env,
@@ -44,7 +45,8 @@ def main(cfg):
                                          cfg.test.model_name)
     success = model.load(path)
     if(success):
-        model.eval_all_objs(env)
+        model.tidy_up(env)
+        # model.eval_all_objs(env)
     # env.close()
 
 

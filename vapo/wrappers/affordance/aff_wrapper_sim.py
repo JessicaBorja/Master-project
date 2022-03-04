@@ -1,10 +1,8 @@
-import os
 import numpy as np
 import cv2
 import logging
 import gym.spaces as spaces
 from vapo.wrappers.affordance.aff_wrapper_base import AffordanceWrapperBase
-from vapo.wrappers.utils import find_cam_ids
 logger = logging.getLogger(__name__)
 
 
@@ -17,7 +15,7 @@ class AffordanceWrapperSim(AffordanceWrapperBase):
         self.task = self.env.task
 
         # Observation
-        self.cam_ids = find_cam_ids(self.env.cameras)
+        self.cam_ids = self.env.cam_ids
 
         # Action Space
         if(self.env.task == "pickup"):
@@ -70,7 +68,9 @@ class AffordanceWrapperSim(AffordanceWrapperBase):
         return world_pt
 
     def observation(self, obs):
+        # Store global images (all cameras)
         new_obs = super(AffordanceWrapperSim, self).observation(obs)
+        self.env.save_and_viz_obs(obs)
         # "rgb_obs", "depth_obs", "robot_obs","scene_obs"
         if(self.use_robot_obs):
             if(self.task == "pickup"):
@@ -84,22 +84,11 @@ class AffordanceWrapperSim(AffordanceWrapperBase):
                 # gripper_opening_width(1), gripper_action
                 new_obs["robot_obs"] = np.array([*obs["robot_obs"][:7],
                                                  obs["robot_obs"][-1]])
-        if(self.viz):
-            for cam_name, _ in self.cam_ids.items():
-                cv2.imshow("%s_cam" % cam_name,
-                           obs['rgb_obs']["rgb_%s" % cam_name][:, :, ::-1])
-            cv2.waitKey(1)
-        if(self.save_images):
-            for cam_name, _ in self.cam_ids.items():
-                os.makedirs('./images/%s_orig' % cam_name, exist_ok=True)
-                cv2.imwrite("./images/%s_orig/img_%04d.png"
-                            % (cam_name, self.obs_it),
-                            obs['rgb_obs']["rgb_%s" % cam_name][:, :, ::-1])
         return new_obs
 
     def termination(self, done, obs):
         if(self.use_aff_termination):
-            distance = np.linalg.norm(self.env.curr_detected_obj
+            distance = np.linalg.norm(self.curr_detected_obj
                                       - obs["robot_obs"][:3])
         else:
             # Real distance

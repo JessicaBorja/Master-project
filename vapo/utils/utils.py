@@ -7,6 +7,24 @@ import hydra
 from omegaconf import OmegaConf
 from vapo.agent.core.utils import set_init_pos
 from affordance.affordance_model import AffordanceModel
+import glob
+
+
+def get_files_regex(path, search_str, recursive):
+    files = glob.glob(os.path.join(path, search_str), recursive=recursive)
+    if not files:
+        print("No *.%s files found in %s" % (search_str, path))
+    files.sort()
+    return files
+
+
+# Ger valid numpy files with raw data
+def get_files(path, extension, recursive=False):
+    if not os.path.isdir(path):
+        print("path does not exist: %s" % path)
+    search_str = "*.%s" % extension if not recursive else "**/*.%s" % extension
+    files = get_files_regex(path, search_str, recursive)
+    return files
 
 
 def get_abs_path(path_str):

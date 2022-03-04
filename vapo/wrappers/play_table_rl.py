@@ -5,6 +5,9 @@ import numpy as np
 import gym
 import torch
 import pybullet as p
+from vapo.wrappers.utils import find_cam_ids
+
+import cv2
 
 from gym import spaces
 from vr_env.envs.play_table_env import PlayTableSimEnv
@@ -16,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class PlayTableRL(PlayTableSimEnv):
     def __init__(self, task="slide", sparse_reward=False,
-                 max_counts=50, **args):
+                 max_counts=50, viz=False, save_images=False, **args):
         if('use_egl' in args and args['use_egl']):
             # if("CUDA_VISIBLE_DEVICES" in os.environ):
             #     device_id = os.environ["CUDA_VISIBLE_DEVICES"]
@@ -40,6 +43,10 @@ class PlayTableRL(PlayTableSimEnv):
         self.offset = np.array([*args["offset"], 1])
         self.reward_fail = args['reward_fail']
         self.reward_success = args['reward_success']
+        self._obs_it = 0
+        self.viz = viz
+        self.save_images = save_images
+        self.cam_ids = find_cam_ids(self.cameras)
 
         self._rand_scene = "rand_scene" in args
         _initial_obs = self.get_obs()["robot_obs"]
@@ -68,6 +75,10 @@ class PlayTableRL(PlayTableSimEnv):
             self.rand_positions = False
 
     @property
+    def obs_it(self):
+        return self._obs_it
+
+    @property
     def rand_scene(self):
         return self._rand_scene
 
@@ -78,6 +89,10 @@ class PlayTableRL(PlayTableSimEnv):
     @property
     def target(self):
         return self._target
+
+    @obs_it.setter
+    def obs_it(self, value):
+        self._obs_it = value
 
     @target.setter
     def target(self, value):
@@ -140,12 +155,12 @@ class PlayTableRL(PlayTableSimEnv):
             self.p.stepSimulation(physicsClientId=self.cid)
         self.scene.step()
         # dict w/keys: "rgb_obs", "depth_obs", "robot_obs","scene_obs"
-        obs = self.get_obs()
         done = self._termination()
         if(done and self.task == "pickup"):
             success = self.check_success()
         else:
             success = done
+        obs = self.get_obs()
         reward, r_info = self._reward(success)
         info = self.get_info()
         info.update({"success": success,
@@ -242,7 +257,7 @@ class PlayTableRL(PlayTableSimEnv):
                 #                         textColorRGB=[0, 0, 1])
                 # 2.5cm above initial position and object not already in box
                 if(base_pos[-1] >= target_obj["initial_pos"][-1] + 0.020
-                   and not self.obj_in_box(self.target)):
+                   and not self.obj_in_box(name)):
                     lifted = True
             targetState = lifted
             # Return position of current target for training
@@ -295,8 +310,24 @@ class PlayTableRL(PlayTableSimEnv):
             for i in range(self.action_repeat):
                 self.p.stepSimulation(physicsClientId=self.cid)
                 self.scene.step()
-            curr_pos = self.get_obs()["robot_obs"][:3]
+            curr_obs = self.get_obs()
+            self.save_and_viz_obs(curr_obs)
+            curr_pos = curr_obs["robot_obs"][:3]
         return curr_pos
+
+    def save_and_viz_obs(self, obs):
+        if(self.viz):
+            for cam_name, _ in self.cam_ids.items():
+                cv2.imshow("%s_cam" % cam_name,
+                           obs['rgb_obs']["rgb_%s" % cam_name][:, :, ::-1])
+            cv2.waitKey(1)
+        if(self.save_images):
+            for cam_name, _ in self.cam_ids.items():
+                os.makedirs('./images/%s_orig' % cam_name, exist_ok=True)
+                cv2.imwrite("./images/%s_orig/img_%04d.png"
+                            % (cam_name, self.obs_it),
+                            obs['rgb_obs']["rgb_%s" % cam_name][:, :, ::-1])
+        self.obs_it += 1
 
     def move_to_box(self, sample=False):
         # Box does not move
@@ -336,6 +367,8 @@ class PlayTableRL(PlayTableSimEnv):
         tcp_pos = self.get_obs()["robot_obs"][:3]
         a = [tcp_pos, initial_orn, 1]  # drop object
         for i in range(8):
+            curr_obs = self.get_obs()
+            self.save_and_viz_obs(curr_obs)
             self.robot.apply_action(a)
             for i in range(self.action_repeat):
                 self.p.stepSimulation(physicsClientId=self.cid)

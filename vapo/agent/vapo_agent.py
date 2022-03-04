@@ -7,24 +7,6 @@ from vapo.agent.core.utils import tt
 from affordance.utils.utils import get_transforms
 from vapo.agent.core.target_search import TargetSearch
 
-# from pynput import keyboard
-# curr_key = None
-
-# def on_press(key):
-#     global curr_key
-#     if(isinstance(key, keyboard._xorg.KeyCode)):
-#         curr_key = str(key).replace("'", "")
-#     else:
-#         curr_key = key.name
-#     print("key pressed: %s" % curr_key)
-
-# def on_release(key):
-#     global curr_key
-#     curr_key = None
-
-# listener = keyboard.Listener(on_press=on_press, on_release=on_release)
-# listener.start()  # start to listen on a separate thread
-
 
 class VAPOAgent(SAC):
     def __init__(self, cfg, sac_cfg=None, wandb_login=None, resume=False):
@@ -99,33 +81,6 @@ class VAPOAgent(SAC):
         # as we moved robot, need to update target and obs
         # for rl policy
         return env, env.observation(env.get_obs()), no_target
-
-    def manual_control(self):
-        # Move to target position only one
-        # Episode ends if outside of radius
-        self.env, s, _ = self.detect_and_correct(self.env, None,
-                                                 noisy=True)
-        key_map = {"up": {"axis": 1, "value": 1},
-                    "down": {"axis": 1, "value": -1},
-                    "left": {"axis": 0, "value": -1},
-                    "right": {"axis": 0, "value": 1},
-                    "w": {"axis": 2, "value": 1},
-                    "s": {"axis": 2, "value": -1},
-                    "q": {"axis": 3, "value": 1},
-                    "e": {"axis": 3, "value": -1},
-                    "f": {"axis": 4, "value": -1}}
-        for i in range(10):
-            for i in range(1000):
-                action = np.zeros(self.env.action_space.shape[0])
-                action[-1] = 1
-                for k, v in key_map.items():
-                    if curr_key is not None:
-                        if curr_key == k:
-                            axis = v["axis"]
-                            action[axis] = v["value"]
-                ns, r, d, info = self.env.step(action)
-            self.env, s, _ = self.detect_and_correct(self.env, None,
-                                                     noisy=True)
 
     # RL Policy
     def learn(self, total_timesteps=10000, log_interval=100, full_eval_interval=200,

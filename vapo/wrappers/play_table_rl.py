@@ -137,7 +137,7 @@ class PlayTableRL(PlayTableSimEnv):
 
     def step(self, action, *args):
         # Action space that SAC sees is between -1,1 for all elements in vector
-        update_target = True
+        update_target = len(action) == 3
         if(len(action) == 5):
             a = action.copy()
             if(self.task == "pickup"):  # Constraint angle

@@ -18,7 +18,7 @@ defaults:
 data_path: ${paths.vr_data}
 save_dir: ./hydra_outputs/${task}
 model_name: full
-task: slide
+task: drawer
 euler_obs: true
 img_size: 64
 repeat_training: 1

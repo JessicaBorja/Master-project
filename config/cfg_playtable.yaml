@@ -1,5 +1,5 @@
 defaults:
-  - robot: panda
+  - robot: panda_playtable
   - scene: empty_playtable_side
   - env: env_combined
   - env@eval_env: env_combined
@@ -44,7 +44,7 @@ env_wrapper:
   use_pos: True
   img_size: ${img_size}
   use_aff_termination: False
-  max_target_dist: 0.15
+  max_target_dist: 0.10
   gripper_cam:
     use_img: True
     use_depth: True

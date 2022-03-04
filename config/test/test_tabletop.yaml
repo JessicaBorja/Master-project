@@ -10,12 +10,12 @@ models_dir: ${paths.vapo_path}/hydra_outputs
 
 # Seen objects
 # Baseline
-model_name: 15objs_4lay_256_05_100ts_img_depth_sparse_most_tasks_from_15
-folder_name: ${test.models_dir}/pickup/2022-02-22/19-07-20_aff_rl
+# model_name: 15objs_4lay_256_05_100ts_img_depth_sparse_most_tasks_from_15
+# folder_name: ${test.models_dir}/pickup/2022-02-22/19-07-20_aff_rl
 
 # Vapo
-# model_name: 15objs_4lay_256_05_100ts_img_depth_dist_affMask_dense_most_tasks_from_15
-# folder_name: ${test.models_dir}/pickup/2022-02-21/21-12-47_aff_rl
+model_name: 15objs_4lay_256_05_100ts_img_depth_dist_affMask_dense_most_tasks_from_15
+folder_name: ${test.models_dir}/pickup/2022-02-21/21-12-47_aff_rl
 
 eval_cfg:
   n_episodes: 5

@@ -113,7 +113,7 @@ def plot_experiments(data, show=True, save=True, n_ep=6,
     if(show):
         plt.show()
     if(save):
-        fig.savefig(os.path.join(save_folder, "%s.pdf" % save_name),
+        fig.savefig(os.path.join(save_folder, "%s.png" % save_name),
                     bbox_inches="tight",
                     pad_inches=0)
 
@@ -158,7 +158,7 @@ def plot_by_time(plot_dict, csv_dir="./results_csv/"):
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
     plt.show()
-    fig.savefig(os.path.join(save_folder, "%s.pdf" % save_name),
+    fig.savefig(os.path.join(save_folder, "%s.png" % save_name),
                 bbox_inches="tight",
                 pad_inches=0)
 

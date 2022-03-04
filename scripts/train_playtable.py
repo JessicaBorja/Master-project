@@ -36,6 +36,7 @@ def main(cfg):
                           sac_cfg=sac_cfg,
                           wandb_login=cfg.wandb_login)
         model.learn(**cfg.agent.learn_config)
+        # model.manual_control()
         training_env.close()
 
 

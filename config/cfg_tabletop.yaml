@@ -4,7 +4,7 @@ defaults:
   - env: env_combined
   - env@eval_env: env_combined
   - camera_conf: tabletop
-  - agent: default_densenet
+  - agent: default
   - test: test_tabletop
   - paths: general_paths
   - aff_model@target_search.aff_cfg.hyperparameters: static_cam
@@ -54,8 +54,8 @@ env_wrapper:
 
 # tabletop_multiscene_static_sideview.ckpt 
 # Static cam affordance model to detect the targets
-gripper_cam_aff_path: ${paths.trained_models}/tabletop_multiscene_gripper_labels.ckpt
-static_cam_aff_path: ${paths.trained_models}/tabletop_multiscene_static_sideview.ckpt
+gripper_cam_aff_path: ${paths.trained_models}/gripper_tabletop.ckpt
+static_cam_aff_path: ${paths.trained_models}/static_tabletop.ckpt
 target_search:
   mode: "env" # "affordance"
   aff_cfg:
@@ -74,7 +74,7 @@ affordance:
       use_distance: False
       densify_reward: False  # Use affordance to shape the reward function
       target_in_obs: False  # Add target detected by affordance into observation
-      model_path: ${gripper_cam_aff_path} # tabletop_multiscene_gripper_sideview_2.ckpt  # gripper_centers_2-5_1_5_1_64px_epoch_40.ckpt
+      model_path: ${gripper_cam_aff_path}
 
 hydra:
   run:

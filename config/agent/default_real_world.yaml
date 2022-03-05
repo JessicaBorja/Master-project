@@ -17,9 +17,10 @@ net_cfg:
     hidden_dim: 256
     latent_dim: 16
     activation: relu
+    n_layers: 4
     affordance: ${affordance}
-    actor_net: CNNPolicyRes
-    critic_net: CNNCriticRes
+    actor_net: CNNPolicyReal
+    critic_net: CNNCriticDenseNet
 
 learn_config:
     total_timesteps: 90000

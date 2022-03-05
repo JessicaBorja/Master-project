@@ -168,39 +168,6 @@ class CNNPolicy(nn.Module):
         return action, log_probs
 
 
-class CNNPolicyRes(CNNPolicy):
-    def __init__(self, *args, **kwargs):
-        super(CNNPolicyRes, self).__init__(*args, **kwargs)
-        out_size = self.hidden_dim + self.out_feat
-        self.fc0 = nn.Linear(self.out_feat, self.hidden_dim)
-        self.fc1 = nn.Linear(out_size, self.hidden_dim)
-        self.fc2 = nn.Linear(out_size, self.hidden_dim)
-        self.fc3 = nn.Linear(out_size, self.hidden_dim)
-        # Last dimension of action_dim is gripper_action
-        self.mu = nn.Linear(self.hidden_dim, self.action_dim - 1)
-        self.sigma = nn.Linear(self.hidden_dim, self.action_dim - 1)
-        self.gripper_action = nn.Linear(self.hidden_dim, 2)  # open / close
-
-    def forward(self, obs):
-        features = get_concat_features(self.aff_cfg,
-                                       obs,
-                                       self.cnn_img,
-                                       self.cnn_gripper)
-        x = F.elu(self.fc0(features))
-        x = torch.cat([x, features], -1)
-        x = F.elu(self.fc1(x))
-        x = torch.cat([x, features], -1)
-        x = F.elu(self.fc2(x))
-        x = torch.cat([x, features], -1)
-        x = F.elu(self.fc3(x))
-        mu = self.mu(x)
-        log_sigma = self.sigma(x)
-        gripper_action_logits = self.gripper_action(x)
-        # avoid log_sigma to go to infinity
-        sigma = torch.clamp(log_sigma, -20, 2).exp()
-        return mu, sigma, gripper_action_logits
-
-
 class CNNPolicyDenseNet(CNNPolicy):
     def __init__(self, *args, **kwargs):
         super(CNNPolicyDenseNet, self).__init__(*args, **kwargs)
@@ -235,67 +202,34 @@ class CNNPolicyDenseNet(CNNPolicy):
         return mu, sigma, gripper_action_logits
 
 
-class CNNPolicyReal(nn.Module):
-    def __init__(self, obs_space, action_dim, action_space, affordance=None,
-                 activation="relu", hidden_dim=256, latent_dim=16, **kwargs):
-        super(CNNPolicyReal, self).__init__()
-        self.action_high = torch.tensor(action_space.high).cuda()
-        self.action_low = torch.tensor(action_space.low).cuda()
-        _robot_obs_shape = get_pos_shape(obs_space, "robot_obs")
-        _target_pos_shape = get_pos_shape(obs_space, "detected_target_pos")
-        _distance_shape = get_pos_shape(obs_space, "target_distance")
-        self.cnn_img = get_img_network(
-                            obs_space,
-                            out_feat=latent_dim,
-                            activation=activation,
-                            affordance_cfg=affordance.static_cam,
-                            cam_type="static")
-        self.cnn_gripper = get_img_network(
-                            obs_space,
-                            out_feat=latent_dim,
-                            activation=activation,
-                            affordance_cfg=affordance.gripper_cam,
-                            cam_type="gripper")
-        out_feat = 0
-        for net in [self.cnn_img, self.cnn_gripper]:
-            if(net is not None):
-                out_feat += latent_dim
-        out_feat += _robot_obs_shape + _target_pos_shape + _distance_shape
-        self.out_feat = out_feat
-        self.hidden_dim = hidden_dim
-        self.action_dim = action_dim
+class CNNPolicyReal(CNNPolicy):
+    def __init__(self, *args, **kwargs):
+        super(CNNPolicyReal, self).__init__(*args, **kwargs)
+        n_layers = kwargs["n_layers"]
+        out_size = self.out_feat
+        for i in range(n_layers):
+            self.fc_layers.append(nn.Linear(out_size, self.hidden_dim))
+            out_size += self.hidden_dim
 
-        out_size = self.hidden_dim + self.out_feat
-        self.fc0 = nn.Linear(self.out_feat, self.hidden_dim)
-        self.fc1 = nn.Linear(out_size, self.hidden_dim)
-        self.fc2 = nn.Linear(out_size, self.hidden_dim)
-        self.fc3 = nn.Linear(out_size, self.hidden_dim)
-        self.mu = nn.Linear(hidden_dim, action_dim)
-        self.sigma = nn.Linear(hidden_dim, action_dim)
-        self.aff_cfg = affordance
+        self.fc_layers = nn.ModuleList(self.fc_layers)
+
+        # Last dimension of action_dim is gripper_action
+        self.mu = nn.Linear(out_size, self.action_dim)
+        self.sigma = nn.Linear(out_size, self.action_dim)
 
     def forward(self, obs):
-        features = get_concat_features(self.aff_cfg,
-                                       obs,
-                                       self.cnn_img,
-                                       self.cnn_gripper)
-        x = F.elu(self.fc0(features))
-        x = torch.cat([x, features], -1)
-        x = F.elu(self.fc1(x))
-        x = torch.cat([x, features], -1)
-        x = F.elu(self.fc2(x))
-        x = torch.cat([x, features], -1)
-        x = F.elu(self.fc3(x))
-        mu = self.mu(x)
-        log_sigma = self.sigma(x)
+        x_in = get_concat_features(self.aff_cfg,
+                                   obs,
+                                   self.cnn_img,
+                                   self.cnn_gripper)
+        for layer in self.fc_layers:
+            x_out = F.silu(layer(x_in))
+            x_in = torch.cat([x_out, x_in], -1)
+        mu = self.mu(x_in)
+        log_sigma = self.sigma(x_in)
         # avoid log_sigma to go to infinity
         sigma = torch.clamp(log_sigma, -20, 2).exp()
         return mu, sigma
-
-    def scale_action(self, action):
-        slope = (self.action_high - self.action_low) / 2
-        action = self.action_low + slope * (action + 1)
-        return action
 
     # return action scaled to env
     def act(self, curr_obs, deterministic=False, reparametrize=False):

@@ -343,7 +343,7 @@ class SAC():
             if(mean_return >= best_eval_return):
                 self.log.info("[%d] New best eval avg. return!%.3f" %
                               (episode, mean_return))
-                self.save(self.trained_path+"_best_eval.pth")
+                self.save(self.trained_path+"best_eval.pth")
                 best_eval_return = mean_return
             # Meassure success
         n_success = np.sum(success_lst)

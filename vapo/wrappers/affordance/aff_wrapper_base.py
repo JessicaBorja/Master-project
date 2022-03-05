@@ -248,11 +248,12 @@ class AffordanceWrapperBase(gym.Wrapper):
         img = (img + 1) / 2
         img = (img[:, :, ::-1] * 255).astype('uint8')
 
-        mask = obs_dct["gripper_aff"].squeeze()
-        mask = mask.detach().cpu().numpy()
-        mask = (mask * 255).astype('uint8')
+        if "gripper_aff" in obs_dct:
+            mask = obs_dct["gripper_aff"].squeeze()
+            mask = mask.detach().cpu().numpy()
+            mask = (mask * 255).astype('uint8')
 
-        img = overlay_mask(mask, img, (0, 0, 255))
+            img = overlay_mask(mask, img, (0, 0, 255))
         img = cv2.resize(img, (200, 200))
         cv2.imshow("transformed img", img)
 

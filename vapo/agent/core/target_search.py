@@ -83,10 +83,7 @@ class TargetSearch():
             res = self._compute_target_aff(env, self.static_cam,
                                            depth_obs, orig_img, rand_sample)
             target_pos, no_target, object_centers = res
-            if(noisy):
-                target_pos += np.random.normal(loc=0,
-                                               scale=[0.01, 0.01, 0.005],
-                                               size=(len(target_pos)))
+
             if(return_all_centers):
                 obj_centers = []
                 for center in object_centers:

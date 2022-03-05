@@ -19,7 +19,5 @@ folder_name: ${test.models_dir}/pickup/2022-02-21/21-12-47_aff_rl
 
 eval_cfg:
   n_episodes: 5
-  render: False
   print_all_episodes: True
   max_episode_length: 100
-  save_images: ${save_images}

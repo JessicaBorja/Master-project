@@ -9,6 +9,7 @@ from vapo.utils.utils import load_cfg
 
 @hydra.main(config_path="../config", config_name="cfg_tabletop")
 def main(cfg):
+    # Load model cfg
     original_dir = hydra.utils.get_original_cwd()
     run_dir = os.path.join(original_dir, cfg.test.folder_name)
     run_dir = os.path.abspath(run_dir)
@@ -22,9 +23,10 @@ def main(cfg):
     run_cfg.target_search = cfg.target_search
     run_cfg.camera_conf = cfg.camera_conf
     run_cfg.env_wrapper.use_aff_termination = True
-
     max_ts = cfg.agent.learn_config.max_episode_length
-    save_images = cfg.test.eval_cfg.save_images
+    save_images = cfg.save_images
+
+    # Load env
     env = PlayTableRL(viz=cfg.viz_obs,
                       save_images=save_images,
                       **run_cfg.env)

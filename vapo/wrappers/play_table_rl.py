@@ -238,7 +238,8 @@ class PlayTableRL(PlayTableSimEnv):
                                                  physicsClientId=self.cid)[0]
             targetState = self.p.getJointState(link_id, 0,
                                                physicsClientId=self.cid)[0]
-            targetWorldPos = [-0.05, targetWorldPos[1] - 0.38, 0.5]
+            targetWorldPos = [-0.05, targetWorldPos[1] - 0.41, 0.53]
+            # self.p.addUserDebugText("O", textPosition=targetWorldPos, textColorRGB=[0, 0, 1])
             targetState = self._normalize(targetState, 0, 0.23)
         else:
             lifted = False

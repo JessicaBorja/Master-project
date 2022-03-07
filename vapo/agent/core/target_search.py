@@ -83,8 +83,13 @@ class TargetSearch():
             res = self._compute_target_aff(env, self.static_cam,
                                            depth_obs, orig_img, rand_sample)
             target_pos, no_target, object_centers = res
+            if noisy:
+                target_pos += np.random.normal(loc=0, scale=[0.005, 0.005, 0.01],
+                                               size=(len(target_pos)))
+            if env.task != "pickup":
+                target_pos += np.array([0.01, 0.035, -0.01])
 
-            if(return_all_centers):
+            if return_all_centers:
                 obj_centers = []
                 for center in object_centers:
                     obj = {}
@@ -98,7 +103,7 @@ class TargetSearch():
                 if(env.task == "pickup"):
                     env.target = self.find_env_target(env, target_pos)
         else:
-            if(rand_sample):
+            if rand_sample:
                 env.pick_table_obj()
             res = self._env_compute_target(env, noisy)
         return res
@@ -106,13 +111,13 @@ class TargetSearch():
     def get_world_pt(self, pixel, cam, depth, env):
         x = pixel
         v, u = pixel
-        if(self.mode == "real_world"):
+        if self.mode == "real_world":
             pt_cam = cam.deproject([u, v], depth, homogeneous=True)
             if(pt_cam is not None and len(pt_cam) > 0):
                 world_pt = self.T_world_cam @ pt_cam
                 world_pt = world_pt[:3]
         else:
-            if(env.task == "drawer" or env.task == "slide"):
+            if env.task == "drawer" or env.task == "slide":
                 # As center might  not be exactly in handle
                 # look for max depth around neighborhood
                 n = 10
@@ -125,13 +130,13 @@ class TargetSearch():
 
     # Env real target pos
     def _env_compute_target(self, env=None, noisy=False):
-        if(not env):
+        if not env:
             env = self.env
         # This should come from static cam affordance later on
         target_pos, _ = env.get_target_pos()
         # 2 cm deviation
         target_pos = np.array(target_pos)
-        if(noisy):
+        if noisy:
             target_pos += np.random.normal(loc=0, scale=[0.005, 0.005, 0.01],
                                            size=(len(target_pos)))
 
@@ -152,7 +157,7 @@ class TargetSearch():
                                     class_label=self.class_label)
         centers, aff_mask, directions, aff_probs, object_masks = res
         # Visualize predictions
-        if(env.viz or self.save_images):
+        if env.viz or self.save_images:
             img_dict = viz_aff_centers_preds(orig_img, aff_mask,
                                              directions, centers,
                                              "static",
@@ -167,7 +172,7 @@ class TargetSearch():
 
         # No center detected
         no_target = len(centers) <= 0
-        if(no_target):
+        if no_target:
             default = self.initial_pos
             return np.array(default), no_target, []
 
@@ -175,7 +180,7 @@ class TargetSearch():
         obj_class = np.unique(object_masks)[1:]
         obj_class = obj_class[obj_class != 0]  # remove background class
 
-        if(rand_sample):
+        if rand_sample:
             target_idx = np.random.randint(len(centers))
             # target_idx = object_centers[rand_target]
         else:
@@ -197,7 +202,7 @@ class TargetSearch():
             world_pts.append(world_pt)
 
         # Recover target
-        if(self.env.viz or self.save_images):
+        if self.env.viz or self.save_images:
             v, u = resize_center(centers[target_idx], pred_shape, new_shape)
             out_img = cv2.drawMarker(np.array(orig_img),
                                      (u, v),
@@ -240,7 +245,7 @@ class TargetSearch():
         # Static camera
         u1, v1 = self.static_cam.project(np.array(box_top_left))
         u2, v2 = self.static_cam.project(np.array(box_bott_right))
-        if(self.mode == "real_world"):
+        if self.mode == "real_world":
             shape = self.static_cam.resize_resolution
         else:
             shape = (self.static_cam.width, self.static_cam.height)

@@ -351,7 +351,7 @@ class SAC():
             self.log.info("[%d] New most successful! %d/%d" %
                           (episode, n_success, len(success_lst)))
             self.save(self.trained_path
-                      + "_most_tasks_from_%d.pth" % len(success_lst))
+                      + "most_tasks_from_%d.pth" % len(success_lst))
             most_tasks = n_success
         wandb.log({
             **write_dict,

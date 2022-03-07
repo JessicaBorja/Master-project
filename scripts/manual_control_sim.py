@@ -47,38 +47,49 @@ def main(cfg):
                                **cfg.env_wrapper)
 
     sac_cfg = {"env": env,
-                "eval_env": None,
-                "model_name": cfg.model_name,
-                "save_dir": cfg.agent.save_dir,
-                "net_cfg": cfg.agent.net_cfg,
-                "train_mean_n_ep": cfg.agent.train_mean_n_ep,
-                "save_replay_buffer": cfg.agent.save_replay_buffer,
-                "log": log,
-                **cfg.agent.hyperparameters}
+               "eval_env": None,
+               "model_name": cfg.model_name,
+               "save_dir": cfg.agent.save_dir,
+               "net_cfg": cfg.agent.net_cfg,
+               "train_mean_n_ep": cfg.agent.train_mean_n_ep,
+               "save_replay_buffer": cfg.agent.save_replay_buffer,
+               "log": log,
+               **cfg.agent.hyperparameters}
 
     log.info("model: %s" % cfg.model_name)
     model = VAPOAgent(cfg, sac_cfg=sac_cfg, wandb_login=cfg.wandb_login)
 
     # Manual control
-    key_map = {"up": {"axis": 1, "value": 1},
-                "down": {"axis": 1, "value": -1},
-                "left": {"axis": 0, "value": -1},
-                "right": {"axis": 0, "value": 1},
-                "w": {"axis": 2, "value": 1},
-                "s": {"axis": 2, "value": -1},
-                "q": {"axis": 3, "value": 1},
-                "e": {"axis": 3, "value": -1},
-                "f": {"axis": 4, "value": -1}}
+    x_axis = {"left": {"axis": 0, "value": -1},
+              "right": {"axis": 0, "value": 1}}
+    y_axis = {"up": {"axis": 1, "value": 1},
+              "down": {"axis": 1, "value": -1}}
+    z_axis = {"w": {"axis": 2, "value": 1},
+              "s": {"axis": 2, "value": -1}}
+    roll = {"r": {"axis": 3, "value": 1},
+            "f": {"axis": 3, "value": -1}}
+    pitch = {"q": {"axis": 4, "value": 1},
+             "e": {"axis": 4, "value": -1}}
+    yaw = {"a": {"axis": -2, "value": 1},
+           "d": {"axis": -2, "value": -1}}
+    gripper = {"f": {"axis": -1, "value": -1}}
+    action_dim = env.action_space.shape[0]
+
+    key_map = {**x_axis, **y_axis, **z_axis,
+               **roll, **pitch, **yaw,
+               **gripper}
+
     env, s, _ = model.detect_and_correct(env, None, noisy=True)
     for i in range(10):
         for i in range(1000):
-            action = np.zeros(env.action_space.shape[0])
+            action = np.zeros(action_dim)
             action[-1] = 1
             for k, v in key_map.items():
                 if curr_key is not None:
                     if curr_key == k:
                         axis = v["axis"]
-                        action[axis] = v["value"]
+                        if axis < action_dim:
+                            action[axis] = v["value"]
             ns, r, d, info = env.step(action)
         env, s, _ = model.detect_and_correct(env, None, noisy=True)
 

@@ -37,7 +37,7 @@ def main(cfg):
                "net_cfg": net_cfg,
                **agent_cfg}
 
-    run_cfg.target_search.mode = 'env'
+    run_cfg.target_search.mode = 'affordance'
     model = VAPOAgent(run_cfg,
                       sac_cfg=sac_cfg)
     path = "%s/trained_models/%s.pth" % (run_dir,

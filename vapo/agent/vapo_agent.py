@@ -220,6 +220,11 @@ class VAPOAgent(SAC):
         # One episode per task
         for episode in range(n_episodes):
             s = env.reset(eval=True)
+            # rand_pos = self.origin + np.random.uniform(low=[-0.5, -0.01, -0.02],
+            #                                            high=[0.0, 0.01, 0.05],
+            #                                            size=(len(self.origin)))
+
+            # env.move_to_target(rand_pos)
             if(env.task == "pickup"):
                 if(self.target_search.mode == "env"):
                     env.target = tasks[task_it]

@@ -37,8 +37,8 @@ wandb_login:
   project: vapo_real_world
 
 # Static cam affordance model to detect the targets
-static_cam_aff_model: ${paths.vapo_path}/hydra_outputs/affordance_model/2021-11-26/18-46-22_aff_rl/trained_models/last.ckpt
-gripper_cam_aff_model: ${paths.vapo_path}/hydra_outputs/affordance_model/2021-11-26/18-46-38_aff_rl/trained_models/last.ckpt
+static_cam_aff_model: ${paths.trained_models}/affordance/real_world_static.ckpt
+gripper_cam_aff_model: ${paths.trained_models}/affordance/real_world_gripper.ckpt
 n_objects: 4
 target_search:
   mode: real_world

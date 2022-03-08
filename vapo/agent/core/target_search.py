@@ -3,7 +3,7 @@ import os
 import cv2
 import torch
 import pybullet as p
-from affordance.utils.img_utils import viz_aff_centers_preds, transform_and_predict, resize_center
+from vapo.affordance.utils.img_utils import viz_aff_centers_preds, transform_and_predict, resize_center
 from vapo.utils.utils import init_aff_net
 
 

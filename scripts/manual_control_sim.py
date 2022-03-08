@@ -7,7 +7,6 @@ from vapo.wrappers.utils import get_name
 from vapo.agent.vapo_agent import VAPOAgent
 from pynput import keyboard
 import numpy as np
-import pybullet as p
 
 curr_key = None
 

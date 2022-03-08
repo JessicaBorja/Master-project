@@ -2,7 +2,7 @@ import gym
 import cv2
 import numpy as np
 import torch
-from affordance.utils.utils import get_transforms
+from vapo.affordance.utils.utils import get_transforms
 
 
 def get_name(cfg, model_name):

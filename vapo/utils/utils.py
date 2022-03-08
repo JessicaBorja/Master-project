@@ -6,7 +6,7 @@ import hydra
 
 from omegaconf import OmegaConf
 from vapo.agent.core.utils import set_init_pos
-from affordance.affordance_model import AffordanceModel
+from vapo.affordance.affordance_model import AffordanceModel
 import glob
 
 

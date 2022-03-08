@@ -54,8 +54,8 @@ env_wrapper:
 
 # tabletop_multiscene_static_sideview.ckpt 
 # Static cam affordance model to detect the targets
-gripper_cam_aff_path: ${paths.trained_models}/gripper_playtable.ckpt
-static_cam_aff_path: ${paths.trained_models}/static_playtable.ckpt
+gripper_cam_aff_path: ${paths.trained_models}/affordance/gripper_playtable.ckpt
+static_cam_aff_path: ${paths.trained_models}/affordance/static_playtable.ckpt
 target_search:
   mode: "env"
   aff_cfg:

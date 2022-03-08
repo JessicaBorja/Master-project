@@ -4,7 +4,7 @@ import sys
 
 from vapo.agent.core.sac import SAC
 from vapo.agent.core.utils import tt
-from affordance.utils.utils import get_transforms
+from vapo.affordance.utils.utils import get_transforms
 from vapo.agent.core.target_search import TargetSearch
 
 

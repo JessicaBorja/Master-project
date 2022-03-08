@@ -6,19 +6,17 @@ Implementation of Visual Affordance-guided Policy Optimization
 ```
 git clone https://github.com/mees/vapo.git
 cd vapo/
-conda create -n vapo
+conda create -n vapo python==3.8
 conda activate vapo
-pip install -e .
 ```
+- Install pytorch
 
-Install pytorch and set the CUDA toolkit version to match the native CUDA version (in /usr/local/cuda/), since you must compile the hough voting code with corresponding CUDA compiler (nvcc is not provided with the conda cudatoolkit distribution). This can be checked with: nvcc --version. This code was tested on pytorch 1.8 and cuda 10.1
+To install the voting layer the cudatoolkit installed with pytorch must match the native CUDA version (in /usr/local/cuda/) which will be used to compile the CUDA code. Otherwise, the compiled CUDA/C++ code may not be compatible with the conda-installed PyTorch.
 
-- Install the affordance model
+First check your CUDA version with nvcc --version or in /usr/local/cuda/version.json then install [pytorch](https://pytorch.org/get-started/locally/) with the corresponding toolkit version. This code was tested with pytorch 1.10 and cuda 11.3.
+
 ```
-git clone https://github.com/JessicaBorja/affordance.git
-conda activate vapo
-cd affordance/
-pip install -e .
+conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
 ```
 
 - Install the Hough voting layer
@@ -33,28 +31,27 @@ cmake ..
 sudo make install
 ```
 
-Go to the directory of the voting layer and run [setup.py](./affordance_model/hough_voting/setup.py). If you do not have sudo privileges, don't run `sudo make install` instead change the diretory in "include_dirs" to match where the eigen-git-mirror repo was downloaded, then run: 
+Go to the directory of the voting layer and run [setup.py](./vapo/affordance/hough_voting/setup.py). If you do not have sudo privileges, don't run `sudo make install` instead change the diretory in "include_dirs" to match where the eigen-git-mirror repo was downloaded, then run: 
 
 ```
 conda activate vapo
-cd /ROOT_DIR/affordance_model/hough_voting/
+cd /VAPO_ROOT/vapo/affordance/hough_voting/
 python setup.py install
 ```
 
-# Running experiments
-## Reinforcement Learning policy
-hydra configuration for tabletop experiments can be found in [cfg_tabletop.yaml]("./config/cfg_tabletop.yaml")
-Name gets generated automatically depending on wether it uses a dense or sparse reward, if it uses the detected target and if it uses the affordance mask in the observation.
+- Install extra dependencies
+```
+cd /VAPO_ROOT/
+pip install -e .
+```
 
-**Example**:
-Baseline model
-` python ./scripts/train_tabletop.py model_name=baseline paths.parent_folder=parent_folder`
+- Install the VRENv
+[Setup](https://github.com/JessicaBorja/VREnv/blob/master/docs/setup.md)
 
-This model will get the name full_sparse given the configuration parameters. parent_folder should point to the parent directory where vapo and the VREnv are stored.
+# Training a model
+## Affordance
+## Policy
 
-VAPO
-`python ./scripts/train_tabletop.py paths.parent_folder=~/ model_name=full affordance.gripper_cam.densify_reward=True affordance.gripper_cam.use_distance=True affordance.gripper_cam.use=True`
-
-
-# Testing experiments
-For testing both the affordance model and reinforcement learning policy, the hydra configuration that was generated during training is loaded. This way the model gets loaded with the correct parameters.
+# Testing a model
+## Affordance
+## Policy

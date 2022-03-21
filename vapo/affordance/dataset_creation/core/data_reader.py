@@ -4,8 +4,8 @@ import os
 import numpy as np
 import tqdm
 
-from affordance.dataset_creation.core.utils import check_file, get_abs_path, get_data
-from affordance.utils.utils import quat_to_euler
+from vapo.affordance.dataset_creation.core.utils import check_file, get_abs_path, get_data
+from vapo.affordance.utils.utils import quat_to_euler
 
 log = logging.getLogger(__name__)
 

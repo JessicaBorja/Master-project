@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.cluster import DBSCAN, KMeans
 import tqdm
 
-from affordance.dataset_creation.core.utils import check_file, get_files
+from vapo.affordance.dataset_creation.core.utils import check_file, get_files
 
 
 def find_clusters(directions, root_dir):

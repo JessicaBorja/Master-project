@@ -8,8 +8,8 @@ import numpy as np
 from sklearn.cluster import DBSCAN, KMeans
 import tqdm
 
-from affordance.dataset_creation.core.data_discovery import TaskDetector
-from affordance.dataset_creation.core.utils import check_file, get_data
+from vapo.affordance.dataset_creation.core.data_discovery import TaskDetector
+from vapo.affordance.dataset_creation.core.utils import check_file, get_data
 
 
 def plot_clusters(data):

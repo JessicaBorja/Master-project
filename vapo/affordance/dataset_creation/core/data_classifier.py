@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.cluster import DBSCAN, KMeans
 
-from affordance.utils.utils import get_abs_path
+from vapo.affordance.utils.utils import get_abs_path
 
 
 class BaseDetector:

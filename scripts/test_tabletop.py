@@ -43,8 +43,7 @@ def main(cfg):
     run_cfg.target_search.mode = 'affordance'
     model = VAPOAgent(run_cfg,
                       sac_cfg=sac_cfg)
-    path = "%s/trained_models/%s.pth" % (run_dir,
-                                         cfg.test.model_name)
+    path = "%s/trained_models/%s.pth" % (run_dir, cfg.test.model_name)
     success = model.load(path)
     if(success):
         model.tidy_up(env)

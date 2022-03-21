@@ -7,16 +7,16 @@ import hydra
 import numpy as np
 import pybullet as p
 
-from affordance.dataset_creation.core.data_classifier import BaseDetector
-from affordance.dataset_creation.core.data_reader import DataReader
-from affordance.dataset_creation.core.utils import (
+from vapo.affordance.dataset_creation.core.data_classifier import BaseDetector
+from vapo.affordance.dataset_creation.core.data_reader import DataReader
+from vapo.affordance.dataset_creation.core.utils import (
     create_data_ep_split,
     create_json_file,
     instantiate_env,
     save_dict_data,
 )
 import affordance.utils.flowlib as flowlib
-from affordance.utils.img_utils import (
+from vapo.affordance.utils.img_utils import (
     create_circle_mask,
     get_px_after_crop_resize,
     overlay_flow,
@@ -24,7 +24,7 @@ from affordance.utils.img_utils import (
     resize_mask_and_center,
     tresh_np,
 )
-from affordance.utils.utils import get_abs_path
+from vapo.affordance.utils.utils import get_abs_path
 
 log = logging.getLogger(__name__)
 

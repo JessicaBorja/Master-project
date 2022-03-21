@@ -11,8 +11,8 @@ from omegaconf import OmegaConf
 from omegaconf.dictconfig import DictConfig
 import tqdm
 
-from affordance.dataset_creation.core.real_cameras import CamProjections
-from affordance.utils.utils import get_abs_path
+from vapo.affordance.dataset_creation.core.real_cameras import CamProjections
+from vapo.affordance.utils.utils import get_abs_path
 
 logger = logging.getLogger(__name__)
 

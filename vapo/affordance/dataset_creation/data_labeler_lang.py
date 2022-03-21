@@ -5,9 +5,9 @@ import hydra
 import numpy as np
 import pybullet as p
 
-from affordance.dataset_creation.core.utils import create_data_ep_split, create_json_file
-from affordance.dataset_creation.data_labeler import DataLabeler
-from affordance.utils.img_utils import add_img_text, resize_center
+from vapo.affordance.dataset_creation.core.utils import create_data_ep_split, create_json_file
+from vapo.affordance.dataset_creation.data_labeler import DataLabeler
+from vapo.affordance.utils.img_utils import add_img_text, resize_center
 
 log = logging.getLogger(__name__)
 

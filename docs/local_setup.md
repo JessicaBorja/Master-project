@@ -4,17 +4,17 @@
 ```
 git clone https://github.com/mees/vapo.git
 cd vapo/
-conda create -n vapo python==3.8
+conda create -n vapo python=3.8
 conda activate vapo
 ```
 - Install pytorch
 
 To install the voting layer the cudatoolkit installed with pytorch must match the native CUDA version (in /usr/local/cuda/) which will be used to compile the CUDA code. Otherwise, the compiled CUDA/C++ code may not be compatible with the conda-installed PyTorch.
 
-First check your CUDA version with nvcc --version or in /usr/local/cuda/version.json then install [pytorch](https://pytorch.org/get-started/locally/) with the corresponding toolkit version. This code was tested with pytorch 1.10 and cuda 11.3.
+First check your CUDA version with nvcc --version or in /usr/local/cuda/version.json then install [pytorch](https://pytorch.org/get-started/locally/) with the corresponding toolkit version. This code was tested with pytorch 1.11 and cuda 11.3.
 
 ```
-conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+pip3 install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
 ```
 
 - Install the Hough voting layer
@@ -44,9 +44,8 @@ pip install -e .
 ```
 
 - Install the VRENv
-[Setup](https://github.com/JessicaBorja/VREnv/blob/master/docs/setup.md)
-
-# Setting up git branches
-- Checkout to RLSupport branch on VRENV
-- Checkout to dev_jessica on VRData
-
+[Setup](../VREnv/docs/setup.md)
+```
+cd /VAPO_ROOT/VREnv/
+pip install -e .
+```

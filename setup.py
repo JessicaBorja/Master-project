@@ -7,7 +7,7 @@ setup(name='vapo',
       install_requires=[
         "hydra-core",
         "opencv-python",
-        "pytorch-lightning",
+        "pytorch-lightning==1.5.9",
         "segmentation-models-pytorch",
         "pybullet",
         "numpy-quaternion",

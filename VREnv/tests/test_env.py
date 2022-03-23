@@ -2,7 +2,6 @@ import pybullet as p
 import math
 import hydra
 import cv2
-from vapo.wrappers.play_table_rl import PlayTableRL
 from vr_env.envs.play_table_env import PlayTableSimEnv
 
 def set_init_pos(task, init_pos):

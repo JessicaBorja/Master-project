@@ -1,7 +1,7 @@
 load_dir: ???
 data_path: data
 save_dir: ../tmp/
-show_gui: true
+show_gui: False
 processes: 1
 task: slide
 img_obs: True

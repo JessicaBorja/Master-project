@@ -96,7 +96,7 @@ def change_project_path(cfg, run_cfg):
         cfg.project_path)
 
 
-def load_cfg(cfg_path, cfg, optim_res):
+def load_cfg(cfg_path, cfg, optim_res=False):
     if(os.path.exists(cfg_path) and not optim_res):
         run_cfg = OmegaConf.load(cfg_path)
         net_cfg = run_cfg.agent.net_cfg

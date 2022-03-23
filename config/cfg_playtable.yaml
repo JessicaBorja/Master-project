@@ -5,7 +5,6 @@ defaults:
   - env@eval_env: env_combined
   - camera_conf: playtable
   - agent: default
-  - test: test_playtable
   - paths: general_paths
   - aff_model@target_search.aff_cfg.hyperparameters: static_cam_playtable
   - aff_model@affordance.static_cam.hyperparameters: static_cam_playtable
@@ -33,10 +32,22 @@ save_images: False
 resume_training: False
 resume_model_path: ./
 
+test:
+  # Absolute path where models are stored
+  models_dir: ${paths.vapo_path}/hydra_outputs  
+  # Vapo
+  model_name: most_tasks_from_5
+  folder_name: ${test.models_dir}/drawer/2022-03-04/19-21-57_vapo
+  eval_cfg:
+    n_episodes: 10
+    print_all_episodes: True
+    max_episode_length: 100
+
 # Wandb
 wandb_login:
-  entity: jessibd
+  entity: test
   project: vapo
+  mode: offline
 
 # Define types of observation input to the RL agent
 gripper_offset: [0.0, 0.0, -0.04]

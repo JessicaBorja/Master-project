@@ -1,10 +1,15 @@
-# Installation
-- Install [docker](https://www.docker.com/)
-- Install [nvidia-docker]([https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html]) to enable gpu usage.
-For the full installation details on nvidia-docker, refer to the nvidia [documentation]([https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html])
+# Setup
+## Install docker
 
+Install [docker](https://docs.docker.com/engine/install/) by selecting the correct platform and following the instructions.
 
-On the host computer setup the gpc keys.
+## Nvidia-docker
+
+Install [nvidia-docker](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) to enable gpu usage.
+
+For the full installation details on nvidia-docker, refer to the nvidia [documentation](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+
+If you are using ubuntu, on the host computer setup the gpc keys.
 ```
 distribution=$(. /etc/os-release;echo $ID$VERSION_ID) \
    && curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add - \
@@ -27,13 +32,16 @@ At this point, a working setup can be tested by running a base CUDA container:
 sudo docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
 ```
 
-- Build the image
+## Preparing the environment
+
+### Build the image
 In the directory where the Dockerfile is, run:
 ```
 docker build -t vapo_image .
+docker build -t test .
 ```
 
-- Run a container
+### Run a container
 
 The following line will run the vapo_image under the docker container named "vapo_container". This will open a command line of an ubuntu filesystem in which you can run the code of this repo. 
 
@@ -45,8 +53,9 @@ The -it flag is to open an interactive session
 
 ```
 docker run -it --gpus all --name vapo_container vapo_image bash
+docker run -it --gpus all --rm --name test_container test_img bash
 ```
-# Resume the container
+###  Resume the container
 Start your container using container id: 
 ```
 docker start vapo_container
@@ -57,7 +66,7 @@ Attach and run your container:
 docker attach vapo_container
 ```
 
-# Forwarding cv2 imshow to docker
+### Forwarding cv2 imshow to host
 
 https://stackoverflow.com/questions/67099130/how-to-run-my-scrip-python-opencv-on-docker-ubuntu
 

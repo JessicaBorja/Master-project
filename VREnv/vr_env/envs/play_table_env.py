@@ -1,6 +1,4 @@
-from copy import deepcopy
 import logging
-from math import pi
 import os
 from pathlib import Path
 import pickle
@@ -19,7 +17,7 @@ import pybullet as p
 import pybullet_utils.bullet_client as bc
 
 import vr_env
-from vr_env.utils.utils import FpsController, get_git_commit_hash, timeit
+from vr_env.utils.utils import FpsController, get_git_commit_hash
 
 # A logger for this file
 log = logging.getLogger(__name__)
